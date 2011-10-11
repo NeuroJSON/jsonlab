@@ -1,0 +1,20 @@
+The author of "jsonlab" toolbox is Qianqian Fang. Qianqian
+is currently an Instructor at Massachusetts General Hospital, 
+Harvard Medical School.
+
+Address: Martinos Center for Biomedical Imaging, 
+         Massachusetts General Hospital, 
+         Harvard Medical School
+         Bldg 149, 13th St, Charlestown, MA 02129, USA
+URL: http://nmr.mgh.harvard.edu/~fangq/
+Email: <fangq at nmr.mgh.harvard.edu> or <fangqq at gmail.com>
+
+
+The script loadjson.m was built upon previous works by
+
+- Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
+       date: 2009/11/02
+- François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
+       date: 2009/03/22
+- Joel Feenstra: http://www.mathworks.com/matlabcentral/fileexchange/20565
+       date: 2008/07/03
