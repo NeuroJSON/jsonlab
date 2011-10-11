@@ -27,9 +27,9 @@ function data = loadjson(fname)
 % -- this function is part of jsonlab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-global pos inStr len  esc index_esc len_esc isoct
+global pos inStr len  esc index_esc len_esc isoct arraytoken
 
-if(regexp(fname,'[\{\}\]\[]'))
+if(regexp(fname,'[\{\}\]\[]','once'))
    string=fname;
 elseif(exist(fname,'file'))
    fid = fopen(fname,'rt');
@@ -41,6 +41,7 @@ end
 
 pos = 1; len = length(string); inStr = string;
 isoct=exist('OCTAVE_VERSION');
+arraytoken=find(inStr=='[' | inStr==']' | inStr=='"');
 
 % String delimiters and escape chars identified to improve speed:
 esc = find(inStr=='"' | inStr=='\' ); % comparable to: regexp(inStr, '["\\]');
@@ -78,19 +79,19 @@ for i=1:length(fn) % depth-first
         newdata=setfield(newdata,fn{i},jstruct2array(getfield(data,fn{i})));
     end
 end
-if(~isempty(strmatch('x_ArrayType',fn)) && ~isempty(strmatch('x_ArrayData',fn)))
-    newdata=cast(data.x_ArrayData,data.x_ArrayType);
-    if(~isempty(strmatch('x_ArrayIsSparse',fn)))
-        if(data.x_ArrayIsSparse)
-            if(~isempty(strmatch('x_ArraySize',fn)))
-                dim=data.x_ArraySize;
+if(~isempty(strmatch('x_ArrayType_',fn)) && ~isempty(strmatch('x_ArrayData_',fn)))
+    newdata=cast(data.x_ArrayData_,data.x_ArrayType_);
+    if(~isempty(strmatch('x_ArrayIsSparse_',fn)))
+        if(data.x_ArrayIsSparse_)
+            if(~isempty(strmatch('x_ArraySize_',fn)))
+                dim=data.x_ArraySize_;
                 newdata=sparse(newdata(:,1),newdata(:,2),newdata(:,3),dim(1),prod(dim(2:end)));
             else
                 newdata=sparse(newdata(:,1),newdata(:,2),newdata(:,3));
             end
         end
-    elseif(~isempty(strmatch('x_ArraySize',fn)))
-        newdata=reshape(newdata(:),data.x_ArraySize);
+    elseif(~isempty(strmatch('x_ArraySize_',fn)))
+        newdata=reshape(newdata(:),data.x_ArraySize_);
     end
 end
 
@@ -118,16 +119,21 @@ function object = parse_object
 %%-------------------------------------------------------------------------
 
 function object = parse_array % JSON array is written in row-major order
-global pos inStr len
+global pos inStr 
     parse_char('[');
     object = cell(0, 1);
     if next_char ~= ']'
         endpos=matching_bracket(inStr,pos);
-        arraystr=['[' inStr(pos-1:endpos)];
+        arraystr=['[' inStr(pos:endpos)];
         arraystr(find(arraystr==sprintf('\n')))=[];
         arraystr(find(arraystr==sprintf('\r')))=[];
         arraystr=regexprep(arraystr,'\]\s*,','];');
+        arraystr=regexprep(arraystr,'"_NaN_"','NaN');
+        arraystr=regexprep(arraystr,'"([-+]*)_Inf_"','$1Inf');
         try
+           if(isoct && regexp(arraystr,'"','once'))
+                error('Octave eval can produce empty cells for JSON-like input');
+           end
            object=eval(arraystr);
            pos=endpos;
         catch
@@ -155,7 +161,7 @@ global pos inStr len
 function parse_char(c)
     global pos inStr len
     skip_whitespace;
-    if pos > len | inStr(pos) ~= c
+    if pos > len || inStr(pos) ~= c
         error_pos(sprintf('Expected %c at position %%d', c));
     else
         pos = pos + 1;
@@ -192,7 +198,7 @@ function str = parseStr
     end
     str = '';
     while pos <= len
-        while index_esc <= len_esc & esc(index_esc) < pos
+        while index_esc <= len_esc && esc(index_esc) < pos
             index_esc = index_esc + 1;
         end
         if index_esc > len_esc
@@ -207,11 +213,11 @@ function str = parseStr
             case '"'
                 pos = pos + 1;
                 if(~isempty(str))
-                    if(strcmp(str,'_Inf'))
+                    if(strcmp(str,'_Inf_'))
                         str=Inf;
-                    elseif(strcmp(str,'-_Inf'))
+                    elseif(strcmp(str,'-_Inf_'))
                         str=-Inf;
-                    elseif(strcmp(str,'_NaN'))
+                    elseif(strcmp(str,'_NaN_'))
                         str=NaN;
                     end
                 end
@@ -319,7 +325,7 @@ global isoct
 % followed by any combination of letters, digits, and underscores.
 % Invalid characters will be converted to underscores, and the prefix
 % "x_" will be added if first character is not a letter.
-    if ~isletter(str(1))
+    if ~isletter(str(1)) || str(1)>'z'
         str = ['x' str];
     end
     if(isempty(regexp(str,'[^0-9A-Za-z_]', 'once' ))) return;  end
@@ -332,7 +338,7 @@ global isoct
         pos0=[0 pos(:)' length(str)];
         str='';
         for i=1:length(pos)
-            str=[str str0(pos0(i)+1:pos(i)-1) sprintf('_0x%X_',str0(pos(i)))]
+            str=[str str0(pos0(i)+1:pos(i)-1) sprintf('_0x%X_',str0(pos(i)))];
         end
         if(pos(end)~=length(str))
             str=[str str0(pos0(end-1)+1:pos0(end))];
@@ -355,15 +361,19 @@ end
 
 %%-------------------------------------------------------------------------
 function endpos = matching_bracket(str,pos)
-len=length(str);
+global arraytoken
 level=1;
 endpos=0;
+bpos=arraytoken(arraytoken>=pos);
+tokens=str(bpos);
+len=length(tokens);
+pos=1;
 while(pos<=len)
-    c=str(pos);
+    c=tokens(pos);
     if(c==']')
         level=level-1;
         if(level==0)
-            endpos=pos;
+            endpos=bpos(pos);
             return
         end
     end
@@ -371,7 +381,7 @@ while(pos<=len)
         level=level+1;
     end
     if(c=='"')
-        pos=matching_quote(str,pos+1);
+        pos=matching_quote(tokens,pos+1);
     end
     pos=pos+1;
 end

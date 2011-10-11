@@ -20,10 +20,10 @@ function json=savejson(rootname,obj,varargin)
 %        opt.ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
 %                         array in JSON array format; if sets to 1, an
 %                         array will be shown as a struct with fields
-%                         "_ArrayType", "_ArraySize" and "_ArrayData"; for
+%                         "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
 %                         sparse arrays, the non-zero elements will be
-%                         saved to _ArrayData field in triplet-format i.e.
-%                         (ix,iy,val) and "_ArrayIsSparse" will be added
+%                         saved to _ArrayData_ field in triplet-format i.e.
+%                         (ix,iy,val) and "_ArrayIsSparse_" will be added
 %                         with a value of 1.
 %
 % output:
@@ -113,7 +113,7 @@ for e=1:len
   if(~isempty(name) && len==1)
         txt=sprintf('%s%s"%s": {\n',txt,padding1, name); 
   else
-        txt=sprintf('%s%s{\n',txt,padding1); 
+        txt=sprintf('%s%s{\n',txt,repmat(sprintf('\t'),1,level+(len>1))); 
   end
   if(~isempty(names))
     for i=1:length(names)
@@ -147,7 +147,8 @@ else
     if(len>1) txt=sprintf('%s[\n',padding1); end
 end
 for e=1:len
-    val=regexprep(item(e,:),'([^\\])"','$1\\"');
+    val=regexprep(item(e,:),'\\','\\\\');
+    val=regexprep(val,'"','\\"');
     val=regexprep(val,'^"','\\"');
     if(len==1)
         obj=['"' name '": ' '"',val,'"'];
@@ -172,10 +173,10 @@ padding0=repmat(sprintf('\t'),1,level+1);
 
 if(length(size(item))>2 || issparse(item) || jsonopt('ArrayToStruct',0,varargin{:}))
     if(isempty(name))
-    	txt=sprintf('%s{\n%s"_ArrayType": "%s",\n%s"_ArraySize": %s,\n',...
+    	txt=sprintf('%s{\n%s"_ArrayType_": "%s",\n%s"_ArraySize_": %s,\n',...
               padding1,padding0,class(item),padding0,regexprep(mat2str(size(item)),'\s+',',') );
     else
-    	txt=sprintf('%s"%s": {\n%s"_ArrayType": "%s",\n%s"_ArraySize": %s,\n',...
+    	txt=sprintf('%s"%s": {\n%s"_ArrayType_": "%s",\n%s"_ArraySize_": %s,\n',...
               padding1,name,padding0,class(item),padding0,regexprep(mat2str(size(item)),'\s+',',') );
     end
 else
@@ -190,16 +191,16 @@ dataformat='%s%s%s%s%s';
 
 if(issparse(item))
     [ix,iy]=find(item);
-    txt=sprintf(dataformat,txt,padding0,'"_ArrayIsSparse": ','1', sprintf(',\n'));
+    txt=sprintf(dataformat,txt,padding0,'"_ArrayIsSparse_": ','1', sprintf(',\n'));
     if(find(size(item)==1))
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayData": ',...
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
            matdata2json([ix,full(item(find(item)))],level+2,varargin{:}), sprintf('\n'));
     else
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayData": ',...
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
            matdata2json([ix,iy,full(item(find(item)))],level+2,varargin{:}), sprintf('\n'));
     end
 else
-    txt=sprintf(dataformat,txt,padding0,'"_ArrayData": ',...
+    txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
         matdata2json(item(:)',level+2,varargin{:}), sprintf('\n'));
 end
 txt=sprintf('%s%s%s',txt,padding1,'}');
@@ -233,10 +234,10 @@ txt(end-1:end)=[];
 % end
 txt=[pre txt post];
 if(any(isinf(mat(:))))
-    txt=regexprep(txt,'([-+]*)Inf','"$1_Inf"');
+    txt=regexprep(txt,'([-+]*)Inf','"$1_Inf_"');
 end
 if(any(isnan(mat(:))))
-    txt=regexprep(txt,'NaN','"_NaN"');
+    txt=regexprep(txt,'NaN','"_NaN_"');
 end
 
 %%-------------------------------------------------------------------------
