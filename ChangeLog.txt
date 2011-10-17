@@ -1,0 +1,17 @@
+============================================================================
+
+     JSONlab - a toolbox to encode/decode JSON files in MATLAB/Octave
+
+----------------------------------------------------------------------------
+
+JSONlab ChangeLog (key features marked by *):
+
+== JSONlab 0.5.0 (codename: Nexus), FangQ <fangq nmr mgh harvard edu> ==
+
+ 2011/10/16  package and release jsonlab 0.5.0
+ 2011/10/15 *add json demo and regression test, support cpx numbers, fix double quote bug
+ 2011/10/11 *speed up readjson dramatically, interpret _Array* tags, show data in root level
+ 2011/10/10  create jsonlab project, start jsonlab website, add online documentation
+ 2011/10/07 *speed up savejson by 25x using sprintf instead of mat2str, add options support
+ 2011/10/06 *savejson works for structs, cells and arrays
+ 2011/09/09  derive loadjson from JSON parser from MATLAB Central, draft savejson.m
