@@ -5,7 +5,7 @@
 
 *Copyright (c) 2011  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 0.5.0 (Nexus)
+*Version: 0.5.1 (Nexus)
 
 -------------------------------------------------------------------------------
 

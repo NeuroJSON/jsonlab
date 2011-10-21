@@ -6,6 +6,11 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 0.5.1 (codename: Nexus Update 1), FangQ <fangq nmr mgh harvard edu> ==
+
+ 2011/10/21  fix a bug in loadjson, previous code does not use any of the acceleration
+ 2011/10/20  loadjson supports JSON collections: appendable JSON objects
+
 == JSONlab 0.5.0 (codename: Nexus), FangQ <fangq nmr mgh harvard edu> ==
 
  2011/10/16  package and release jsonlab 0.5.0
