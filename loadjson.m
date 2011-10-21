@@ -148,7 +148,7 @@ function object = parse_object
 %%-------------------------------------------------------------------------
 
 function object = parse_array % JSON array is written in row-major order
-global pos inStr 
+global pos inStr isoct
     parse_char('[');
     object = cell(0, 1);
     if next_char ~= ']'
