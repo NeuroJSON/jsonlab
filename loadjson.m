@@ -47,27 +47,45 @@ arraytoken=find(inStr=='[' | inStr==']' | inStr=='"');
 esc = find(inStr=='"' | inStr=='\' ); % comparable to: regexp(inStr, '["\\]');
 index_esc = 1; len_esc = length(esc);
 
-if pos <= len
+jsoncount=1;
+while pos <= len
     switch(next_char)
         case '{'
-            data = parse_object;
+            data{jsoncount} = parse_object;
         case '['
-            data = parse_array;
+            data{jsoncount} = parse_array;
         otherwise
             error_pos('Outer level structure must be an object or an array');
     end
-end % if
+    jsoncount=jsoncount+1;
+end % while
 
-len=length(data);
-if(len==1 && isstruct(data))
+jsoncount=length(data);
+if(jsoncount==1 && iscell(data))
+    data=data{1};
+end
+if(jsoncount==1 && isstruct(data))
     data=jstruct2array(data);
 else
-    for i=1:len
+    for i=1:jsoncount
         if(isstruct(data(i)))
             data(i)=jstruct2array(data(i));
         end
     end
 end
+
+%%
+function newdata=parse_collection(id,data,obj)
+
+if(jsoncount>0 && exist('data','var')) 
+    if(~iscell(data))
+       newdata=cell(1);
+       newdata{1}=data;
+       data=newdata;
+    end
+end
+
+
 
 %%-------------------------------------------------------------------------
 function newdata=jstruct2array(data)
