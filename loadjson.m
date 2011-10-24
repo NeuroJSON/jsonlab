@@ -67,10 +67,12 @@ end
 if(jsoncount==1 && isstruct(data))
     data=jstruct2array(data);
 else
-    for i=1:jsoncount
+    if(~isempty(data))
+      for i=1:jsoncount
         if(isstruct(data(i)))
             data(i)=jstruct2array(data(i));
         end
+      end
     end
 end
 
