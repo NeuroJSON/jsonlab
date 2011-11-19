@@ -94,8 +94,10 @@ function newdata=jstruct2array(data)
 fn=fieldnames(data);
 newdata=data;
 for i=1:length(fn) % depth-first
-    if(isstruct(getfield(data,fn{i})))
-        newdata=setfield(newdata,fn{i},jstruct2array(getfield(data,fn{i})));
+    for j=1:length(data)
+        if(isstruct(getfield(data(j),fn{i})))
+            newdata(j)=setfield(newdata(j),fn{i},jstruct2array(getfield(data(j),fn{i})));
+        end
     end
 end
 if(~isempty(strmatch('x_ArrayType_',fn)) && ~isempty(strmatch('x_ArrayData_',fn)))
