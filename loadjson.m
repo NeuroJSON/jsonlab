@@ -64,16 +64,18 @@ jsoncount=length(data);
 if(jsoncount==1 && iscell(data))
     data=data{1};
 end
-if(jsoncount==1 && isstruct(data))
-    data=jstruct2array(data);
-else
-    if(~isempty(data))
-      for i=1:jsoncount
-        if(isstruct(data(i)))
-            data(i)=jstruct2array(data(i));
-        end
+
+if(~isempty(data))
+      len=length(data);
+      if(isstruct(data)) % data can be a struct array
+          data=jstruct2array(data);
+      elseif(iscell(data))
+          for j=1:len
+              if(isstruct(data{j}))
+                data{j}=jstruct2array(data{j});
+              end
+          end
       end
-    end
 end
 
 %%
@@ -93,39 +95,47 @@ end
 function newdata=jstruct2array(data)
 fn=fieldnames(data);
 newdata=data;
+len=length(data);
 for i=1:length(fn) % depth-first
-    for j=1:length(data)
+    for j=1:len
         if(isstruct(getfield(data(j),fn{i})))
             newdata(j)=setfield(newdata(j),fn{i},jstruct2array(getfield(data(j),fn{i})));
         end
     end
 end
 if(~isempty(strmatch('x_ArrayType_',fn)) && ~isempty(strmatch('x_ArrayData_',fn)))
-    newdata=cast(data.x_ArrayData_,data.x_ArrayType_);
+  newdata=cell(len,1);
+  for j=1:len
+    ndata=cast(data(j).x_ArrayData_,data(j).x_ArrayType_);
     iscpx=0;
     if(~isempty(strmatch('x_ArrayIsComplex_',fn)))
-        if(data.x_ArrayIsComplex_)
+        if(data(j).x_ArrayIsComplex_)
            iscpx=1;
         end
     end
     if(~isempty(strmatch('x_ArrayIsSparse_',fn)))
-        if(data.x_ArrayIsSparse_)
-            if(iscpx && size(newdata,2)==4)
-                newdata(:,3)=complex(newdata(:,3),newdata(:,4));
+        if(data(j).x_ArrayIsSparse_)
+            if(iscpx && size(ndata,2)==4)
+                ndata(:,3)=complex(ndata(:,3),ndata(:,4));
             end
             if(~isempty(strmatch('x_ArraySize_',fn)))
-                dim=data.x_ArraySize_;
-                newdata=sparse(newdata(:,1),newdata(:,2),newdata(:,3),dim(1),prod(dim(2:end)));
+                dim=data(j).x_ArraySize_;
+                ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3),dim(1),prod(dim(2:end)));
             else
-                newdata=sparse(newdata(:,1),newdata(:,2),newdata(:,3));
+                ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3));
             end
         end
     elseif(~isempty(strmatch('x_ArraySize_',fn)))
-        if(iscpx && size(newdata,2)==2)
-             newdata=complex(newdata(:,1),newdata(:,2));
+        if(iscpx && size(ndata,2)==2)
+             ndata=complex(ndata(:,1),ndata(:,2));
         end
-        newdata=reshape(newdata(:),data.x_ArraySize_);
+        ndata=reshape(ndata(:),data(j).x_ArraySize_);
     end
+    newdata{j}=ndata;
+  end
+  if(len==1)
+      newdata=newdata{1};
+  end
 end
 
 %%-------------------------------------------------------------------------

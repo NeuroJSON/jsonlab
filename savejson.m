@@ -90,7 +90,13 @@ dim=size(item);
 len=numel(item); % let's handle 1D cell first
 padding1=repmat(sprintf('\t'),1,level-1);
 padding0=repmat(sprintf('\t'),1,level);
-if(len>1) txt=sprintf('%s"%s": [\n',padding0, name); name=''; end
+if(len>1) 
+    if(~isempty(name))
+        txt=sprintf('%s"%s": [\n',padding0, name); name=''; 
+    else
+        txt=sprintf('%s[\n',padding0); 
+    end
+end
 for i=1:len
     txt=sprintf('%s%s%s',txt,padding1,obj2json(name,item{i},level+(len>1),varargin{:}));
     if(i<len) txt=sprintf('%s%s',txt,sprintf(',\n')); end

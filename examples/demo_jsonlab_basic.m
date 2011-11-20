@@ -18,6 +18,7 @@ fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a complex number\n')
 fprintf(1,'%%=================================================\n\n')
 
+clear i;
 data2json=1+2*i
 savejson('',data2json)
 json2data=loadjson(ans) 
