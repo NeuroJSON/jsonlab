@@ -66,17 +66,13 @@ if(jsoncount==1 && iscell(data))
 end
 
 if(~isempty(data))
-      len=length(data);
       if(isstruct(data)) % data can be a struct array
           data=jstruct2array(data);
       elseif(iscell(data))
-          for j=1:len
-              if(isstruct(data{j}))
-                data{j}=jstruct2array(data{j});
-              end
-          end
+          data=jcell2array(data);
       end
 end
+
 
 %%
 function newdata=parse_collection(id,data,obj)
@@ -89,7 +85,17 @@ if(jsoncount>0 && exist('data','var'))
     end
 end
 
-
+%%
+function newdata=jcell2array(data)
+len=length(data);
+newdata=data;
+for i=1:len
+      if(isstruct(data{i}))
+          newdata{i}=jstruct2array(data{i});
+      elseif(iscell(data{i}))
+          newdata{i}=jcell2array(data{i});
+      end
+end
 
 %%-------------------------------------------------------------------------
 function newdata=jstruct2array(data)
