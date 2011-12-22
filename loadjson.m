@@ -1,6 +1,8 @@
-function data = loadjson(fname)
+function data = loadjson(fname,varargin)
 %
-% data=loadjson(fname)
+% data=loadjson(fname,opt)
+%    or
+% data=loadjson(fname,'param1',value1,'param2',value2,...)
 %
 % parse a JSON (JavaScript Object Notation) file or string
 %
@@ -15,7 +17,10 @@ function data = loadjson(fname)
 %
 % input:
 %      fname: input file name, if fname contains "{}" or "[]", fname
-%      will be interpreted as a JSON string
+%             will be interpreted as a JSON string
+%      opt: a struct to store parsing options, opt can be replaced by 
+%           a list of ('param',value) pairs. The param string is equivallent
+%           to a field in opt.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -47,13 +52,14 @@ arraytoken=find(inStr=='[' | inStr==']' | inStr=='"');
 esc = find(inStr=='"' | inStr=='\' ); % comparable to: regexp(inStr, '["\\]');
 index_esc = 1; len_esc = length(esc);
 
+opt=varargin2struct(varargin{:});
 jsoncount=1;
 while pos <= len
     switch(next_char)
         case '{'
-            data{jsoncount} = parse_object;
+            data{jsoncount} = parse_object(opt);
         case '['
-            data{jsoncount} = parse_array;
+            data{jsoncount} = parse_array(opt);
         otherwise
             error_pos('Outer level structure must be an object or an array');
     end
@@ -145,17 +151,17 @@ if(~isempty(strmatch('x_ArrayType_',fn)) && ~isempty(strmatch('x_ArrayData_',fn)
 end
 
 %%-------------------------------------------------------------------------
-function object = parse_object
+function object = parse_object(varargin)
     parse_char('{');
     object = [];
     if next_char ~= '}'
         while 1
-            str = parseStr;
+            str = parseStr(varargin{:});
             if isempty(str)
                 error_pos('Name of value at position %d cannot be empty');
             end
             parse_char(':');
-            val = parse_value;
+            val = parse_value(varargin{:});
             eval( sprintf( 'object.%s  = val;', valid_field(str) ) );
             if next_char == '}'
                 break;
@@ -167,7 +173,7 @@ function object = parse_object
 
 %%-------------------------------------------------------------------------
 
-function object = parse_array % JSON array is written in row-major order
+function object = parse_array(varargin) % JSON array is written in row-major order
 global pos inStr isoct
     parse_char('[');
     object = cell(0, 1);
@@ -187,7 +193,7 @@ global pos inStr isoct
            pos=endpos;
         catch
          while 1
-            val = parse_value;
+            val = parse_value(varargin{:});
             object{end+1} = val;
             if next_char == ']'
                 break;
@@ -237,7 +243,7 @@ function skip_whitespace
     end
 
 %%-------------------------------------------------------------------------
-function str = parseStr
+function str = parseStr(varargin)
     global pos inStr len  esc index_esc len_esc
  % len, ns = length(inStr), keyboard
     if inStr(pos) ~= '"'
@@ -299,7 +305,7 @@ function str = parseStr
 
 %%-------------------------------------------------------------------------
 
-function num = parse_number
+function num = parse_number(varargin)
     global pos inStr len isoct
     currstr=inStr(pos:end);
     numstr=0;
@@ -317,22 +323,22 @@ function num = parse_number
 
 %%-------------------------------------------------------------------------
 
-function val = parse_value
+function val = parse_value(varargin)
     global pos inStr len
     true = 1; false = 0;
 
     switch(inStr(pos))
         case '"'
-            val = parseStr;
+            val = parseStr(varargin{:});
             return;
         case '['
-            val = parse_array;
+            val = parse_array(varargin{:});
             return;
         case '{'
-            val = parse_object;
+            val = parse_object(varargin{:});
             return;
         case {'-','0','1','2','3','4','5','6','7','8','9'}
-            val = parse_number;
+            val = parse_number(varargin{:});
             return;
         case 't'
             if pos+3 <= len && strcmpi(inStr(pos:pos+3), 'true')
