@@ -57,7 +57,8 @@ if((isnumeric(obj) || islogical(obj) || ischar(obj)) && isempty(rootname))
     rootlevel=0;
     varname='';
 end
-json=obj2json(varname,obj,rootlevel,varargin{:});
+opt=varargin2struct(varargin{:});
+json=obj2json(varname,obj,rootlevel,opt);
 if(rootisarray)
     json=sprintf('%s\n',json);
 else
