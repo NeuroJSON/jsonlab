@@ -1,8 +1,8 @@
-function opt=vargin2struct(varargin)
+function opt=varargin2struct(varargin)
 %
-% opt=vargin2struct('param1',value1,'param2',value2,...)
+% opt=varargin2struct('param1',value1,'param2',value2,...)
 %   or
-% opt=vargin2struct(...,optstruct,...)
+% opt=varargin2struct(...,optstruct,...)
 %
 % convert a series of input parameters into a structure
 %

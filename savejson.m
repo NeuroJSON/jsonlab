@@ -111,25 +111,25 @@ if(~isstruct(item))
 	error('input is not a struct');
 end
 len=numel(item);
-padding1=repmat(sprintf('\t'),1,level);
-padding0=repmat(sprintf('\t'),1,level+1);
+padding1=repmat(sprintf('\t'),1,level-1);
+padding0=repmat(sprintf('\t'),1,level);
 sep=',';
 
 if(~isempty(name)) 
-    if(len>1) txt=sprintf('%s"%s": [\n',padding1,name); end
+    if(len>1) txt=sprintf('%s"%s": [\n',padding0,name); end
 else
-    if(len>1) txt=sprintf('%s[\n',padding1); end
+    if(len>1) txt=sprintf('%s[\n',padding0); end
 end
 for e=1:len
   names = fieldnames(item(e));
   if(~isempty(name) && len==1)
-        txt=sprintf('%s%s"%s": {\n',txt,padding1, name); 
+        txt=sprintf('%s%s"%s": {\n',txt,repmat(sprintf('\t'),1,level+(len>1)), name); 
   else
         txt=sprintf('%s%s{\n',txt,repmat(sprintf('\t'),1,level+(len>1))); 
   end
   if(~isempty(names))
     for i=1:length(names)
-	    txt=sprintf('%s%s',txt,obj2json(names{i},getfield(item(e),...
+	txt=sprintf('%s%s',txt,obj2json(names{i},getfield(item(e),...
              names{i}),level+1+(len>1),varargin{:}));
         if(i<length(names)) txt=sprintf('%s%s',txt,','); end
         txt=sprintf('%s%s',txt,sprintf('\n'));
@@ -139,7 +139,7 @@ for e=1:len
   if(e==len) sep=''; end
   if(e<len) txt=sprintf('%s%s',txt,sprintf(',\n')); end
 end
-if(len>1) txt=sprintf('%s\n%s]',txt,padding1); end
+if(len>1) txt=sprintf('%s\n%s]',txt,padding0); end
 
 %%-------------------------------------------------------------------------
 function txt=str2json(name,item,level,varargin)
