@@ -202,7 +202,12 @@ else
     if(isempty(name))
     	txt=sprintf('%s%s',padding1,matdata2json(item,level+1,varargin{:}));
     else
-    	txt=sprintf('%s"%s": %s',padding1,name,matdata2json(item,level+1,varargin{:}));
+        if(numel(item)==1 && jsonopt('NoRowBracket',1,varargin{:})==1)
+            numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^[',''),']','');
+           	txt=sprintf('%s"%s": %s',padding1,name,numtxt);
+        else
+    	    txt=sprintf('%s"%s": %s',padding1,name,matdata2json(item,level+1,varargin{:}));
+        end
     end
     return;
 end
