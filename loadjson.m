@@ -12,8 +12,11 @@ function data = loadjson(fname,varargin)
 %            date: 2009/11/02
 %         François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
 %            date: 2009/03/22
-%         Joel Feenstra: http://www.mathworks.com/matlabcentral/fileexchange/20565
+%         Joel Feenstra:
+%         http://www.mathworks.com/matlabcentral/fileexchange/20565
 %            date: 2008/07/03
+%
+% $Id$
 %
 % input:
 %      fname: input file name, if fname contains "{}" or "[]", fname
@@ -177,14 +180,50 @@ function object = parse_array(varargin) % JSON array is written in row-major ord
 global pos inStr isoct
     parse_char('[');
     object = cell(0, 1);
+    dim2=[];
     if next_char ~= ']'
-        endpos=matching_bracket(inStr,pos);
+        [endpos e1l e1r maxlevel]=matching_bracket(inStr,pos);
         arraystr=['[' inStr(pos:endpos)];
-        arraystr(find(arraystr==sprintf('\n')))=[];
-        arraystr(find(arraystr==sprintf('\r')))=[];
-        arraystr=regexprep(arraystr,'\]\s*,','];');
         arraystr=regexprep(arraystr,'"_NaN_"','NaN');
         arraystr=regexprep(arraystr,'"([-+]*)_Inf_"','$1Inf');
+        arraystr(find(arraystr==sprintf('\n')))=[];
+        arraystr(find(arraystr==sprintf('\r')))=[];
+        %arraystr=regexprep(arraystr,'\s*,',','); % this is slow,sometimes needed
+        if(~isempty(e1l) && ~isempty(e1r)) % the array is in 2D or higher D
+            astr=inStr((e1l+1):(e1r-1));
+            astr=regexprep(astr,'"_NaN_"','NaN');
+            astr=regexprep(astr,'"([-+]*)_Inf_"','$1Inf');
+            astr(find(astr==sprintf('\n')))=[];
+            astr(find(astr==sprintf('\r')))=[];
+            astr(find(astr==' '))='';
+            if(isempty(find(astr=='[', 1))) % array is 2D
+                dim2=length(sscanf(astr,'%f,',[1 inf]));
+            end
+        else % array is 1D
+            astr=arraystr(2:end-1);
+            astr(find(astr==' '))='';
+            [obj count errmsg nextidx]=sscanf(astr,'%f,',[1,inf]);
+            if(nextidx>=length(astr)-1)
+                object=obj;
+                pos=endpos;
+                parse_char(']');
+                return;
+            end
+        end
+        if(~isempty(dim2))
+            astr=arraystr;
+            astr(find(astr=='['))='';
+            astr(find(astr==']'))='';
+            astr(find(astr==' '))='';
+            [obj count errmsg nextidx]=sscanf(astr,'%f,',inf);
+            if(nextidx>=length(astr)-1)
+                object=reshape(obj,dim2,numel(obj)/dim2)';
+                pos=endpos;
+                parse_char(']');
+                return;
+            end
+        end
+        arraystr=regexprep(arraystr,'\]\s*,','];');
         try
            if(isoct && regexp(arraystr,'"','once'))
                 error('Octave eval can produce empty cells for JSON-like input');
@@ -415,25 +454,31 @@ while(pos<len)
 end
 
 %%-------------------------------------------------------------------------
-function endpos = matching_bracket(str,pos)
+function [endpos e1l e1r maxlevel] = matching_bracket(str,pos)
 global arraytoken
 level=1;
+maxlevel=level;
 endpos=0;
 bpos=arraytoken(arraytoken>=pos);
 tokens=str(bpos);
 len=length(tokens);
 pos=1;
+e1l=[];
+e1r=[];
 while(pos<=len)
     c=tokens(pos);
     if(c==']')
         level=level-1;
+        if(isempty(e1r)) e1r=bpos(pos); end
         if(level==0)
             endpos=bpos(pos);
             return
         end
     end
     if(c=='[')
+        if(isempty(e1l)) e1l=bpos(pos); end
         level=level+1;
+        maxlevel=max(maxlevel,level);
     end
     if(c=='"')
         pos=matching_quote(tokens,pos+1);

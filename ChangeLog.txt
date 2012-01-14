@@ -6,12 +6,19 @@
 
 JSONlab ChangeLog (key features marked by *):
 
-== JSONlab 0.5.1 (codename: Nexus Update 1), FangQ <fangq nmr mgh harvard edu> ==
+== JSONlab 0.8.0 (codename: Sentiel), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2012/01/13 *speed up loadjson by 20 fold when parsing large data arrays in matlab
+ 2012/01/11  remove row bracket if an array has 1 element, suggested by Mykel Kochenderfer
+ 2011/12/22 *accept sequence of 'param',value input in savejson and loadjson
+ 2011/11/18  fix struct array bug reported by Mykel Kochenderfer
+
+== JSONlab 0.5.1 (codename: Nexus Update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2011/10/21  fix a bug in loadjson, previous code does not use any of the acceleration
  2011/10/20  loadjson supports JSON collections: appendable JSON objects
 
-== JSONlab 0.5.0 (codename: Nexus), FangQ <fangq nmr mgh harvard edu> ==
+== JSONlab 0.5.0 (codename: Nexus), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2011/10/16  package and release jsonlab 0.5.0
  2011/10/15 *add json demo and regression test, support cpx numbers, fix double quote bug
