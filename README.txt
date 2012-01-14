@@ -3,9 +3,9 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-*Copyright (c) 2011  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
+*Copyright (c) 2011,2012  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 0.5.1 (Nexus)
+*Version: 0.8.0 (Sentinel)
 
 -------------------------------------------------------------------------------
 
@@ -65,70 +65,82 @@ the two functions can be found below:
 
 === loadjson.m ===
 <pre>
- data=loadjson(fname)
-
- parse a JSON (JavaScript Object Notation) file or string
-
- authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
-            date: 2011/09/09
-         Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
-            date: 2009/11/02
-         FranÃ§ois Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
-            date: 2009/03/22
-         Joel Feenstra: http://www.mathworks.com/matlabcentral/fileexchange/20565
-            date: 2008/07/03
-
- input:
-      fname: input file name, if fname contains "{}" or "[]", fname
-      will be interpreted as a JSON string
-
- output:
-      dat: a cell array, where {...} blocks are converted into cell arrays,
-           and [...] are converted to arrays
+  data=loadjson(fname,opt)
+     or
+  data=loadjson(fname,'param1',value1,'param2',value2,...)
+ 
+  parse a JSON (JavaScript Object Notation) file or string
+ 
+  authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+             date: 2011/09/09
+          Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
+             date: 2009/11/02
+          François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
+             date: 2009/03/22
+          Joel Feenstra: http://www.mathworks.com/matlabcentral/fileexchange/20565
+             date: 2008/07/03
+ 
+  input:
+       fname: input file name, if fname contains "{}" or "[]", fname
+              will be interpreted as a JSON string
+       opt: a struct to store parsing options, opt can be replaced by 
+            a list of ('param',value) pairs. The param string is equivallent
+            to a field in opt.
+ 
+  output:
+       dat: a cell array, where {...} blocks are converted into cell arrays,
+            and [...] are converted to arrays
 </pre>
 
 === savejson.m ===
 
 <pre>
- json=savejson(rootname,obj,opt)
-
- convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
- Object Notation) string
-
- authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
-            date: 2011/09/09
-
- input:
-      rootname: name of the root-object, if set to '', will use variable name
-      obj: a MATLAB object (array, cell, cell array, struct, struct array)
-      opt: a struct for additional options, use [] if all use default
-        opt can have the following fields (first in [.|.] is the default)
-        opt.FloatFormat ['%.10g'|string]: format to show each numeric element
-                         of a 1D/2D array;
-        opt.ArrayIndent [1|0]: if 1, output explicit data array with
-                         precedent indentation; if 0, no indentation
-        opt.ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
-                         array in JSON array format; if sets to 1, an
-                         array will be shown as a struct with fields
-                         "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
-                         sparse arrays, the non-zero elements will be
-                         saved to _ArrayData_ field in triplet-format i.e.
-                         (ix,iy,val) and "_ArrayIsSparse_" will be added
-                         with a value of 1; for a complex array, the 
-                         _ArrayData_ array will include two columns 
-                         (4 for sparse) to record the real and imaginary 
-                         parts, and also "_ArrayIsComplex_":1 is added. 
-        opt.ParseLogical [0|1]: if this is set to 1, logical array elem
-                         will use true/false rather than 1/0.
-
- output:
-      json: a string in the JSON format (see http://json.org)
-
- examples:
-      a=struct('node',[1  9  10; 2 1 1.2], 'elem',[9 1;1 2;2 3],...
-           'face',[9 01 2; 1 2 3; NaN,Inf,-Inf], 'author','FangQ');
-      savejson('mesh',a)
-      savejson('',a,struct('ArrayIndent',0,'FloatFormat','\t%.5g'))
+  json=savejson(rootname,obj,opt)
+     or
+  json=savejson(rootname,obj,'param1',value1,'param2',value2,...)
+ 
+  convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
+  Object Notation) string
+ 
+  author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+             created on 2011/09/09
+  
+  input:
+       rootname: name of the root-object, if set to '', will use variable name
+       obj: a MATLAB object (array, cell, cell array, struct, struct array)
+       opt: a struct for additional options, use [] if all use default
+         opt can have the following fields (first in [.|.] is the default)
+         opt.FloatFormat ['%.10g'|string]: format to show each numeric element
+                          of a 1D/2D array;
+         opt.ArrayIndent [1|0]: if 1, output explicit data array with
+                          precedent indentation; if 0, no indentation
+         opt.ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
+                          array in JSON array format; if sets to 1, an
+                          array will be shown as a struct with fields
+                          "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
+                          sparse arrays, the non-zero elements will be
+                          saved to _ArrayData_ field in triplet-format i.e.
+                          (ix,iy,val) and "_ArrayIsSparse_" will be added
+                          with a value of 1; for a complex array, the 
+                          _ArrayData_ array will include two columns 
+                          (4 for sparse) to record the real and imaginary 
+                          parts, and also "_ArrayIsComplex_":1 is added. 
+         opt.ParseLogical [0|1]: if this is set to 1, logical array elem
+                          will use true/false rather than 1/0.
+         opt.NoRowBracket [1|0]: if this is set to 1, arrays with a single
+                          numerical element will be shown without a square
+                          bracket, unless it is the root object; if 0, square
+                          brackets are forced for any numerical arrays.
+         opt can be replaced by a list of ('param',value) pairs. The param 
+         string is equivallent to a field in opt.
+  output:
+       json: a string in the JSON format (see http://json.org)
+ 
+  examples:
+       a=struct('node',[1  9  10; 2 1 1.2], 'elem',[9 1;1 2;2 3],...
+            'face',[9 01 2; 1 2 3; NaN,Inf,-Inf], 'author','FangQ');
+       savejson('mesh',a)
+       savejson('',a,'ArrayIndent',0,'FloatFormat','\t%.5g')
 </pre>
 
 === examples ===
@@ -155,7 +167,8 @@ Here are the known issues:
 # When processing names containing multi-byte characters, Octave and MATLAB \
 can give different field-names;
 # Can not handle classes;
-# Although significantly accelerated, loadjson of large JSON file may still take some time.
+# Although significantly accelerated, running loadjson for large JSON file may \
+still take some time.
 
 -------------------------------------------------------------------------------
 

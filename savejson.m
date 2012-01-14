@@ -1,12 +1,16 @@
 function json=savejson(rootname,obj,varargin)
 %
 % json=savejson(rootname,obj,opt)
+%    or
+% json=savejson(rootname,obj,'param1',value1,'param2',value2,...)
 %
 % convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
 % Object Notation) string
 %
-% authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
-%            date: 2011/09/09
+% author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+%            created on 2011/09/09
+%
+% $Id$
 %
 % input:
 %      rootname: name of the root-object, if set to '', will use variable name
@@ -30,7 +34,12 @@ function json=savejson(rootname,obj,varargin)
 %                         parts, and also "_ArrayIsComplex_":1 is added. 
 %        opt.ParseLogical [0|1]: if this is set to 1, logical array elem
 %                         will use true/false rather than 1/0.
-%
+%        opt.NoRowBracket [1|0]: if this is set to 1, arrays with a single
+%                         numerical element will be shown without a square
+%                         bracket, unless it is the root object; if 0, square
+%                         brackets are forced for any numerical arrays.
+%        opt can be replaced by a list of ('param',value) pairs. The param 
+%        string is equivallent to a field in opt.
 % output:
 %      json: a string in the JSON format (see http://json.org)
 %
@@ -38,7 +47,7 @@ function json=savejson(rootname,obj,varargin)
 %      a=struct('node',[1  9  10; 2 1 1.2], 'elem',[9 1;1 2;2 3],...
 %           'face',[9 01 2; 1 2 3; NaN,Inf,-Inf], 'author','FangQ');
 %      savejson('mesh',a)
-%      savejson('',a,struct('ArrayIndent',0,'FloatFormat','\t%.5g'))
+%      savejson('',a,'ArrayIndent',0,'FloatFormat','\t%.5g')
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -203,7 +212,7 @@ else
     	txt=sprintf('%s%s',padding1,matdata2json(item,level+1,varargin{:}));
     else
         if(numel(item)==1 && jsonopt('NoRowBracket',1,varargin{:})==1)
-            numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^[',''),']','');
+            numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^\[',''),']','');
            	txt=sprintf('%s"%s": %s',padding1,name,numtxt);
         else
     	    txt=sprintf('%s"%s": %s',padding1,name,matdata2json(item,level+1,varargin{:}));
