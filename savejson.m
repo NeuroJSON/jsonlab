@@ -38,6 +38,12 @@ function json=savejson(rootname,obj,varargin)
 %                         numerical element will be shown without a square
 %                         bracket, unless it is the root object; if 0, square
 %                         brackets are forced for any numerical arrays.
+%        opt.ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
+%                         will use the name of the passed obj variable as the 
+%                         root object name; if obj is an expression and 
+%                         does not have a name, 'root' will be used; if this 
+%                         is set to 0 and rootname is empty, the root level 
+%                         will be merged down to the lower level.
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt.
 % output:
@@ -56,18 +62,22 @@ function json=savejson(rootname,obj,varargin)
 %
 
 varname=inputname(2);
-if(~isempty(rootname))
-   varname=rootname;
-end
+opt=varargin2struct(varargin{:});
 rootisarray=0;
 rootlevel=1;
-if((isnumeric(obj) || islogical(obj) || ischar(obj)) && isempty(rootname))
+forceroot=jsonopt('ForceRootName',0,opt);
+if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || iscell(obj)) && isempty(rootname) && forceroot==0)
     rootisarray=1;
     rootlevel=0;
-    varname='';
+else
+    if(isempty(rootname))
+        rootname=varname;
+    end
 end
-opt=varargin2struct(varargin{:});
-json=obj2json(varname,obj,rootlevel,opt);
+if((isstruct(obj) || iscell(obj))&& isempty(rootname) && forceroot)
+    rootname='root';
+end
+json=obj2json(rootname,obj,rootlevel,opt);
 if(rootisarray)
     json=sprintf('%s\n',json);
 else
@@ -76,8 +86,6 @@ end
 
 %%-------------------------------------------------------------------------
 function txt=obj2json(name,item,level,varargin)
-
-cname=class(item);
 
 if(iscell(item))
     txt=cell2json(name,item,level,varargin{:});
