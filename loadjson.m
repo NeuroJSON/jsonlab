@@ -50,6 +50,10 @@ end
 pos = 1; len = length(string); inStr = string;
 isoct=exist('OCTAVE_VERSION');
 arraytoken=find(inStr=='[' | inStr==']' | inStr=='"');
+jstr=inStr;
+jstr=regexprep(jstr,'\\\\','  ');
+escquote=regexp(jstr,'\\"');
+arraytoken=sort([arraytoken escquote]);
 
 % String delimiters and escape chars identified to improve speed:
 esc = find(inStr=='"' | inStr=='\' ); % comparable to: regexp(inStr, '["\\]');
@@ -452,7 +456,7 @@ while(pos<len)
     end
     pos=pos+1;
 end
-
+error('unmatched quotation mark');
 %%-------------------------------------------------------------------------
 function [endpos e1l e1r maxlevel] = matching_bracket(str,pos)
 global arraytoken
