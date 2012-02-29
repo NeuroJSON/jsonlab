@@ -50,8 +50,7 @@ end
 pos = 1; len = length(string); inStr = string;
 isoct=exist('OCTAVE_VERSION');
 arraytoken=find(inStr=='[' | inStr==']' | inStr=='"');
-jstr=inStr;
-jstr=regexprep(jstr,'\\\\','  ');
+jstr=regexprep(inStr,'\\\\','  ');
 escquote=regexp(jstr,'\\"');
 arraytoken=sort([arraytoken escquote]);
 
