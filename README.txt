@@ -5,7 +5,7 @@
 
 *Copyright (c) 2011,2012  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 0.8.0 (Sentinel)
+*Version: 0.8.1 (Sentinel, Update 1)
 
 -------------------------------------------------------------------------------
 
