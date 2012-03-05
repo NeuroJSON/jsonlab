@@ -6,6 +6,11 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 0.8.1 (codename: Sentiel, Update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2012/02/28 loadjson quotation mark escape bug, see http://bit.ly/yyk1nS
+ 2012/01/25 patch to handle root-less objects, contributed by Blake Johnson
+
 == JSONlab 0.8.0 (codename: Sentiel), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2012/01/13 *speed up loadjson by 20 fold when parsing large data arrays in matlab
@@ -16,7 +21,7 @@ JSONlab ChangeLog (key features marked by *):
 == JSONlab 0.5.1 (codename: Nexus Update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2011/10/21  fix a bug in loadjson, previous code does not use any of the acceleration
- 2011/10/20  loadjson supports JSON collections: appendable JSON objects
+ 2011/10/20  loadjson supports JSON collections - concatenated JSON objects
 
 == JSONlab 0.5.0 (codename: Nexus), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 

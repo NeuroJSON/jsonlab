@@ -1,14 +1,20 @@
+
+                              < M A T L A B >
+                  Copyright 1984-2007 The MathWorks, Inc.
+                         Version 7.4.0.287 (R2007a)
+                              January 29, 2007
+
  
   To get started, type one of these: helpwin, helpdesk, or demo.
   For product information, visit www.mathworks.com.
  
-===============================================
+>> >> >> >> >> ===============================================
 >> example1.json
 {
 	"data": {
 		"firstName": "John",
 		"lastName": "Smith",
-		"age": [25],
+		"age": 25,
 		"address": {
 			"streetAddress": "21 2nd Street",
 			"city": "New York",
@@ -69,7 +75,7 @@
 				"menuitem": [
 					{
 						"value": "_&New",
-						"onclick": "CreateNewDoc(\"\")"
+						"onclick": "CreateNewDoc(\"\"\")"
 					},
 					{
 						"value": "_&Open",
@@ -85,3 +91,31 @@
 	}
 }
 
+===============================================
+>> example4.json
+{
+	"data": [
+		{
+			"sample": {
+				"rho": 1
+			}
+		},
+		{
+			"sample": {
+				"rho": 2
+			}
+		},
+		[
+				[1,0],
+				[1,1],
+				[1,2]
+		],
+		[
+				"Paper",
+				"Scissors",
+				"Stone"
+		]
+	]
+}
+
+>> 
