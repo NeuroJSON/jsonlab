@@ -77,8 +77,11 @@ the two functions can be found below:
              date: 2009/11/02
           François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
              date: 2009/03/22
-          Joel Feenstra: http://www.mathworks.com/matlabcentral/fileexchange/20565
+          Joel Feenstra:
+          http://www.mathworks.com/matlabcentral/fileexchange/20565
              date: 2008/07/03
+ 
+  $Id: loadjson.m 360 2012-02-29 19:50:48Z fangq $
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
@@ -104,7 +107,9 @@ the two functions can be found below:
  
   author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
              created on 2011/09/09
-  
+ 
+  $Id: savejson.m 341 2012-01-25 23:51:33Z fangq $
+ 
   input:
        rootname: name of the root-object, if set to '', will use variable name
        obj: a MATLAB object (array, cell, cell array, struct, struct array)
@@ -131,6 +136,12 @@ the two functions can be found below:
                           numerical element will be shown without a square
                           bracket, unless it is the root object; if 0, square
                           brackets are forced for any numerical arrays.
+         opt.ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
+                          will use the name of the passed obj variable as the 
+                          root object name; if obj is an expression and 
+                          does not have a name, 'root' will be used; if this 
+                          is set to 0 and rootname is empty, the root level 
+                          will be merged down to the lower level.
          opt can be replaced by a list of ('param',value) pairs. The param 
          string is equivallent to a field in opt.
   output:
