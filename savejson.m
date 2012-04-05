@@ -1,7 +1,8 @@
 function json=savejson(rootname,obj,varargin)
 %
-% json=savejson(rootname,obj,opt)
+% json=savejson(rootname,obj,filename)
 %    or
+% json=savejson(rootname,obj,opt)
 % json=savejson(rootname,obj,'param1',value1,'param2',value2,...)
 %
 % convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
@@ -15,8 +16,11 @@ function json=savejson(rootname,obj,varargin)
 % input:
 %      rootname: name of the root-object, if set to '', will use variable name
 %      obj: a MATLAB object (array, cell, cell array, struct, struct array)
+%      filename: a string for the file name to save the output JSON data
 %      opt: a struct for additional options, use [] if all use default
 %        opt can have the following fields (first in [.|.] is the default)
+%
+%        opt.FileName [''|string]: a file name to save the output JSON data
 %        opt.FloatFormat ['%.10g'|string]: format to show each numeric element
 %                         of a 1D/2D array;
 %        opt.ArrayIndent [1|0]: if 1, output explicit data array with
@@ -44,6 +48,12 @@ function json=savejson(rootname,obj,varargin)
 %                         does not have a name, 'root' will be used; if this 
 %                         is set to 0 and rootname is empty, the root level 
 %                         will be merged down to the lower level.
+%        opt.Inf ['"$1_Inf_"'|string]: a customized regular expression pattern
+%                         to represent +/-Inf. The matched pattern is '([-+]*)Inf'
+%                         and $1 represents the sign. For those who want to use
+%                         1e999 to represent Inf, they can set opt.Inf to '$11e999'
+%        opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
+%                         to represent NaN
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt.
 % output:
@@ -62,7 +72,11 @@ function json=savejson(rootname,obj,varargin)
 %
 
 varname=inputname(2);
-opt=varargin2struct(varargin{:});
+if(length(varargin)==1 && ischar(varargin{1}))
+   opt=struct('FileName',varargin{1});
+else
+   opt=varargin2struct(varargin{:});
+end
 rootisarray=0;
 rootlevel=1;
 forceroot=jsonopt('ForceRootName',0,opt);
@@ -82,6 +96,13 @@ if(rootisarray)
     json=sprintf('%s\n',json);
 else
     json=sprintf('{\n%s\n}\n',json);
+end
+
+% save to a file if FileName is set, suggested by Patrick Rapin
+if(~isempty(jsonopt('FileName','',opt)))
+    fid = fopen(opt.FileName, 'wt');
+    fwrite(fid,json,'char');
+    fclose(fid);
 end
 
 %%-------------------------------------------------------------------------
@@ -160,11 +181,11 @@ if(len>1) txt=sprintf('%s\n%s]',txt,padding0); end
 
 %%-------------------------------------------------------------------------
 function txt=str2json(name,item,level,varargin)
-global isoct
 txt='';
 if(~ischar(item))
         error('input is not a string');
 end
+item=reshape(item, max(size(item),[1 0]));
 len=size(item,1);
 sep=sprintf(',\n');
 
@@ -176,6 +197,7 @@ if(~isempty(name))
 else
     if(len>1) txt=sprintf('%s[\n',padding1); end
 end
+isoct=exist('OCTAVE_VERSION');
 for e=1:len
     if(isoct)
         val=regexprep(item(e,:),'\\','\\');
@@ -290,10 +312,10 @@ end
 % end
 txt=[pre txt post];
 if(any(isinf(mat(:))))
-    txt=regexprep(txt,'([-+]*)Inf','"$1_Inf_"');
+    txt=regexprep(txt,'([-+]*)Inf',jsonopt('Inf','"$1_Inf_"',varargin{:}));
 end
 if(any(isnan(mat(:))))
-    txt=regexprep(txt,'NaN','"_NaN_"');
+    txt=regexprep(txt,'NaN',jsonopt('NaN','"_NaN_"',varargin{:}));
 end
 
 %%-------------------------------------------------------------------------
