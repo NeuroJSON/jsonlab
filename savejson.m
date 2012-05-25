@@ -135,6 +135,12 @@ if(len>1)
     else
         txt=sprintf('%s[\n',padding0); 
     end
+elseif(len==0)
+    if(~isempty(name))
+        txt=sprintf('%s"%s": null',padding0, name); name=''; 
+    else
+        txt=sprintf('%snull',padding0); 
+    end
 end
 for i=1:len
     txt=sprintf('%s%s%s',txt,padding1,obj2json(name,item{i},level+(len>1),varargin{:}));
