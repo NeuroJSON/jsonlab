@@ -54,6 +54,9 @@ function json=savejson(rootname,obj,varargin)
 %                         1e999 to represent Inf, they can set opt.Inf to '$11e999'
 %        opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
 %                         to represent NaN
+%        opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
+%                         for example, if opt.JSON='foo', the JSON data is
+%                         wrapped inside a function call as 'foo(...);'
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt.
 % output:
@@ -96,6 +99,11 @@ if(rootisarray)
     json=sprintf('%s\n',json);
 else
     json=sprintf('{\n%s\n}\n',json);
+end
+
+jsonp=jsonopt('JSONP','',opt);
+if(~isempty(jsonp))
+    json=sprintf('%s(%s);\n',jsonp,json);
 end
 
 % save to a file if FileName is set, suggested by Patrick Rapin
