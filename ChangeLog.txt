@@ -6,10 +6,17 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 0.9.0 (codename: Rodimus), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2012/06/17 *new format for an invalid leading char, unpacking hex code in savejson
+ 2012/06/01  support JSONP in savejson
+ 2012/05/25  fix the empty cell bug (reported by Cyril Davin)
+ 2012/04/05  savejson can save to a file (suggested by Patrick Rapin)
+
 == JSONlab 0.8.1 (codename: Sentiel, Update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
- 2012/02/28 loadjson quotation mark escape bug, see http://bit.ly/yyk1nS
- 2012/01/25 patch to handle root-less objects, contributed by Blake Johnson
+ 2012/02/28  loadjson quotation mark escape bug, see http://bit.ly/yyk1nS
+ 2012/01/25  patch to handle root-less objects, contributed by Blake Johnson
 
 == JSONlab 0.8.0 (codename: Sentiel), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 

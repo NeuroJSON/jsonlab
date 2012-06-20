@@ -121,33 +121,33 @@ for i=1:length(fn) % depth-first
         end
     end
 end
-if(~isempty(strmatch('x_ArrayType_',fn)) && ~isempty(strmatch('x_ArrayData_',fn)))
+if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && ~isempty(strmatch('x0x5F_ArrayData_',fn)))
   newdata=cell(len,1);
   for j=1:len
-    ndata=cast(data(j).x_ArrayData_,data(j).x_ArrayType_);
+    ndata=cast(data(j).x0x5F_ArrayData_,data(j).x0x5F_ArrayType_);
     iscpx=0;
-    if(~isempty(strmatch('x_ArrayIsComplex_',fn)))
-        if(data(j).x_ArrayIsComplex_)
+    if(~isempty(strmatch('x0x5F_ArrayIsComplex_',fn)))
+        if(data(j).x0x5F_ArrayIsComplex_)
            iscpx=1;
         end
     end
-    if(~isempty(strmatch('x_ArrayIsSparse_',fn)))
-        if(data(j).x_ArrayIsSparse_)
+    if(~isempty(strmatch('x0x5F_ArrayIsSparse_',fn)))
+        if(data(j).x0x5F_ArrayIsSparse_)
             if(iscpx && size(ndata,2)==4)
                 ndata(:,3)=complex(ndata(:,3),ndata(:,4));
             end
-            if(~isempty(strmatch('x_ArraySize_',fn)))
-                dim=data(j).x_ArraySize_;
+            if(~isempty(strmatch('x0x5F_ArraySize_',fn)))
+                dim=data(j).x0x5F_ArraySize_;
                 ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3),dim(1),prod(dim(2:end)));
             else
                 ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3));
             end
         end
-    elseif(~isempty(strmatch('x_ArraySize_',fn)))
+    elseif(~isempty(strmatch('x0x5F_ArraySize_',fn)))
         if(iscpx && size(ndata,2)==2)
              ndata=complex(ndata(:,1),ndata(:,2));
         end
-        ndata=reshape(ndata(:),data(j).x_ArraySize_);
+        ndata=reshape(ndata(:),data(j).x0x5F_ArraySize_);
     end
     newdata{j}=ndata;
   end
@@ -421,9 +421,14 @@ global isoct
 % From MATLAB doc: field names must begin with a letter, which may be
 % followed by any combination of letters, digits, and underscores.
 % Invalid characters will be converted to underscores, and the prefix
-% "x_" will be added if first character is not a letter.
-    if ~isletter(str(1)) || str(1)>'z'
-        str = ['x' str];
+% "x0x[Hex code]_" will be added if the first character is not a letter.
+    pos=regexp(str,'^[^A-Za-z]','once');
+    if(~isempty(pos))
+        if(~isoct)
+            str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
+        else
+            str=sprintf('x0x%X_%s',char(str(1)),str(2:end));
+        end
     end
     if(isempty(regexp(str,'[^0-9A-Za-z_]', 'once' ))) return;  end
     if(~isoct)
