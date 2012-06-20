@@ -1,5 +1,5 @@
 The author of "jsonlab" toolbox is Qianqian Fang. Qianqian
-is currently an Instructor at Massachusetts General Hospital, 
+is currently an Assistant Professor at Massachusetts General Hospital, 
 Harvard Medical School.
 
 Address: Martinos Center for Biomedical Imaging, 
