@@ -5,7 +5,7 @@
 
 *Copyright (c) 2011,2012  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 0.8.1 (Sentinel, Update 1)
+*Version: 0.9.0 (Rodimus)
 
 -------------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ the two functions can be found below:
           http://www.mathworks.com/matlabcentral/fileexchange/20565
              date: 2008/07/03
  
-  $Id: loadjson.m 360 2012-02-29 19:50:48Z fangq $
+  $Id: loadjson.m 371 2012-06-20 12:43:06Z fangq $
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
@@ -98,8 +98,9 @@ the two functions can be found below:
 === savejson.m ===
 
 <pre>
-  json=savejson(rootname,obj,opt)
+  json=savejson(rootname,obj,filename)
      or
+  json=savejson(rootname,obj,opt)
   json=savejson(rootname,obj,'param1',value1,'param2',value2,...)
  
   convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
@@ -108,13 +109,16 @@ the two functions can be found below:
   author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
              created on 2011/09/09
  
-  $Id: savejson.m 341 2012-01-25 23:51:33Z fangq $
+  $Id: savejson.m 371 2012-06-20 12:43:06Z fangq $
  
   input:
        rootname: name of the root-object, if set to '', will use variable name
        obj: a MATLAB object (array, cell, cell array, struct, struct array)
+       filename: a string for the file name to save the output JSON data
        opt: a struct for additional options, use [] if all use default
          opt can have the following fields (first in [.|.] is the default)
+ 
+         opt.FileName [''|string]: a file name to save the output JSON data
          opt.FloatFormat ['%.10g'|string]: format to show each numeric element
                           of a 1D/2D array;
          opt.ArrayIndent [1|0]: if 1, output explicit data array with
@@ -142,6 +146,17 @@ the two functions can be found below:
                           does not have a name, 'root' will be used; if this 
                           is set to 0 and rootname is empty, the root level 
                           will be merged down to the lower level.
+         opt.Inf ['"$1_Inf_"'|string]: a customized regular expression pattern
+                          to represent +/-Inf. The matched pattern is '([-+]*)Inf'
+                          and $1 represents the sign. For those who want to use
+                          1e999 to represent Inf, they can set opt.Inf to '$11e999'
+         opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
+                          to represent NaN
+         opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
+                          for example, if opt.JSON='foo', the JSON data is
+                          wrapped inside a function call as 'foo(...);'
+         opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
+                          back to the string form
          opt can be replaced by a list of ('param',value) pairs. The param 
          string is equivallent to a field in opt.
   output:
@@ -176,10 +191,9 @@ Here are the known issues:
 
 # Any high-dimensional cell-array will be converted to a 1D array;
 # When processing names containing multi-byte characters, Octave and MATLAB \
-can give different field-names;
-# Can not handle classes;
-# Although significantly accelerated, running loadjson for large JSON file may \
-still take some time.
+can give different field-names; you can use feature('DefaultCharacterSet','latin1') \
+in MATLAB to get consistant results
+# Can not handle classes.
 
 -------------------------------------------------------------------------------
 
