@@ -76,7 +76,16 @@ function json=savejson(rootname,obj,varargin)
 % -- this function is part of jsonlab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-varname=inputname(2);
+if(nargin==1)
+   varname=inputname(1);
+   obj=rootname;
+   if(isempty(varname)) 
+      varname='root';
+   end
+   rootname=varname;
+else
+   varname=inputname(2);
+end
 if(length(varargin)==1 && ischar(varargin{1}))
    opt=struct('FileName',varargin{1});
 else
@@ -335,14 +344,6 @@ if(any(isnan(mat(:))))
     txt=regexprep(txt,'NaN',jsonopt('NaN','"_NaN_"',varargin{:}));
 end
 
-%%-------------------------------------------------------------------------
-function val=jsonopt(key,default,varargin)
-val=default;
-if(nargin<=2) return; end
-opt=varargin{1};
-if(isstruct(opt) && isfield(opt,key))
-    val=getfield(opt,key);
-end
 %%-------------------------------------------------------------------------
 function newname=checkname(name,varargin)
 isunpack=jsonopt('UnpackHex',1,varargin{:});
