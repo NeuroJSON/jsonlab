@@ -248,7 +248,7 @@ global pos inStr isoct
       try
         oldobj=object;
         object=cell2mat(object')';
-        if(iscell(oldobj) && isstruct(object) && numel(object)>1 && jsonopt('SimplifyCellArray',0,varargin{:})==0)
+        if(iscell(oldobj) && isstruct(object) && numel(object)>1 && jsonopt('SimplifyCellArray',1,varargin{:})==0)
             object=oldobj;
         elseif(size(object,1)>1 && ndims(object)==2)
             object=object';
