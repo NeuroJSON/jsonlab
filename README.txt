@@ -5,7 +5,7 @@
 
 *Copyright (c) 2011,2012  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 0.9.0 (Rodimus)
+*Version: 0.9.1 (Rodimus - Update 1)
 
 -------------------------------------------------------------------------------
 
