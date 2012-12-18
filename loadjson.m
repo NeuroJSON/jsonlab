@@ -133,13 +133,28 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && ~isempty(strmatch('x0x5F_ArrayDa
     end
     if(~isempty(strmatch('x0x5F_ArrayIsSparse_',fn)))
         if(data(j).x0x5F_ArrayIsSparse_)
-            if(iscpx && size(ndata,2)==4)
-                ndata(:,3)=complex(ndata(:,3),ndata(:,4));
-            end
             if(~isempty(strmatch('x0x5F_ArraySize_',fn)))
                 dim=data(j).x0x5F_ArraySize_;
-                ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3),dim(1),prod(dim(2:end)));
+                if(iscpx && size(ndata,2)==4-any(dim==1))
+                    ndata(:,end-1)=complex(ndata(:,end-1),ndata(:,end));
+                end
+                if isempty(ndata)
+                    % All-zeros sparse
+                    ndata=sparse(dim(1),prod(dim(2:end)));
+                elseif dim(1)==1
+                    % Sparse row vector
+                    ndata=sparse(1,ndata(:,1),ndata(:,2),dim(1),prod(dim(2:end)));
+                elseif dim(2)==1
+                    % Sparse column vector
+                    ndata=sparse(ndata(:,1),1,ndata(:,2),dim(1),prod(dim(2:end)));
+                else
+                    % Generic sparse array.
+                    ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3),dim(1),prod(dim(2:end)));
+                end
             else
+                if(iscpx && size(ndata,2)==4)
+                    ndata(:,3)=complex(ndata(:,3),ndata(:,4));
+                end
                 ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3));
             end
         end

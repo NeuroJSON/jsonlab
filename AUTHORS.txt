@@ -25,3 +25,12 @@ This toolbox contains patches submitted by the following contributors:
 - Blake Johnson <bjohnso at bbn.com>
   part of revision 341
 
+- Niclas Borlin <Niclas.Borlin at cs.umu.se>
+  various fixes in revision 394, including
+  - loadjson crashes for all-zero sparse matrix.
+  - loadjson crashes for empty sparse matrix.
+  - Non-zero size of 0-by-N and N-by-0 empty matrices is lost after savejson/loadjson.
+  - loadjson crashes for sparse real column vector.
+  - loadjson crashes for sparse complex column vector.
+  - Data is corrupted by savejson for sparse real row vector.
+  - savejson crashes for sparse complex row vector. 

@@ -57,6 +57,70 @@ savejson('complex_sparse',data2json)
 json2data=loadjson(ans)
 
 fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  an all-zero sparse matrix\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=sparse(2,3);
+savejson('all_zero_sparse',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  an empty sparse matrix\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=sparse([]);
+savejson('empty_sparse',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  an empty 0-by-0 real matrix\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=[];
+savejson('empty_0by0_real',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  an empty 0-by-3 real matrix\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=zeros(0,3);
+savejson('empty_0by3_real',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a sparse real column vector\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=sparse([0,3,0,1,4]');
+savejson('sparse_column_vector',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a sparse complex column vector\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=data2json-1i*data2json;
+savejson('complex_sparse_column_vector',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a sparse real row vector\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=sparse([0,3,0,1,4]);
+savejson('sparse_row_vector',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a sparse complex row vector\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=data2json-1i*data2json;
+savejson('complex_sparse_row_vector',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a structure\n')
 fprintf(1,'%%=================================================\n\n')
 
