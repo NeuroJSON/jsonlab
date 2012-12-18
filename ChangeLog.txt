@@ -6,6 +6,9 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 0.9.1 (codename: Rodimus, update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+ 2012/12/18 *handling of various empty and sparse matrices (fixes submitted by Niclas Borlin)
+
 == JSONlab 0.9.0 (codename: Rodimus), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2012/06/17 *new format for an invalid leading char, unpacking hex code in savejson
