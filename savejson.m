@@ -255,7 +255,8 @@ end
 padding1=repmat(sprintf('\t'),1,level);
 padding0=repmat(sprintf('\t'),1,level+1);
 
-if(length(size(item))>2 || issparse(item) || ~isreal(item) || jsonopt('ArrayToStruct',0,varargin{:}))
+if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
+   isempty(item) ||jsonopt('ArrayToStruct',0,varargin{:}))
     if(isempty(name))
     	txt=sprintf('%s{\n%s"_ArrayType_": "%s",\n%s"_ArraySize_": %s,\n',...
               padding1,padding0,class(item),padding0,regexprep(mat2str(size(item)),'\s+',',') );
@@ -283,13 +284,24 @@ if(issparse(item))
     data=full(item(find(item)));
     if(~isreal(item))
        data=[real(data(:)),imag(data(:))];
+       if(size(item,1)==1)
+           % Kludge to have data's 'transposedness' match item's.
+           % (Necessary for complex row vector handling below.)
+           data=data';
+       end
        txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','1', sprintf(',\n'));
     end
     txt=sprintf(dataformat,txt,padding0,'"_ArrayIsSparse_": ','1', sprintf(',\n'));
-    if(find(size(item)==1))
+    if(size(item,1)==1)
+        % Row vector, store only column indices.
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
+           matdata2json([iy(:),data'],level+2,varargin{:}), sprintf('\n'));
+    elseif(size(item,2)==1)
+        % Column vector, store only row indices.
         txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
            matdata2json([ix,data],level+2,varargin{:}), sprintf('\n'));
     else
+        % General case, store row and column indices.
         txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
            matdata2json([ix,iy,data],level+2,varargin{:}), sprintf('\n'));
     end
