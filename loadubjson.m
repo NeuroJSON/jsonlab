@@ -187,9 +187,9 @@ function object = parse_object(varargin)
 
 %%-------------------------------------------------------------------------
 function [cid,len]=elem_info(type)
-id=strfind('iIlLdD',type);
-dataclass={'int8','int16','int32','int64','single','double'};
-bytelen=[1,2,4,8,4,8];
+id=strfind('iUIlLdD',type);
+dataclass={'int8','uint8','int16','int32','int64','single','double'};
+bytelen=[1,1,2,4,8,4,8];
 if(id>0)
     cid=dataclass{id};
     len=bytelen(id);
@@ -200,9 +200,13 @@ end
 
 
 function [data adv]=parse_block(type,count,varargin)
-global pos inStr
+global pos inStr isoct
 [cid,len]=elem_info(type);
-data=typecast(uint8(inStr(pos:pos+len*count-1)),cid);
+if(isoct)
+    data=typecast(int8(inStr(pos:pos+len*count-1)),cid);
+else
+    data=typecast(uint8(inStr(pos:pos+len*count-1)),cid);
+end
 adv=double(len*count);
 
 %%-------------------------------------------------------------------------
@@ -307,10 +311,16 @@ function skip_whitespace
 function str = parseStr(varargin)
     global pos inStr esc index_esc len_esc
  % len, ns = length(inStr), keyboard
-    if inStr(pos) ~= 'S'
+    type=inStr(pos);
+    if type ~= 'S' && type ~= 'C'
         error_pos('String starting with S expected at position %d');
     else
         pos = pos + 1;
+    end
+    if(type == 'C')
+        str=inStr(pos);
+        pos=pos+1;
+        return;
     end
     bytelen=double(parse_number());
     if(length(inStr)>=pos+bytelen-1)
@@ -324,13 +334,17 @@ function str = parseStr(varargin)
 
 function num = parse_number(varargin)
     global pos inStr len isoct
-    id=strfind('iIlLdD',inStr(pos));
+    id=strfind('iUIlLdD',inStr(pos));
     if(isempty(id))
         error_pos('expecting a number at position %d');
     end
-    type={'int8','int16','int32','int64','single','double'};
-    bytelen=[1,2,4,8,4,8];
-    num=typecast(uint8(inStr(pos+1:pos+bytelen(id))),type{id});
+    type={'int8','uint8','int16','int32','int64','single','double'};
+    bytelen=[1,1,2,4,8,4,8];
+    if(isoct)
+        num=typecast(int8(inStr(pos+1:pos+bytelen(id))),type{id});
+    else
+        num=typecast(uint8(inStr(pos+1:pos+bytelen(id))),type{id});
+    end
     pos = pos + bytelen(id)+1;
 
 %%-------------------------------------------------------------------------
@@ -340,7 +354,7 @@ function val = parse_value(varargin)
     true = 1; false = 0;
 
     switch(inStr(pos))
-        case 'S'
+        case {'S','C'}
             val = parseStr(varargin{:});
             return;
         case '['
@@ -349,7 +363,7 @@ function val = parse_value(varargin)
         case '{'
             val = parse_object(varargin{:});
             return;
-        case {'i','I','l','L','d','D'}
+        case {'i','U','I','l','L','d','D'}
             val = parse_number(varargin{:});
             return;
         case 'T'
@@ -360,7 +374,7 @@ function val = parse_value(varargin)
             val = false;
             pos = pos + 1;
             return;
-        case 'Z'
+        case {'Z','N'}
             val = [];
             pos = pos + 1;
             return;

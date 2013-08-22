@@ -103,15 +103,13 @@ if((isstruct(obj) || iscell(obj))&& isempty(rootname) && forceroot)
     rootname='root';
 end
 json=obj2ubjson(rootname,obj,rootlevel,opt);
-if(rootisarray)
-    json=sprintf('%s',json);
-else
-    json=sprintf('{%s}',json);
+if(~rootisarray)
+    json=['{' json '}'];
 end
 
 jsonp=jsonopt('JSONP','',opt);
 if(~isempty(jsonp))
-    json=sprintf('%s(%s);',jsonp,json);
+    json=[jsonp '(' json ')'];
 end
 
 % save to a file if FileName is set, suggested by Patrick Rapin
@@ -147,22 +145,21 @@ padding1='';
 padding0='';
 if(len>1) 
     if(~isempty(name))
-        txt=sprintf('%s%s[',padding0, S_(checkname(name,varargin{:}))); name=''; 
+        txt=[S_(checkname(name,varargin{:})) '[']; name=''; 
     else
-        txt=sprintf('%s[',padding0); 
+        txt='['; 
     end
 elseif(len==0)
     if(~isempty(name))
-        txt=sprintf('%s%sZ',padding0, S_(checkname(name,varargin{:}))); name=''; 
+        txt=[S_(checkname(name,varargin{:})) 'Z']; name=''; 
     else
-        txt=sprintf('%sZ',padding0); 
+        txt='Z'; 
     end
 end
 for i=1:len
-    txt=sprintf('%s%s%s',txt,padding1,obj2ubjson(name,item{i},level+(len>1),varargin{:}));
-    if(i<len) txt=sprintf('%s%s',txt,sprintf('')); end
+    txt=[txt obj2ubjson(name,item{i},level+(len>1),varargin{:})];
 end
-if(len>1) txt=sprintf('%s%s]',txt,padding0); end
+if(len>1) txt=[txt ']']; end
 
 %%-------------------------------------------------------------------------
 function txt=struct2ubjson(name,item,level,varargin)
@@ -176,30 +173,27 @@ padding0='';
 sep=',';
 
 if(~isempty(name)) 
-    if(len>1) txt=sprintf('%s%s[',padding0,S_(checkname(name,varargin{:}))); end
+    if(len>1) txt=[S_(checkname(name,varargin{:})) '[']; end
 else
-    if(len>1) txt=sprintf('%s[',padding0); end
+    if(len>1) txt='['; end
 end
 for e=1:len
   names = fieldnames(item(e));
   if(~isempty(name) && len==1)
-        txt=sprintf('%s%s%s{',txt,'', S_(checkname(name,varargin{:}))); 
+        txt=[txt S_(checkname(name,varargin{:})) '{']; 
   else
-        txt=sprintf('%s%s{',txt,''); 
+        txt=[txt '{']; 
   end
   if(~isempty(names))
     for i=1:length(names)
-	txt=sprintf('%s%s',txt,obj2ubjson(names{i},getfield(item(e),...
-             names{i}),level+1+(len>1),varargin{:}));
-        if(i<length(names)) txt=sprintf('%s%s',txt,''); end
-        txt=sprintf('%s%s',txt,sprintf(''));
+	txt=[txt obj2ubjson(names{i},getfield(item(e),...
+             names{i}),level+1+(len>1),varargin{:})];
     end
   end
-  txt=sprintf('%s%s}',txt,'');
+  txt=[txt '}'];
   if(e==len) sep=''; end
-  if(e<len) txt=sprintf('%s%s',txt,sprintf('')); end
 end
-if(len>1) txt=sprintf('%s%s]',txt,padding0); end
+if(len>1) txt=[txt ']']; end
 
 %%-------------------------------------------------------------------------
 function txt=str2ubjson(name,item,level,varargin)
@@ -209,38 +203,30 @@ if(~ischar(item))
 end
 item=reshape(item, max(size(item),[1 0]));
 len=size(item,1);
-sep=sprintf('');
+sep='';
 
 padding1='';
 padding0='';
 
 if(~isempty(name)) 
-    if(len>1) txt=sprintf('%s%s[',padding1,S_(checkname(name,varargin{:}))); end
+    if(len>1) txt=[S_(checkname(name,varargin{:})) '[']; end
 else
-    if(len>1) txt=sprintf('%s[',padding1); end
+    if(len>1) txt='['; end
 end
 isoct=jsonopt('IsOctave',0,varargin{:});
 for e=1:len
-    if(isoct)
-        val=regexprep(item(e,:),'\\','\\');
-        val=regexprep(val,'"','\"');
-        val=regexprep(val,'^"','\"');
-    else
-        val=regexprep(item(e,:),'\\','\\\\');
-        val=regexprep(val,'"','\\"');
-        val=regexprep(val,'^"','\\"');
-    end
+    val=item(e,:);
     if(len==1)
         obj=['' S_(checkname(name,varargin{:})) '' '',S_(val),''];
 	if(isempty(name)) obj=['',S_(val),'']; end
-        txt=sprintf('%s%s%s%s',txt,'',obj);
+        txt=[txt,'',obj];
     else
-        txt=sprintf('%s%s%s%s',txt,'',['',S_(val),'']);
+        txt=[txt,'',['',S_(val),'']];
     end
     if(e==len) sep=''; end
-    txt=sprintf('%s%s',txt,sep);
+    txt=[txt sep];
 end
-if(len>1) txt=sprintf('%s%s%s',txt,padding1,']'); end
+if(len>1) txt=[txt ']']; end
 
 %%-------------------------------------------------------------------------
 function txt=mat2ubjson(name,item,level,varargin)
@@ -255,21 +241,19 @@ if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
    isempty(item) || jsonopt('ArrayToStruct',0,varargin{:}))
       cid=I_(uint32(max(size(item))));
       if(isempty(name))
-    	txt=sprintf('%s{%s%s%s%s%s%s',...
-              padding1,padding0,S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1)) );
+    	txt=['{' S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1)) ];
       else
-    	txt=sprintf('%s%s{%s%s%s%s%s',...
-              padding1,S_(checkname(name,varargin{:})),padding0,S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1)) );
+    	txt=[S_(checkname(name,varargin{:})),'{',S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1))];
       end
 else
     if(isempty(name))
-    	txt=sprintf('%s%s',padding1,matdata2ubjson(item,level+1,varargin{:}));
+    	txt=matdata2ubjson(item,level+1,varargin{:});
     else
         if(numel(item)==1 && jsonopt('NoRowBracket',1,varargin{:})==1)
             numtxt=regexprep(regexprep(matdata2ubjson(item,level+1,varargin{:}),'^\[',''),']','');
-           	txt=sprintf('%s%s%s',padding1,S_(checkname(name,varargin{:})),numtxt);
+           	txt=[S_(checkname(name,varargin{:})) numtxt];
         else
-    	    txt=sprintf('%s%s%s',padding1,S_(checkname(name,varargin{:})),matdata2ubjson(item,level+1,varargin{:}));
+    	    txt=[S_(checkname(name,varargin{:})),matdata2ubjson(item,level+1,varargin{:})];
         end
     end
     return;
@@ -286,33 +270,33 @@ if(issparse(item))
            % (Necessary for complex row vector handling below.)
            data=data';
        end
-       txt=sprintf(dataformat,txt,padding0,S_('_ArrayIsComplex_'),'T', sprintf(''));
+       txt=[txt,S_('_ArrayIsComplex_'),'T'];
     end
-    txt=sprintf(dataformat,txt,padding0,S_('_ArrayIsSparse_'),'T', sprintf(''));
+    txt=[txt,S_('_ArrayIsSparse_'),'T'];
     if(size(item,1)==1)
         % Row vector, store only column indices.
-        txt=sprintf(dataformat,txt,padding0,S_('_ArrayData_'),...
-           matdata2ubjson([iy(:),data'],level+2,varargin{:}), sprintf(''));
+        txt=[txt,S_('_ArrayData_'),...
+           matdata2ubjson([iy(:),data'],level+2,varargin{:})];
     elseif(size(item,2)==1)
         % Column vector, store only row indices.
-        txt=sprintf(dataformat,txt,padding0,S_('_ArrayData_'),...
-           matdata2ubjson([ix,data],level+2,varargin{:}), sprintf(''));
+        txt=[txt,S_('_ArrayData_'),...
+           matdata2ubjson([ix,data],level+2,varargin{:})];
     else
         % General case, store row and column indices.
-        txt=sprintf(dataformat,txt,padding0,S_('_ArrayData_'),...
-           matdata2ubjson([ix,iy,data],level+2,varargin{:}), sprintf(''));
+        txt=[txt,S_('_ArrayData_'),...
+           matdata2ubjson([ix,iy,data],level+2,varargin{:})];
     end
 else
     if(isreal(item))
-        txt=sprintf(dataformat,txt,padding0,S_('_ArrayData_'),...
-            matdata2ubjson(item(:)',level+2,varargin{:}), sprintf(''));
+        txt=[txt,S_('_ArrayData_'),...
+            matdata2ubjson(item(:)',level+2,varargin{:})];
     else
-        txt=sprintf(dataformat,txt,padding0,S_('_ArrayIsComplex_'),'T', sprintf(''));
-        txt=sprintf(dataformat,txt,padding0,S_('_ArrayData_'),...
-            matdata2ubjson([real(item(:)) imag(item(:))],level+2,varargin{:}), sprintf(''));
+        txt=[txt,S_('_ArrayIsComplex_'),'T'];
+        txt=[txt,S_('_ArrayData_'),...
+            matdata2ubjson([real(item(:)) imag(item(:))],level+2,varargin{:})];
     end
 end
-txt=sprintf('%s%s%s',txt,padding1,'}');
+txt=[txt,'}'];
 
 %%-------------------------------------------------------------------------
 function txt=matdata2ubjson(mat,level,varargin)
@@ -321,12 +305,7 @@ if(isempty(mat))
     return;
 end
 if(size(mat,1)==1)
-    pre='';
-    post='';
     level=level-1;
-else
-    pre=sprintf('');
-    post=sprintf('');
 end
 
 if(isa(mat,'integer') || (isfloat(mat) && all(mod(mat(:),1) == 0)))
@@ -355,7 +334,6 @@ end
 % if(nargin>=2 && size(mat,1)>1)
 %     txt=regexprep(txt,'\[',[repmat(sprintf('\t'),1,level) '[']);
 % end
-txt=[pre txt post];
 if(any(isinf(mat(:))))
     txt=regexprep(txt,'([-+]*)Inf',jsonopt('Inf','"$1_Inf_"',varargin{:}));
 end
@@ -405,7 +383,7 @@ key='iIlL';
 cid={'int8','int16','int32','int64'};
 for i=1:4
   if(num<2^(i*8))
-    val=[key(i) typecast(cast(num,cid{i}),'uint8')];
+    val=[key(i) data2byte(cast(num,cid{i}),'uint8')];
     return;
   end
 end
@@ -416,10 +394,11 @@ function val=D_(num)
 if(~isfloat(num))
     error('input is not a float');
 end
+
 if(isa(num,'single'))
-  val=['d' typecast(num,'uint8')];
+  val=['d' data2byte(num,'uint8')];
 else
-  val=['D' typecast(num,'uint8')];
+  val=['D' data2byte(num,'uint8')];
 end
 
 function data=I_a(num,type,dim,format)
@@ -430,13 +409,13 @@ if(id==0)
 end
 
 if(id==1)
-  data=typecast(int8(num),'uint8');
+  data=data2byte(int8(num),'uint8');
 elseif(id==2)
-  data=typecast(int16(num),'uint8');
+  data=data2byte(int16(num),'uint8');
 elseif(id==3)
-  data=typecast(int32(num),'uint8');
+  data=data2byte(int32(num),'uint8');
 elseif(id==4)
-  data=typecast(int64(num),'uint8');
+  data=data2byte(int64(num),'uint8');
 end
 blen=2^(id-1);
 
@@ -466,13 +445,13 @@ if(id==0)
 end
 
 if(id==1)
-  data=typecast(single(num),'uint8');
+  data=data2byte(single(num),'uint8');
 elseif(id==2)
-  data=typecast(double(num),'uint8');
+  data=data2byte(double(num),'uint8');
 end
 
 if(nargin>=3 && length(dim)>=2 && prod(dim)~=dim(2))
-  format='opt'
+  format='opt';
 end
 if((nargin<4 || strcmp(format,'opt')) && numel(num)>1)
   if(nargin>=3 && (length(dim)==1 || (length(dim)>=2 && prod(dim)~=dim(2))))
@@ -488,3 +467,7 @@ else
   data=data(:)';
 end
 data=['[' data(:)' ']'];
+
+function bytes=data2byte(varargin)
+bytes=typecast(varargin{:});
+bytes=bytes(:)';
