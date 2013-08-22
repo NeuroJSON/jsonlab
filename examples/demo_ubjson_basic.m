@@ -155,7 +155,7 @@ fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  invalid field-name handling\n')
 fprintf(1,'%%=================================================\n\n')
 
-json2data=loadubjson(saveubjson(loadjson('{"ValidName":1, "_InvalidName":2, ":Field:":3, "项目":"绝密"}')))
+json2data=loadubjson(saveubjson('',loadjson('{"ValidName":1, "_InvalidName":2, ":Field:":3, "项目":"绝密"}')))
 
 rand ('state',rngstate);
 
