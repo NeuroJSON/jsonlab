@@ -316,7 +316,12 @@ if(isa(mat,'integer') || (isfloat(mat) && all(mod(mat(:),1) == 0)))
     key='iIlL';
     txt=[I_a(mat(:),key(find(id)),size(mat))];
 elseif(islogical(mat))
-    txt=['[$U#' I_a(size(mat),'l') typecast(uint8(mat(:)'),'uint8')];
+    logicalval='FT';
+    if(numel(mat)==1)
+        txt=logicalval(mat+1);
+    else
+        txt=['[$U#' I_a(size(mat),'l') typecast(uint8(mat(:)'),'uint8')];
+    end
 else
     if(numel(mat)==1)
         txt=['[' D_(mat) ']'];
