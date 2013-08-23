@@ -309,14 +309,14 @@ if(size(mat,1)==1)
 end
 
 if(isa(mat,'integer') || (isfloat(mat) && all(mod(mat(:),1) == 0)))
-    id= hist(abs(max(mat(:))),[0 2^8 2^16 2^32 2^64]);
+    id= histc(abs(max(mat(:))),[0 2^8 2^16 2^32 2^64]);
+    if(isempty(find(id)))
+        error('high-precision data is not yet supported');
+    end
     key='iIlL';
     txt=[I_a(mat(:),key(find(id)),size(mat))];
 elseif(islogical(mat))
-    txt=mat2str(uint8(mat(:)'));
-    txt=regexprep(txt,'1','T');
-    txt=regexprep(txt,'0','F');
-    txt=regexprep(txt,'\s','');
+    txt=['[$U#' I_a(size(mat),'l') typecast(uint8(mat(:)'),'uint8')];
 else
     if(numel(mat)==1)
         txt=['[' D_(mat) ']'];
@@ -325,10 +325,6 @@ else
     end
 end
 
-if(islogical(mat) && jsonopt('ParseLogical',0,varargin{:})==1)
-   txt=regexprep(txt,'1','T');
-   txt=regexprep(txt,'0','F');
-end
 %txt=regexprep(mat2str(mat),'\s+',',');
 %txt=regexprep(txt,';',sprintf('],['));
 % if(nargin>=2 && size(mat,1)>1)
@@ -429,13 +425,14 @@ if((nargin<4 || strcmp(format,'opt')) && numel(num)>1)
   else
       data=['$' type '#' I_(int32(numel(data)/blen)) data(:)'];
   end
+  data=['[' data(:)'];
 else
-  data=reshape(data,id,numel(data)/blen);
+  data=reshape(data,blen,numel(data)/blen);
   data(2:blen+1,:)=data;
   data(1,:)=type;
   data=data(:)';
+  data=['[' data(:)' ']'];
 end
-data=['[' data(:)' ']'];
 
 function data=D_a(num,type,dim,format)
 id=find(ismember('dD',type));
@@ -460,13 +457,14 @@ if((nargin<4 || strcmp(format,'opt')) && numel(num)>1)
   else
       data=['$' type '#' I_(int32(numel(data)/(id*4))) data(:)'];
   end
+  data=['[' data];
 else
   data=reshape(data,(id*4),length(data)/(id*4));
   data(2:(id*4+1),:)=data;
   data(1,:)=type;
   data=data(:)';
+  data=['[' data(:)' ']'];
 end
-data=['[' data(:)' ']'];
 
 function bytes=data2byte(varargin)
 bytes=typecast(varargin{:});

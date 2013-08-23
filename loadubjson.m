@@ -238,14 +238,15 @@ global pos inStr isoct
             if(~isempty(dim))
                 object=reshape(object,dim);
             end
-            pos=pos+adv+1;
+            pos=pos+adv;
             return;
         else
             endpos=matching_bracket(inStr,pos);
             [cid,len]=elem_info(type);
             count=(endpos-pos)/len;
             [object adv]=parse_block(type,count,varargin{:});
-            pos=pos+adv+1;
+            pos=pos+adv;
+            parse_char(']');
             return;
         end
     end
