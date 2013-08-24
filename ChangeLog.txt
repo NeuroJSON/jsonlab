@@ -1,10 +1,13 @@
 ============================================================================
 
-     JSONlab - a toolbox to encode/decode JSON files in MATLAB/Octave
+   JSONlab - a toolbox to encode/decode JSON/UBJSON files in MATLAB/Octave
 
 ----------------------------------------------------------------------------
 
 JSONlab ChangeLog (key features marked by *):
+
+== JSONlab 0.9.8 (codename: Optimus - alpha), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+ 2013/08/23 *Universal Binary JSON (UBJSON) support, including both saveubjson and loadubjson
 
 == JSONlab 0.9.1 (codename: Rodimus, update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
  2012/12/18 *handling of various empty and sparse matrices (fixes submitted by Niclas Borlin)
