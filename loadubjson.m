@@ -9,11 +9,11 @@ function data = loadubjson(fname,varargin)
 % authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
 %            date: 2013/08/01
 %
-% $Id: loadubjson.m 394 2012-12-18 17:58:11Z fangq $
+% $Id$
 %
 % input:
 %      fname: input file name, if fname contains "{}" or "[]", fname
-%             will be interpreted as a JSON string
+%             will be interpreted as a UBJSON string
 %      opt: a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs. The param string is equivallent
 %           to a field in opt.

@@ -6,12 +6,12 @@ function json=saveubjson(rootname,obj,varargin)
 % json=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
 %
 % convert a MATLAB object (cell, struct or array) into a Universal 
-% Binary JSON (JavaScript Object Notation) string
+% Binary JSON (UBJSON) binary string
 %
 % author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
 %            created on 2013/08/17
 %
-% $Id: saveubjson.m 394 2012-12-18 17:58:11Z fangq $
+% $Id$
 %
 % input:
 %      rootname: name of the root-object, if set to '', will use variable name
@@ -44,12 +44,6 @@ function json=saveubjson(rootname,obj,varargin)
 %                         does not have a name, 'root' will be used; if this 
 %                         is set to 0 and rootname is empty, the root level 
 %                         will be merged down to the lower level.
-%        opt.Inf ['"$1_Inf_"'|string]: a customized regular expression pattern
-%                         to represent +/-Inf. The matched pattern is '([-+]*)Inf'
-%                         and $1 represents the sign. For those who want to use
-%                         1e999 to represent Inf, they can set opt.Inf to '$11e999'
-%        opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
-%                         to represent NaN
 %        opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
 %                         for example, if opt.JSON='foo', the JSON data is
 %                         wrapped inside a function call as 'foo(...);'
@@ -307,14 +301,24 @@ end
 if(size(mat,1)==1)
     level=level-1;
 end
-
+type='';
+hasnegtive=find(mat<0);
 if(isa(mat,'integer') || (isfloat(mat) && all(mod(mat(:),1) == 0)))
-    id= histc(abs(max(mat(:))),[0 2^8 2^16 2^32 2^64]);
-    if(isempty(find(id)))
-        error('high-precision data is not yet supported');
+    if(isempty(hasnegtive))
+       if(max(mat(:))<=2^8)
+           type='U';
+       end
     end
-    key='iIlL';
-    txt=[I_a(mat(:),key(find(id)),size(mat))];
+    if(isempty(type))
+        % todo - need to consider negative ones separately
+        id= histc(abs(max(mat(:))),[0 2^7 2^15 2^31 2^63]);
+        if(isempty(find(id)))
+            error('high-precision data is not yet supported');
+        end
+        key='iIlL';
+	type=key(find(id));
+    end
+    txt=[I_a(mat(:),type,size(mat))];
 elseif(islogical(mat))
     logicalval='FT';
     if(numel(mat)==1)
@@ -368,29 +372,33 @@ if(isunpack)
         end
     end
 end
-
+%%-------------------------------------------------------------------------
 function val=S_(str)
 if(length(str)==1)
   val=['C' str];
 else
   val=['S' I_(int32(length(str))) str];
 end
-
+%%-------------------------------------------------------------------------
 function val=I_(num)
 if(~isinteger(num))
     error('input is not an integer');
 end
+if(num>=0 && num<255)
+   val=['U' data2byte(cast(num,'uint8'),'uint8')];
+   return;
+end
 key='iIlL';
 cid={'int8','int16','int32','int64'};
 for i=1:4
-  if(num<2^(i*8))
+  if((num>0 && num<2^(i*8-1)) || (num<0 && num>=-2^(i*8-1)))
     val=[key(i) data2byte(cast(num,cid{i}),'uint8')];
     return;
   end
 end
 error('unsupported integer');
 
-
+%%-------------------------------------------------------------------------
 function val=D_(num)
 if(~isfloat(num))
     error('input is not a float');
@@ -401,9 +409,9 @@ if(isa(num,'single'))
 else
   val=['D' data2byte(num,'uint8')];
 end
-
+%%-------------------------------------------------------------------------
 function data=I_a(num,type,dim,format)
-id=find(ismember('iIlL',type));
+id=find(ismember('iUIlL',type));
 
 if(id==0)
   error('unsupported integer array');
@@ -411,14 +419,20 @@ end
 
 if(id==1)
   data=data2byte(int8(num),'uint8');
+  blen=1;
 elseif(id==2)
-  data=data2byte(int16(num),'uint8');
+  data=data2byte(uint8(num),'uint8');
+  blen=1;
 elseif(id==3)
-  data=data2byte(int32(num),'uint8');
+  data=data2byte(int16(num),'uint8');
+  blen=2;
 elseif(id==4)
+  data=data2byte(int32(num),'uint8');
+  blen=4;
+elseif(id==5)
   data=data2byte(int64(num),'uint8');
+  blen=8;
 end
-blen=2^(id-1);
 
 if(nargin>=3 && length(dim)>=2 && prod(dim)~=dim(2))
   format='opt';
@@ -438,7 +452,7 @@ else
   data=data(:)';
   data=['[' data(:)' ']'];
 end
-
+%%-------------------------------------------------------------------------
 function data=D_a(num,type,dim,format)
 id=find(ismember('dD',type));
 
@@ -470,7 +484,7 @@ else
   data=data(:)';
   data=['[' data(:)' ']'];
 end
-
+%%-------------------------------------------------------------------------
 function bytes=data2byte(varargin)
 bytes=typecast(varargin{:});
 bytes=bytes(:)';

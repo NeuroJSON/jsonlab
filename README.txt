@@ -5,7 +5,7 @@
 
 *Copyright (c) 2011,2012  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 0.9.1 (Rodimus - Update 1)
+*Version: 0.9.8 (Optimus - alpha)
 
 -------------------------------------------------------------------------------
 
@@ -27,16 +27,26 @@ to represent complex and hierarchical data. It is as powerful as
 [http://en.wikipedia.org/wiki/XML XML], but less verbose. JSON format is widely 
 used for data-exchange in applications, and is essential for the wild success 
 of [http://en.wikipedia.org/wiki/Ajax_(programming) Ajax] and 
-[http://en.wikipedia.org/wiki/Web_2.0 Web2.0]. With the fast advance of 
-web-based technologies, We envision that JSON will serve as a mainstream 
-data-exchange format for scientific research in the future, and
-fulfill part of the roles achieved by [http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5].
+[http://en.wikipedia.org/wiki/Web_2.0 Web2.0]. 
 
-JSONlab is a free and open-source implementation of a JSON encoder and a 
-decoder in the native MATLAB language. It can be used to convert a MATLAB 
+UBJSON (Universal Binary JSON) is a binary JSON format, specifically 
+optimized for compact file size and better performance while keeping
+the semantics as simple as the text-based JSON format. Using the UBJSON
+format allows to wrap complex binary data in a flexible and extensible
+structure, making it possible to process complex and large dataset 
+without accuracy loss due to text conversions.
+
+We envision that both JSON and its binary version will serve as the
+mainstream data-exchange formats for scientific research in the future, 
+and fulfill part of the roles achieved by other general-purpose 
+file specifications, such as
+[http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5].
+
+JSONlab is a free and open-source implementation of a JSON/UBJSON encoder 
+and a decoder in the native MATLAB language. It can be used to convert a MATLAB 
 data structure (array, struct, cell, struct array and cell array) into 
-JSON formatted text, or to decode a JSON file into MATLAB data. JSONlab 
-supports both MATLAB and  
+JSON/UBJSON formatted strings, or to decode a JSON/UBJSON file into MATLAB 
+data structure. JSONlab supports both MATLAB and  
 [http://www.gnu.org/software/octave/ GNU Octave] (a free MATLAB clone).
 
 -------------------------------------------------------------------------------
@@ -60,8 +70,9 @@ output, that means JSONlab is installed for MATLAB/Octave.
 III.Using JSONlab
 
 JSONlab provides two functions, loadjson.m -- a MATLAB->JSON decoder, 
-and savejson.m -- a MATLAB->JSON encoder. The detailed help info for 
-the two functions can be found below:
+and savejson.m -- a MATLAB->JSON encoder, for the text-based JSON, and 
+two equivallents -- loadubjson and saveubjson for the binary JSON. T
+he detailed help info for the four functions can be found below:
 
 === loadjson.m ===
 <pre>
@@ -176,6 +187,8 @@ basic utilities of JSONlab. Running the "demo_jsonlab_basic.m" script, you
 will see the conversions from MATLAB data structure to JSON text and backward.
 In "jsonlab_selftest.m", we load complex JSON files downloaded from the Internet
 and validate the loadjson/savejson functions for regression testing purposes.
+Similarly, a "demo_ubjson_basic.m" script is provided to test the saveubjson
+and loadubjson pairs for various matlab data structures.
 
 Please run these examples and understand how JSONlab works before you use
 it to process your data.
@@ -194,6 +207,10 @@ Here are the known issues:
 can give different field-names; you can use feature('DefaultCharacterSet','latin1') \
 in MATLAB to get consistant results
 # Can not handle classes.
+# saveubjson has not yet supported arbitrary data ([H] in the UBJSON specification)
+# saveubjson now converts a logical array into a uint8 ([U]) array for now
+# an unofficial N-D array count format is used in saveubjson, we are communicating \
+with the UBJSON spec maintainer to investigate the possibility to make this upstream
 
 -------------------------------------------------------------------------------
 
