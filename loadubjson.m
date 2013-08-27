@@ -168,7 +168,18 @@ end
 function object = parse_object(varargin)
     parse_char('{');
     object = [];
+    type='';
+    count=-1;
+    if(next_char == '$')
+        type=inStr(pos+1); % TODO
+        pos=pos+2;
+    end
+    if(next_char == '#')
+        pos=pos+1;
+        count=double(parse_number());
+    end
     if next_char ~= '}'
+        num=0;
         while 1
             str = parseStr(varargin{:});
             if isempty(str)
@@ -176,14 +187,17 @@ function object = parse_object(varargin)
             end
             %parse_char(':');
             val = parse_value(varargin{:});
+            num=num+1;
             eval( sprintf( 'object.%s  = val;', valid_field(str) ) );
-            if next_char == '}'
+            if next_char == '}' || (count>=0 && num>=count)
                 break;
             end
             %parse_char(',');
         end
     end
-    parse_char('}');
+    if(count==-1)
+        parse_char('}');
+    end
 
 %%-------------------------------------------------------------------------
 function [cid,len]=elem_info(type)
@@ -250,7 +264,6 @@ global pos inStr isoct
             return;
         end
     end
-    
     if next_char ~= ']'
          while 1
             val = parse_value(varargin{:});
@@ -313,7 +326,7 @@ function str = parseStr(varargin)
     global pos inStr esc index_esc len_esc
  % len, ns = length(inStr), keyboard
     type=inStr(pos);
-    if type ~= 'S' && type ~= 'C'
+    if type ~= 'S' && type ~= 'C' && type ~= 'H'
         error_pos('String starting with S expected at position %d');
     else
         pos = pos + 1;
@@ -355,7 +368,7 @@ function val = parse_value(varargin)
     true = 1; false = 0;
 
     switch(inStr(pos))
-        case {'S','C'}
+        case {'S','C','H'}
             val = parseStr(varargin{:});
             return;
         case '['
