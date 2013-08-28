@@ -237,7 +237,12 @@ if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
       if(isempty(name))
     	txt=['{' S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1)) ];
       else
-    	txt=[S_(checkname(name,varargin{:})),'{',S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1))];
+          if(isempty(item))
+              txt=[S_(checkname(name,varargin{:})),'Z'];
+              return;
+          else
+    	      txt=[S_(checkname(name,varargin{:})),'{',S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1))];
+          end
       end
 else
     if(isempty(name))
