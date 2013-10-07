@@ -6,6 +6,10 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 0.9.8-1 (codename: Optimus - alpha update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2013/10/07 Better round-trip conservation for empty arrays and structs (patch submitted by Yul Kang)
+
 == JSONlab 0.9.8 (codename: Optimus - alpha), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
  2013/08/23 *Universal Binary JSON (UBJSON) support, including both saveubjson and loadubjson
 
