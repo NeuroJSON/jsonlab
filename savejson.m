@@ -157,9 +157,9 @@ if(len>1)
     end
 elseif(len==0)
     if(~isempty(name))
-        txt=sprintf('%s"%s": null',padding0, checkname(name,varargin{:})); name=''; 
+        txt=sprintf('%s"%s": []',padding0, checkname(name,varargin{:})); name=''; 
     else
-        txt=sprintf('%snull',padding0); 
+        txt=sprintf('%s[]',padding0); 
     end
 end
 for i=1:len

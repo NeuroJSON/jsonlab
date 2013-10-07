@@ -398,6 +398,13 @@ function val = parse_value(varargin)
             return;
         case '{'
             val = parse_object(varargin{:});
+            if isstruct(val)
+                if(~isempty(strmatch('x0x5F_ArrayType_',fieldnames(val), 'exact')))
+                    val=jstruct2array(val);
+                end
+            elseif isempty(val)
+                val = struct;
+            end
             return;
         case {'-','0','1','2','3','4','5','6','7','8','9'}
             val = parse_number(varargin{:});

@@ -315,7 +315,7 @@ that everyone else can enjoy the improvement. For anyone who want to contribute,
 please download JSONlab source code from it's subversion repository by using the
 following command:
 
- svn co https://iso2mesh.svn.sourceforge.net/svnroot/iso2mesh/trunk/jsonlab jsonlab
+ svn checkout svn://svn.code.sf.net/p/iso2mesh/code/trunk/jsonlab jsonlab
 
 You can make changes to the files as needed. Once you are satisfied with your
 changes, and ready to share it with others, please cd the root directory of 
