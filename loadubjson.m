@@ -33,8 +33,8 @@ global pos inStr len  esc index_esc len_esc isoct arraytoken
 if(regexp(fname,'[\{\}\]\[]','once'))
    string=fname;
 elseif(exist(fname,'file'))
-   fid = fopen(fname,'rt');
-   string = fscanf(fid,'%c');
+   fid = fopen(fname,'rb');
+   string = fread(fid,inf,'uint8=>char')';
    fclose(fid);
 else
    error('input file does not exist');

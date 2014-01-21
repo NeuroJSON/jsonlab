@@ -108,7 +108,7 @@ end
 
 % save to a file if FileName is set, suggested by Patrick Rapin
 if(~isempty(jsonopt('FileName','',opt)))
-    fid = fopen(opt.FileName, 'wt');
+    fid = fopen(opt.FileName, 'wb');
     fwrite(fid,json,'char');
     fclose(fid);
 end
