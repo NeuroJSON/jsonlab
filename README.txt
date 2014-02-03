@@ -3,9 +3,9 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-*Copyright (c) 2011-2013  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
+*Copyright (c) 2011-2014  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 0.9.8 (Optimus - alpha)
+*Version: 0.9.9 (Optimus - beta)
 
 -------------------------------------------------------------------------------
 
