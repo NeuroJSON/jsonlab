@@ -9,6 +9,8 @@ for i=1:4
     json=savejson('data',loadjson(fname));
     fprintf(1,'%s\n',json);
     data=loadjson(json);
+    savejson('data',data,'selftest.json');
+    data=loadjson('selftest.json');
 end
 
 for i=1:4
@@ -19,4 +21,6 @@ for i=1:4
     fprintf(1,'%s\n',json);
     data=loadubjson(json);
     savejson('',data)
+    saveubjson('data',data,'selftest.ubj');
+    data=loadubjson('selftest.ubj');
 end
