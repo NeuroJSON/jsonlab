@@ -59,6 +59,7 @@ function json=savejson(rootname,obj,varargin)
 %                         wrapped inside a function call as 'foo(...);'
 %        opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
+%        opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt.
 % output:
@@ -120,8 +121,13 @@ end
 
 % save to a file if FileName is set, suggested by Patrick Rapin
 if(~isempty(jsonopt('FileName','',opt)))
-    fid = fopen(opt.FileName, 'wt');
-    fwrite(fid,json,'char');
+    if(jsonopt('SaveBinary',0,opt)==1)
+	    fid = fopen(opt.FileName, 'wb');
+	    fwrite(fid,json);
+    else
+	    fid = fopen(opt.FileName, 'wt');
+	    fwrite(fid,json,'char');
+    end
     fclose(fid);
 end
 

@@ -40,15 +40,15 @@ global pos inStr len  esc index_esc len_esc isoct arraytoken
 if(regexp(fname,'[\{\}\]\[]','once'))
    string=fname;
 elseif(exist(fname,'file'))
-   fid = fopen(fname,'rt');
-   string = fscanf(fid,'%c');
+   fid = fopen(fname,'rb');
+   string = fread(fid,inf,'uint8=>char')';
    fclose(fid);
 else
    error('input file does not exist');
 end
 
 pos = 1; len = length(string); inStr = string;
-isoct=exist('OCTAVE_VERSION');
+isoct=exist('OCTAVE_VERSION','var');
 arraytoken=find(inStr=='[' | inStr==']' | inStr=='"');
 jstr=regexprep(inStr,'\\\\','  ');
 escquote=regexp(jstr,'\\"');
@@ -85,17 +85,6 @@ if(~isempty(data))
       end
 end
 
-
-%%
-function newdata=parse_collection(id,data,obj)
-
-if(jsoncount>0 && exist('data','var')) 
-    if(~iscell(data))
-       newdata=cell(1);
-       newdata{1}=data;
-       data=newdata;
-    end
-end
 
 %%
 function newdata=jcell2array(data)
