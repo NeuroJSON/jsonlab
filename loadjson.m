@@ -48,7 +48,7 @@ else
 end
 
 pos = 1; len = length(string); inStr = string;
-isoct=exist('OCTAVE_VERSION','var');
+isoct=exist('OCTAVE_VERSION','builtin');
 arraytoken=find(inStr=='[' | inStr==']' | inStr=='"');
 jstr=regexprep(inStr,'\\\\','  ');
 escquote=regexp(jstr,'\\"');
