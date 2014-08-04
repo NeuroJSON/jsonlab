@@ -240,6 +240,7 @@ for e=1:len
         val=regexprep(val,'"','\\"');
         val=regexprep(val,'^"','\\"');
     end
+    val=escapejsonstring(val);
     if(len==1)
         obj=['"' checkname(name,varargin{:}) '": ' '"',val,'"'];
 	if(isempty(name)) obj=['"',val,'"']; end
@@ -389,3 +390,10 @@ if(isunpack)
     end
 end
 
+%%-------------------------------------------------------------------------
+function newstr=escapejsonstring(str)
+escapechars={'\a','\b','\f','\n','\r','\t','\v'};
+newstr=str;
+for i=1:length(escapechars);
+  newstr=regexprep(newstr,escapechars{i},regexprep(escapechars{i},'\\','\\\\'));
+end
