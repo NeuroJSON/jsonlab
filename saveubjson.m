@@ -329,7 +329,7 @@ elseif(islogical(mat))
     if(numel(mat)==1)
         txt=logicalval(mat+1);
     else
-        txt=['[$U#' I_a(size(mat),'l') typecast(uint8(mat(:)'),'uint8')];
+        txt=['[$U#' I_a(size(mat),'l') typecast(swapbytes(uint8(mat(:)')),'uint8')];
     end
 else
     if(numel(mat)==1)
@@ -390,14 +390,14 @@ if(~isinteger(num))
     error('input is not an integer');
 end
 if(num>=0 && num<255)
-   val=['U' data2byte(cast(num,'uint8'),'uint8')];
+   val=['U' data2byte(swapbytes(cast(num,'uint8')),'uint8')];
    return;
 end
 key='iIlL';
 cid={'int8','int16','int32','int64'};
 for i=1:4
   if((num>0 && num<2^(i*8-1)) || (num<0 && num>=-2^(i*8-1)))
-    val=[key(i) data2byte(cast(num,cid{i}),'uint8')];
+    val=[key(i) data2byte(swapbytes(cast(num,cid{i})),'uint8')];
     return;
   end
 end
@@ -422,20 +422,22 @@ if(id==0)
   error('unsupported integer array');
 end
 
+% based on UBJSON specs, all integer types are stored in big endian format
+
 if(id==1)
-  data=data2byte(int8(num),'uint8');
+  data=data2byte(swapbytes(int8(num)),'uint8');
   blen=1;
 elseif(id==2)
-  data=data2byte(uint8(num),'uint8');
+  data=data2byte(swapbytes(uint8(num)),'uint8');
   blen=1;
 elseif(id==3)
-  data=data2byte(int16(num),'uint8');
+  data=data2byte(swapbytes(int16(num)),'uint8');
   blen=2;
 elseif(id==4)
-  data=data2byte(int32(num),'uint8');
+  data=data2byte(swapbytes(int32(num)),'uint8');
   blen=4;
 elseif(id==5)
-  data=data2byte(int64(num),'uint8');
+  data=data2byte(swapbytes(int64(num)),'uint8');
   blen=8;
 end
 

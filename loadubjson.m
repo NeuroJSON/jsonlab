@@ -28,7 +28,7 @@ function data = loadubjson(fname,varargin)
 % -- this function is part of jsonlab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-global pos inStr len  esc index_esc len_esc isoct arraytoken
+global pos inStr len  esc index_esc len_esc isoct arraytoken fileendian systemendian
 
 if(regexp(fname,'[\{\}\]\[]','once'))
    string=fname;
@@ -52,6 +52,9 @@ esc = find(inStr=='"' | inStr=='\' ); % comparable to: regexp(inStr, '["\\]');
 index_esc = 1; len_esc = length(esc);
 
 opt=varargin2struct(varargin{:});
+fileendian=upper(jsonopt('IntEndian','B',opt));
+[os,maxelem,systemendian]=computer;
+
 jsoncount=1;
 while pos <= len
     switch(next_char)
@@ -214,13 +217,19 @@ end
 
 
 function [data adv]=parse_block(type,count,varargin)
-global pos inStr isoct
+global pos inStr isoct fileendian systemendian
 [cid,len]=elem_info(type);
+datastr=inStr(pos:pos+len*count-1);
 if(isoct)
-    data=typecast(int8(inStr(pos:pos+len*count-1)),cid);
+    newdata=int8(datastr);
 else
-    data=typecast(uint8(inStr(pos:pos+len*count-1)),cid);
+    newdata=uint8(datastr);
 end
+id=strfind('iUIlLdD',type);
+if(id<=5 && fileendian~=systemendian)
+    newdata=swapbytes(typecast(newdata,cid));
+end
+data=typecast(newdata,cid);
 adv=double(len*count);
 
 %%-------------------------------------------------------------------------
@@ -347,18 +356,23 @@ function str = parseStr(varargin)
 %%-------------------------------------------------------------------------
 
 function num = parse_number(varargin)
-    global pos inStr len isoct
+    global pos inStr len isoct fileendian systemendian
     id=strfind('iUIlLdD',inStr(pos));
     if(isempty(id))
         error_pos('expecting a number at position %d');
     end
     type={'int8','uint8','int16','int32','int64','single','double'};
     bytelen=[1,1,2,4,8,4,8];
+    datastr=inStr(pos+1:pos+bytelen(id));
     if(isoct)
-        num=typecast(int8(inStr(pos+1:pos+bytelen(id))),type{id});
+        newdata=int8(datastr);
     else
-        num=typecast(uint8(inStr(pos+1:pos+bytelen(id))),type{id});
+        newdata=uint8(datastr);
     end
+    if(id<=5 && fileendian~=systemendian)
+        newdata=swapbytes(typecast(newdata,type{id}));
+    end
+    num=typecast(newdata,type{id});
     pos = pos + bytelen(id)+1;
 
 %%-------------------------------------------------------------------------
