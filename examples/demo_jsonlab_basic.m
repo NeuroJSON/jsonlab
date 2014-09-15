@@ -157,5 +157,24 @@ fprintf(1,'%%=================================================\n\n')
 
 json2data=loadjson('{"ValidName":1, "_InvalidName":2, ":Field:":3, "项目":"绝密"}')
 
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a 2D cell array\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json={{1,{2,3}},{4,5},{6};{7},{8,9},{10}};
+savejson('data2json',data2json)
+json2data=loadjson(ans)  % only savejson works for cell arrays, loadjson has issues
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a 2D struct array\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=repmat(struct('idx',0,'data','structs'),[2,3])
+for i=1:6
+    data2json(i).idx=i;
+end
+savejson('data2json',data2json)
+json2data=loadjson(ans)
+
 rand ('state',rngstate);
 

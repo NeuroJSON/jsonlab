@@ -189,27 +189,27 @@ global pos inStr isoct
     object = cell(0, 1);
     dim2=[];
     if next_char ~= ']'
-        [endpos e1l e1r maxlevel]=matching_bracket(inStr,pos);
+        [endpos, e1l, e1r, maxlevel]=matching_bracket(inStr,pos);
         arraystr=['[' inStr(pos:endpos)];
         arraystr=regexprep(arraystr,'"_NaN_"','NaN');
         arraystr=regexprep(arraystr,'"([-+]*)_Inf_"','$1Inf');
-        arraystr(find(arraystr==sprintf('\n')))=[];
-        arraystr(find(arraystr==sprintf('\r')))=[];
+        arraystr(arraystr==sprintf('\n'))=[];
+        arraystr(arraystr==sprintf('\r'))=[];
         %arraystr=regexprep(arraystr,'\s*,',','); % this is slow,sometimes needed
         if(~isempty(e1l) && ~isempty(e1r)) % the array is in 2D or higher D
             astr=inStr((e1l+1):(e1r-1));
             astr=regexprep(astr,'"_NaN_"','NaN');
             astr=regexprep(astr,'"([-+]*)_Inf_"','$1Inf');
-            astr(find(astr==sprintf('\n')))=[];
-            astr(find(astr==sprintf('\r')))=[];
-            astr(find(astr==' '))='';
+            astr(astr==sprintf('\n'))=[];
+            astr(astr==sprintf('\r'))=[];
+            astr(astr==' ')='';
             if(isempty(find(astr=='[', 1))) % array is 2D
                 dim2=length(sscanf(astr,'%f,',[1 inf]));
             end
         else % array is 1D
             astr=arraystr(2:end-1);
-            astr(find(astr==' '))='';
-            [obj count errmsg nextidx]=sscanf(astr,'%f,',[1,inf]);
+            astr(astr==' ')='';
+            [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',[1,inf]);
             if(nextidx>=length(astr)-1)
                 object=obj;
                 pos=endpos;
@@ -219,10 +219,10 @@ global pos inStr isoct
         end
         if(~isempty(dim2))
             astr=arraystr;
-            astr(find(astr=='['))='';
-            astr(find(astr==']'))='';
-            astr(find(astr==' '))='';
-            [obj count errmsg nextidx]=sscanf(astr,'%f,',inf);
+            astr(astr=='[')='';
+            astr(astr==']')='';
+            astr(astr==' ')='';
+            [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
             if(nextidx>=length(astr)-1)
                 object=reshape(obj,dim2,numel(obj)/dim2)';
                 pos=endpos;
@@ -478,7 +478,7 @@ while(pos<len)
 end
 error('unmatched quotation mark');
 %%-------------------------------------------------------------------------
-function [endpos e1l e1r maxlevel] = matching_bracket(str,pos)
+function [endpos, e1l, e1r, maxlevel] = matching_bracket(str,pos)
 global arraytoken
 level=1;
 maxlevel=level;
