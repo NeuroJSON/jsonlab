@@ -152,10 +152,14 @@ if(~iscell(item))
 end
 
 dim=size(item);
-len=numel(item); % let's handle 1D cell first
-padding1=repmat(sprintf('\t'),1,level-1);
+if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
+    item=reshape(item,dim(1),numel(item)/dim(1));
+    dim=size(item);
+end
+len=numel(item);
 padding0=repmat(sprintf('\t'),1,level);
-if(len>1) 
+padding2=repmat(sprintf('\t'),1,level+1);
+if(len>1)
     if(~isempty(name))
         txt=sprintf('%s"%s": [\n',padding0, checkname(name,varargin{:})); name=''; 
     else
@@ -168,9 +172,15 @@ elseif(len==0)
         txt=sprintf('%s[]',padding0); 
     end
 end
-for i=1:len
-    txt=sprintf('%s%s%s',txt,padding1,obj2json(name,item{i},level+(len>1),varargin{:}));
-    if(i<len) txt=sprintf('%s%s',txt,sprintf(',\n')); end
+for j=1:dim(2)
+    if(dim(1)>1) txt=sprintf('%s%s[\n',txt,padding2); end
+    for i=1:dim(1)
+       txt=sprintf('%s%s',txt,obj2json(name,item{i,j},level+(dim(1)>1)+1,varargin{:}));
+       if(i<dim(1)) txt=sprintf('%s%s',txt,sprintf(',\n')); end
+    end
+    if(dim(1)>1) txt=sprintf('%s\n%s]',txt,padding2); end
+    if(j<dim(2)) txt=sprintf('%s%s',txt,sprintf(',\n')); end
+    %if(j==dim(2)) txt=sprintf('%s%s',txt,sprintf(',\n')); end
 end
 if(len>1) txt=sprintf('%s\n%s]',txt,padding0); end
 
@@ -180,34 +190,42 @@ txt='';
 if(~isstruct(item))
 	error('input is not a struct');
 end
+dim=size(item);
+if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
+    item=reshape(item,dim(1),numel(item)/dim(1));
+    dim=size(item);
+end
 len=numel(item);
-padding1=repmat(sprintf('\t'),1,level-1);
 padding0=repmat(sprintf('\t'),1,level);
-sep=',';
+padding2=repmat(sprintf('\t'),1,level+1);
 
 if(~isempty(name)) 
     if(len>1) txt=sprintf('%s"%s": [\n',padding0,checkname(name,varargin{:})); end
 else
     if(len>1) txt=sprintf('%s[\n',padding0); end
 end
-for e=1:len
-  names = fieldnames(item(e));
-  if(~isempty(name) && len==1)
-        txt=sprintf('%s%s"%s": {\n',txt,repmat(sprintf('\t'),1,level+(len>1)), checkname(name,varargin{:})); 
-  else
-        txt=sprintf('%s%s{\n',txt,repmat(sprintf('\t'),1,level+(len>1))); 
-  end
-  if(~isempty(names))
-    for i=1:length(names)
-	txt=sprintf('%s%s',txt,obj2json(names{i},getfield(item(e),...
-             names{i}),level+1+(len>1),varargin{:}));
-        if(i<length(names)) txt=sprintf('%s%s',txt,','); end
-        txt=sprintf('%s%s',txt,sprintf('\n'));
+for j=1:dim(2)
+  if(dim(1)>1) txt=sprintf('%s%s[\n',txt,padding2); end
+  for i=1:dim(1)
+    names = fieldnames(item(i,j));
+    if(~isempty(name) && len==1)
+        txt=sprintf('%s%s"%s": {\n',txt,repmat(sprintf('\t'),1,level+(dim(1)>1)+(len>1)), checkname(name,varargin{:})); 
+    else
+        txt=sprintf('%s%s{\n',txt,repmat(sprintf('\t'),1,level+(dim(1)>1)+(len>1))); 
     end
+    if(~isempty(names))
+      for e=1:length(names)
+	    txt=sprintf('%s%s',txt,obj2json(names{e},getfield(item(i,j),...
+             names{e}),level+(dim(1)>1)+1+(len>1),varargin{:}));
+        if(e<length(names)) txt=sprintf('%s%s',txt,','); end
+        txt=sprintf('%s%s',txt,sprintf('\n'));
+      end
+    end
+    txt=sprintf('%s%s}',txt,repmat(sprintf('\t'),1,level+(dim(1)>1)+(len>1)));
+    if(i<dim(1)) txt=sprintf('%s%s',txt,sprintf(',\n')); end
   end
-  txt=sprintf('%s%s}',txt,repmat(sprintf('\t'),1,level+(len>1)));
-  if(e==len) sep=''; end
-  if(e<len) txt=sprintf('%s%s',txt,sprintf(',\n')); end
+  if(dim(1)>1) txt=sprintf('%s\n%s]',txt,padding2); end
+  if(j<dim(2)) txt=sprintf('%s%s',txt,sprintf(',\n')); end
 end
 if(len>1) txt=sprintf('%s\n%s]',txt,padding0); end
 
@@ -339,7 +357,11 @@ if(isempty(mat))
     return;
 end
 floatformat=jsonopt('FloatFormat','%.10g',varargin{:});
-formatstr=['[' repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf('],\n')]];
+%if(numel(mat)>1)
+    formatstr=['[' repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf('],\n')]];
+%else
+%    formatstr=[repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf(',\n')]];
+%end
 
 if(nargin>=2 && size(mat,1)>1 && jsonopt('ArrayIndent',1,varargin{:})==1)
     formatstr=[repmat(sprintf('\t'),1,level) formatstr];
