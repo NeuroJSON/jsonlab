@@ -58,7 +58,7 @@ function json=saveubjson(rootname,obj,varargin)
 %      a=struct('node',[1  9  10; 2 1 1.2], 'elem',[9 1;1 2;2 3],...
 %           'face',[9 01 2; 1 2 3; NaN,Inf,-Inf], 'author','FangQ');
 %      saveubjson('mesh',a)
-%      saveubjson('',a,'ArrayIndent',0,'FloatFormat','\t%.5g')
+%      saveubjson('mesh',a,'meshdata.ubj')
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details

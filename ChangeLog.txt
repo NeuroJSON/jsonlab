@@ -6,6 +6,13 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 1.0.0-RC1 (codename: Optimus - RC1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2014/09/17  fix several compatibility issues when running on octave versions 3.2-3.8
+ 2014/09/17  support 2D cell and struct arrays in both savejson and saveubjson
+ 2014/08/04  escape special characters in a JSON string
+ 2014/02/16  fix a bug when saving ubjson files
+
 == JSONlab 0.9.9 (codename: Optimus - beta), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2014/01/22  use binary read and write in saveubjson and loadubjson
