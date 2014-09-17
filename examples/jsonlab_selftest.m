@@ -19,8 +19,9 @@ for i=1:4
     fprintf(1,'===============================================\n>> %s\n',fname);
     json=saveubjson('data',loadjson(fname));
     fprintf(1,'%s\n',json);
-    data=loadubjson(json);
+    data=loadubjson(json)
     savejson('',data)
+i
     saveubjson('data',data,'selftest.ubj');
     data=loadubjson('selftest.ubj');
 end

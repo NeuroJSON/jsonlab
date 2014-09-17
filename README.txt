@@ -5,7 +5,7 @@
 
 *Copyright (c) 2011-2014  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 0.9.9 (Optimus - beta)
+*Version: 1.0.0-RC1 (Optimus - RC1)
 
 -------------------------------------------------------------------------------
 
