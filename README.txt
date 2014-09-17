@@ -93,7 +93,7 @@ JSON. The detailed help info for the four functions can be found below:
           http://www.mathworks.com/matlabcentral/fileexchange/20565
              date: 2008/07/03
  
-  $Id: loadjson.m 394 2012-12-18 17:58:11Z fangq $
+  $Id: loadjson.m 437 2014-09-15 18:59:36Z fangq $
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
@@ -121,7 +121,7 @@ JSON. The detailed help info for the four functions can be found below:
   author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
              created on 2011/09/09
  
-  $Id: savejson.m 394 2012-12-18 17:58:11Z fangq $
+  $Id: savejson.m 439 2014-09-17 05:31:08Z fangq $
  
   input:
        rootname: name of the root-object, if set to '', will use variable name
@@ -169,6 +169,7 @@ JSON. The detailed help info for the four functions can be found below:
                           wrapped inside a function call as 'foo(...);'
          opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
                           back to the string form
+         opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
          opt can be replaced by a list of ('param',value) pairs. The param 
          string is equivallent to a field in opt.
   output:
@@ -193,7 +194,7 @@ JSON. The detailed help info for the four functions can be found below:
   authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
              date: 2013/08/01
  
-  $Id: loadubjson.m 410 2013-08-24 03:33:18Z fangq $
+  $Id: loadubjson.m 436 2014-08-05 20:51:40Z fangq $
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
@@ -221,7 +222,7 @@ JSON. The detailed help info for the four functions can be found below:
   author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
              created on 2013/08/17
  
-  $Id: saveubjson.m 410 2013-08-24 03:33:18Z fangq $
+  $Id: saveubjson.m 439 2014-09-17 05:31:08Z fangq $
  
   input:
        rootname: name of the root-object, if set to '', will use variable name
@@ -268,7 +269,7 @@ JSON. The detailed help info for the four functions can be found below:
        a=struct('node',[1  9  10; 2 1 1.2], 'elem',[9 1;1 2;2 3],...
             'face',[9 01 2; 1 2 3; NaN,Inf,-Inf], 'author','FangQ');
        saveubjson('mesh',a)
-       saveubjson('',a,'ArrayIndent',0,'FloatFormat','\t%.5g')
+       saveubjson('mesh',a,'meshdata.ubj')
 </pre>
 
 
@@ -294,7 +295,7 @@ and robust. Hopefully in a few future releases, the limitations become less.
 
 Here are the known issues:
 
-# Any high-dimensional cell-array will be converted to a 1D array;
+# 3D or higher dimensional cell/struct-arrays will be converted to 2D arrays;
 # When processing names containing multi-byte characters, Octave and MATLAB \
 can give different field-names; you can use feature('DefaultCharacterSet','latin1') \
 in MATLAB to get consistant results
