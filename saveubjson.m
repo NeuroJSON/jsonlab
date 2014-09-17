@@ -134,9 +134,11 @@ if(~iscell(item))
 end
 
 dim=size(item);
+if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
+    item=reshape(item,dim(1),numel(item)/dim(1));
+    dim=size(item);
+end
 len=numel(item); % let's handle 1D cell first
-padding1='';
-padding0='';
 if(len>1) 
     if(~isempty(name))
         txt=[S_(checkname(name,varargin{:})) '[']; name=''; 
@@ -150,8 +152,12 @@ elseif(len==0)
         txt='Z'; 
     end
 end
-for i=1:len
-    txt=[txt obj2ubjson(name,item{i},level+(len>1),varargin{:})];
+for j=1:dim(2)
+    if(dim(1)>1) txt=[txt '[']; end
+    for i=1:dim(1)
+       txt=[txt obj2ubjson(name,item{i},level+(len>1),varargin{:})];
+    end
+    if(dim(1)>1) txt=[txt ']']; end
 end
 if(len>1) txt=[txt ']']; end
 
@@ -161,31 +167,36 @@ txt='';
 if(~isstruct(item))
 	error('input is not a struct');
 end
+dim=size(item);
+if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
+    item=reshape(item,dim(1),numel(item)/dim(1));
+    dim=size(item);
+end
 len=numel(item);
-padding1='';
-padding0='';
-sep=',';
 
 if(~isempty(name)) 
     if(len>1) txt=[S_(checkname(name,varargin{:})) '[']; end
 else
     if(len>1) txt='['; end
 end
-for e=1:len
-  names = fieldnames(item(e));
-  if(~isempty(name) && len==1)
+for j=1:dim(2)
+  if(dim(1)>1) txt=[txt '[']; end
+  for i=1:dim(1)
+     names = fieldnames(item(i,j));
+     if(~isempty(name) && len==1)
         txt=[txt S_(checkname(name,varargin{:})) '{']; 
-  else
+     else
         txt=[txt '{']; 
+     end
+     if(~isempty(names))
+       for e=1:length(names)
+	     txt=[txt obj2ubjson(names{e},getfield(item(i,j),...
+             names{e}),level+(dim(1)>1)+1+(len>1),varargin{:})];
+       end
+     end
+     txt=[txt '}'];
   end
-  if(~isempty(names))
-    for i=1:length(names)
-	txt=[txt obj2ubjson(names{i},getfield(item(e),...
-             names{i}),level+1+(len>1),varargin{:})];
-    end
-  end
-  txt=[txt '}'];
-  if(e==len) sep=''; end
+  if(dim(1)>1) txt=[txt ']']; end
 end
 if(len>1) txt=[txt ']']; end
 
@@ -197,10 +208,6 @@ if(~ischar(item))
 end
 item=reshape(item, max(size(item),[1 0]));
 len=size(item,1);
-sep='';
-
-padding1='';
-padding0='';
 
 if(~isempty(name)) 
     if(len>1) txt=[S_(checkname(name,varargin{:})) '[']; end
@@ -217,8 +224,6 @@ for e=1:len
     else
         txt=[txt,'',['',S_(val),'']];
     end
-    if(e==len) sep=''; end
-    txt=[txt sep];
 end
 if(len>1) txt=[txt ']']; end
 
@@ -228,20 +233,17 @@ if(~isnumeric(item) && ~islogical(item))
         error('input is not an array');
 end
 
-padding1='';
-padding0='';
-
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
    isempty(item) || jsonopt('ArrayToStruct',0,varargin{:}))
       cid=I_(uint32(max(size(item))));
       if(isempty(name))
-    	txt=['{' S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1)) ];
+    	txt=['{' S_('_ArrayType_'),S_(class(item)),S_('_ArraySize_'),I_a(size(item),cid(1)) ];
       else
           if(isempty(item))
               txt=[S_(checkname(name,varargin{:})),'Z'];
               return;
           else
-    	      txt=[S_(checkname(name,varargin{:})),'{',S_('_ArrayType_'),S_(class(item)),padding0,S_('_ArraySize_'),I_a(size(item),cid(1))];
+    	      txt=[S_(checkname(name,varargin{:})),'{',S_('_ArrayType_'),S_(class(item)),S_('_ArraySize_'),I_a(size(item),cid(1))];
           end
       end
 else
@@ -257,8 +259,6 @@ else
     end
     return;
 end
-dataformat='%s%s%s%s%s';
-
 if(issparse(item))
     [ix,iy]=find(item);
     data=full(item(find(item)));
@@ -307,7 +307,7 @@ if(size(mat,1)==1)
     level=level-1;
 end
 type='';
-hasnegtive=find(mat<0);
+hasnegtive=(mat<0);
 if(isa(mat,'integer') || (isfloat(mat) && all(mod(mat(:),1) == 0)))
     if(isempty(hasnegtive))
        if(max(mat(:))<=2^8)
