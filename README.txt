@@ -299,9 +299,8 @@ Here are the known issues:
 # When processing names containing multi-byte characters, Octave and MATLAB \
 can give different field-names; you can use feature('DefaultCharacterSet','latin1') \
 in MATLAB to get consistant results
-# Can not handle classes.
-# saveubjson has not yet supported arbitrary data ([H] in the UBJSON specification)
-# saveubjson now converts a logical array into a uint8 ([U]) array for now
+# savejson can not handle class and dataset.
+# saveubjson converts a logical array into a uint8 ([U]) array
 # an unofficial N-D array count syntax is implemented in saveubjson. We are \
 actively communicating with the UBJSON spec maintainer to investigate the \
 possibility of making it upstream
