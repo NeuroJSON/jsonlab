@@ -22,9 +22,26 @@ function data = loadjson(fname,varargin)
 %      fname: input file name, if fname contains "{}" or "[]", fname
 %             will be interpreted as a JSON string
 %      opt: a struct to store parsing options, opt can be replaced by 
-%           a list of ('param',value) pairs. The param string is equivallent
-%           to a field in opt.
+%           a list of ('param',value) pairs. opt can have the following 
+%           fields (first in [.|.] is the default)
 %
+%        opt.SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
+%                         for each element of the JSON data, and group 
+%                         arrays based on the cell2mat rules.
+%        opt.FastArrayParser [1|0 or integer]: if set to 1, use a
+%                         speed-optimized array parser when loading an 
+%                         array object. The fast array parser may 
+%                         collapse block arrays into a single large
+%                         array similar to rules defined in cell2mat; 0 to 
+%                         use a legacy parser; if set to a larger-than-1
+%                         value, this option will specify the minimum
+%                         dimension to enable the fast array parser. For
+%                         example, if the input is a 3D array, setting
+%                         FastArrayParser to 1 will return a 3D array;
+%                         setting to 2 will return a cell array of 2D
+%                         arrays; setting to 3 will return to a 2D cell
+%                         array of 1D vectors; setting to 4 will return a
+%                         3D cell array.
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
 %           and [...] are converted to arrays
@@ -188,49 +205,54 @@ global pos inStr isoct
     parse_char('[');
     object = cell(0, 1);
     dim2=[];
+    arraydepth=jsonopt('JSONLAB_ArrayDepth_',1,varargin{:});
     if next_char ~= ']'
-        [endpos, e1l, e1r, maxlevel]=matching_bracket(inStr,pos);
-        arraystr=['[' inStr(pos:endpos)];
-        arraystr=regexprep(arraystr,'"_NaN_"','NaN');
-        arraystr=regexprep(arraystr,'"([-+]*)_Inf_"','$1Inf');
-        arraystr(arraystr==sprintf('\n'))=[];
-        arraystr(arraystr==sprintf('\r'))=[];
-        %arraystr=regexprep(arraystr,'\s*,',','); % this is slow,sometimes needed
-        if(~isempty(e1l) && ~isempty(e1r)) % the array is in 2D or higher D
-            astr=inStr((e1l+1):(e1r-1));
-            astr=regexprep(astr,'"_NaN_"','NaN');
-            astr=regexprep(astr,'"([-+]*)_Inf_"','$1Inf');
-            astr(astr==sprintf('\n'))=[];
-            astr(astr==sprintf('\r'))=[];
-            astr(astr==' ')='';
-            if(isempty(find(astr=='[', 1))) % array is 2D
-                dim2=length(sscanf(astr,'%f,',[1 inf]));
+	if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
+            [endpos, e1l, e1r, maxlevel]=matching_bracket(inStr,pos);
+            arraystr=['[' inStr(pos:endpos)];
+            arraystr=regexprep(arraystr,'"_NaN_"','NaN');
+            arraystr=regexprep(arraystr,'"([-+]*)_Inf_"','$1Inf');
+            arraystr(arraystr==sprintf('\n'))=[];
+            arraystr(arraystr==sprintf('\r'))=[];
+            %arraystr=regexprep(arraystr,'\s*,',','); % this is slow,sometimes needed
+            if(~isempty(e1l) && ~isempty(e1r)) % the array is in 2D or higher D
+        	astr=inStr((e1l+1):(e1r-1));
+        	astr=regexprep(astr,'"_NaN_"','NaN');
+        	astr=regexprep(astr,'"([-+]*)_Inf_"','$1Inf');
+        	astr(astr==sprintf('\n'))=[];
+        	astr(astr==sprintf('\r'))=[];
+        	astr(astr==' ')='';
+        	if(isempty(find(astr=='[', 1))) % array is 2D
+                    dim2=length(sscanf(astr,'%f,',[1 inf]));
+        	end
+            else % array is 1D
+        	astr=arraystr(2:end-1);
+        	astr(astr==' ')='';
+        	[obj, count, errmsg, nextidx]=sscanf(astr,'%f,',[1,inf]);
+        	if(nextidx>=length(astr)-1)
+                    object=obj;
+                    pos=endpos;
+                    parse_char(']');
+                    return;
+        	end
             end
-        else % array is 1D
-            astr=arraystr(2:end-1);
-            astr(astr==' ')='';
-            [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',[1,inf]);
-            if(nextidx>=length(astr)-1)
-                object=obj;
-                pos=endpos;
-                parse_char(']');
-                return;
+            if(~isempty(dim2))
+        	astr=arraystr;
+        	astr(astr=='[')='';
+        	astr(astr==']')='';
+        	astr(astr==' ')='';
+        	[obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
+        	if(nextidx>=length(astr)-1)
+                    object=reshape(obj,dim2,numel(obj)/dim2)';
+                    pos=endpos;
+                    parse_char(']');
+                    return;
+        	end
             end
-        end
-        if(~isempty(dim2))
-            astr=arraystr;
-            astr(astr=='[')='';
-            astr(astr==']')='';
-            astr(astr==' ')='';
-            [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
-            if(nextidx>=length(astr)-1)
-                object=reshape(obj,dim2,numel(obj)/dim2)';
-                pos=endpos;
-                parse_char(']');
-                return;
-            end
-        end
-        arraystr=regexprep(arraystr,'\]\s*,','];');
+            arraystr=regexprep(arraystr,'\]\s*,','];');
+	else
+            arraystr='[';
+	end
         try
            if(isoct && regexp(arraystr,'"','once'))
                 error('Octave eval can produce empty cells for JSON-like input');
@@ -239,7 +261,8 @@ global pos inStr isoct
            pos=endpos;
         catch
          while 1
-            val = parse_value(varargin{:});
+            newopt=varargin2struct(varargin{:},'JSONLAB_ArrayDepth_',arraydepth+1);
+            val = parse_value(newopt);
             object{end+1} = val;
             if next_char == ']'
                 break;
