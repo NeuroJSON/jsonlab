@@ -109,10 +109,16 @@ end
 if((isstruct(obj) || iscell(obj))&& isempty(rootname) && forceroot)
     rootname='root';
 end
-nl=sprintf('\n');
+
+whitespaces=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
 if(jsonopt('Compact',0,opt)==1)
-    nl='';
+    whitespaces=struct('tab','','newline','','sep',',');
 end
+if(~isfield(opt,'whitespaces_'))
+    opt.whitespaces_=whitespaces;
+end
+
+nl=whitespaces.newline;
 
 json=obj2json(rootname,obj,rootlevel,opt);
 if(rootisarray)
@@ -164,12 +170,10 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     dim=size(item);
 end
 len=numel(item);
-padding0=repmat(sprintf('\t'),1,level);
-padding2=repmat(sprintf('\t'),1,level+1);
-nl=sprintf('\n');
-if(jsonopt('Compact',0,varargin{:})==1)
-    padding0='';padding2='';nl='';
-end
+ws=jsonopt('whitespaces_',struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n')),varargin{:});
+padding0=repmat(ws.tab,1,level);
+padding2=repmat(ws.tab,1,level+1);
+nl=ws.newline;
 if(len>1)
     if(~isempty(name))
         txt=sprintf('%s"%s": [%s',padding0, checkname(name,varargin{:}),nl); name=''; 
@@ -207,13 +211,12 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     dim=size(item);
 end
 len=numel(item);
-padding0=repmat(sprintf('\t'),1,level);
-padding2=repmat(sprintf('\t'),1,level+1);
-padding1=repmat(sprintf('\t'),1,level+(dim(1)>1)+(len>1));
-nl=sprintf('\n');
-if(jsonopt('Compact',0,varargin{:})==1)
-    padding0='';padding1='';padding2='';nl='';
-end
+ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'));
+ws=jsonopt('whitespaces_',ws,varargin{:});
+padding0=repmat(ws.tab,1,level);
+padding2=repmat(ws.tab,1,level+1);
+padding1=repmat(ws.tab,1,level+(dim(1)>1)+(len>1));
+nl=ws.newline;
 
 if(~isempty(name)) 
     if(len>1) txt=sprintf('%s"%s": [%s',padding0,checkname(name,varargin{:}),nl); end
@@ -253,15 +256,12 @@ if(~ischar(item))
 end
 item=reshape(item, max(size(item),[1 0]));
 len=size(item,1);
-nl=sprintf('\n');
-padding1=repmat(sprintf('\t'),1,level);
-padding0=repmat(sprintf('\t'),1,level+1);
-if(jsonopt('Compact',0,varargin{:})==1)
-    padding0='';
-    padding1='';
-    nl='';
-end
-sep=sprintf(',%s',nl);
+ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
+ws=jsonopt('whitespaces_',ws,varargin{:});
+padding1=repmat(ws.tab,1,level);
+padding0=repmat(ws.tab,1,level+1);
+nl=ws.newline;
+sep=ws.sep;
 
 if(~isempty(name)) 
     if(len>1) txt=sprintf('%s"%s": [%s',padding1,checkname(name,varargin{:}),nl); end
@@ -297,13 +297,12 @@ function txt=mat2json(name,item,level,varargin)
 if(~isnumeric(item) && ~islogical(item))
         error('input is not an array');
 end
-nl=sprintf('\n');
-padding1=repmat(sprintf('\t'),1,level);
-padding0=repmat(sprintf('\t'),1,level+1);
-if(jsonopt('Compact',0,varargin{:})==1)
-    padding0='';padding1='';nl='';
-end
-sep=sprintf(',%s',nl);
+ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
+ws=jsonopt('whitespaces_',ws,varargin{:});
+padding1=repmat(ws.tab,1,level);
+padding0=repmat(ws.tab,1,level+1);
+nl=ws.newline;
+sep=ws.sep;
 
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
    isempty(item) ||jsonopt('ArrayToStruct',0,varargin{:}))
@@ -369,13 +368,12 @@ txt=sprintf('%s%s%s',txt,padding1,'}');
 
 %%-------------------------------------------------------------------------
 function txt=matdata2json(mat,level,varargin)
-if(jsonopt('Compact',0,varargin{:})==1)
-    tab='';
-    nl='';
-else
-    tab=sprintf('\t');
-    nl=sprintf('\n');    
-end
+
+ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
+ws=jsonopt('whitespaces_',ws,varargin{:});
+tab=ws.tab;
+nl=ws.newline;
+
 if(size(mat,1)==1)
     pre='';
     post='';

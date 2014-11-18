@@ -6,6 +6,11 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 1.0.0-RC2 (codename: Optimus - RC2), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2014/11/17 add Compact option in savejson to output compact JSON format
+ 2014/11/17 add FastArrayParser in loadjson to specify fast parser applicable levels
+
 == JSONlab 1.0.0-RC1 (codename: Optimus - RC1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2014/09/17  fix several compatibility issues when running on octave versions 3.2-3.8
