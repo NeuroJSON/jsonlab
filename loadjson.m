@@ -42,6 +42,8 @@ function data = loadjson(fname,varargin)
 %                         arrays; setting to 3 will return to a 2D cell
 %                         array of 1D vectors; setting to 4 will return a
 %                         3D cell array.
+%        opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
+%
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
 %           and [...] are converted to arrays
@@ -76,6 +78,10 @@ esc = find(inStr=='"' | inStr=='\' ); % comparable to: regexp(inStr, '["\\]');
 index_esc = 1; len_esc = length(esc);
 
 opt=varargin2struct(varargin{:});
+
+if(jsonopt('ShowProgress',0,opt)==1)
+    opt.progressbar_=waitbar(0,'loading ...');
+end
 jsoncount=1;
 while pos <= len
     switch(next_char)
@@ -101,7 +107,9 @@ if(~isempty(data))
           data=jcell2array(data);
       end
 end
-
+if(isfield(opt,'progressbar_'))
+    close(opt.progressbar_);
+end
 
 %%
 function newdata=jcell2array(data)
@@ -206,6 +214,8 @@ global pos inStr isoct
     object = cell(0, 1);
     dim2=[];
     arraydepth=jsonopt('JSONLAB_ArrayDepth_',1,varargin{:});
+    pbar=jsonopt('progressbar_',-1,varargin{:});
+
     if next_char ~= ']'
 	if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
             [endpos, e1l, e1r, maxlevel]=matching_bracket(inStr,pos);
@@ -246,6 +256,9 @@ global pos inStr isoct
                     object=reshape(obj,dim2,numel(obj)/dim2)';
                     pos=endpos;
                     parse_char(']');
+                    if(pbar>0)
+                        waitbar(pos/length(inStr),pbar,'loading ...');
+                    end
                     return;
         	end
             end
@@ -284,7 +297,10 @@ global pos inStr isoct
       end
     end
     parse_char(']');
-
+    
+    if(pbar>0)
+        waitbar(pos/length(inStr),pbar,'loading ...');
+    end
 %%-------------------------------------------------------------------------
 
 function parse_char(c)
@@ -400,7 +416,12 @@ function num = parse_number(varargin)
 function val = parse_value(varargin)
     global pos inStr len
     true = 1; false = 0;
-
+    
+    pbar=jsonopt('progressbar_',-1,varargin{:});
+    if(pbar>0)
+        waitbar(pos/len,pbar,'loading ...');
+    end
+    
     switch(inStr(pos))
         case '"'
             val = parseStr(varargin{:});
