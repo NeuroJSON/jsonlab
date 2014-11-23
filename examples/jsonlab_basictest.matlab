@@ -228,6 +228,206 @@ json2data =
 
 >> >> 
 %=================================================
+>> %  an all-zero sparse matrix
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"all_zero_sparse": {
+		"_ArrayType_": "double",
+		"_ArraySize_": [2,3],
+		"_ArrayIsSparse_": 1,
+		"_ArrayData_": null
+	}
+}
+
+
+>> 
+json2data = 
+
+    all_zero_sparse: [2x3 double]
+
+>> >> 
+%=================================================
+>> %  an empty sparse matrix
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"empty_sparse": {
+		"_ArrayType_": "double",
+		"_ArraySize_": [0,0],
+		"_ArrayIsSparse_": 1,
+		"_ArrayData_": null
+	}
+}
+
+
+>> 
+json2data = 
+
+    empty_sparse: []
+
+>> >> 
+%=================================================
+>> %  an empty 0-by-0 real matrix
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"empty_0by0_real": {
+		"_ArrayType_": "double",
+		"_ArraySize_": [0,0],
+		"_ArrayData_": null
+	}
+}
+
+
+>> 
+json2data = 
+
+    empty_0by0_real: []
+
+>> >> 
+%=================================================
+>> %  an empty 0-by-3 real matrix
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"empty_0by3_real": {
+		"_ArrayType_": "double",
+		"_ArraySize_": [0,3],
+		"_ArrayData_": null
+	}
+}
+
+
+>> 
+json2data = 
+
+    empty_0by3_real: [0x3 double]
+
+>> >> 
+%=================================================
+>> %  a sparse real column vector
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"sparse_column_vector": {
+		"_ArrayType_": "double",
+		"_ArraySize_": [5,1],
+		"_ArrayIsSparse_": 1,
+		"_ArrayData_": [
+			[2,3],
+			[4,1],
+			[5,4]
+		]
+	}
+}
+
+
+>> 
+json2data = 
+
+    sparse_column_vector: [5x1 double]
+
+>> >> 
+%=================================================
+>> %  a sparse complex column vector
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"complex_sparse_column_vector": {
+		"_ArrayType_": "double",
+		"_ArraySize_": [5,1],
+		"_ArrayIsComplex_": 1,
+		"_ArrayIsSparse_": 1,
+		"_ArrayData_": [
+			[2,3,-3],
+			[4,1,-1],
+			[5,4,-4]
+		]
+	}
+}
+
+
+>> 
+json2data = 
+
+    complex_sparse_column_vector: [5x1 double]
+
+>> >> 
+%=================================================
+>> %  a sparse real row vector
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"sparse_row_vector": {
+		"_ArrayType_": "double",
+		"_ArraySize_": [1,5],
+		"_ArrayIsSparse_": 1,
+		"_ArrayData_": [
+			[2,3],
+			[4,1],
+			[5,4]
+		]
+	}
+}
+
+
+>> 
+json2data = 
+
+    sparse_row_vector: [0 3 0 1 4]
+
+>> >> 
+%=================================================
+>> %  a sparse complex row vector
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"complex_sparse_row_vector": {
+		"_ArrayType_": "double",
+		"_ArraySize_": [1,5],
+		"_ArrayIsComplex_": 1,
+		"_ArrayIsSparse_": 1,
+		"_ArrayData_": [
+			[2,3,-3],
+			[4,1,-1],
+			[5,4,-4]
+		]
+	}
+}
+
+
+>> 
+json2data = 
+
+    complex_sparse_row_vector: [1x5 double]
+
+>> >> 
+%=================================================
 >> %  a structure
 >> %=================================================
 
@@ -295,7 +495,7 @@ ans =
 >> 
 json2data = 
 
-    Supreme_0x20_Commander: [1x3 struct]
+    Supreme_0x20_Commander: {[1x1 struct]  [1x1 struct]  [1x1 struct]}
 
 >> >> 
 %=================================================
@@ -314,28 +514,30 @@ ans =
 
 {
 	"debian": [
-		{
-			"buzz": 1.10,
-			"rex": 1.20,
-			"bo": 1.30,
-			"hamm": 2.00,
-			"slink": 2.10,
-			"potato": 2.20,
-			"woody": 3.00,
-			"sarge": 3.10,
-			"etch": 4.00,
-			"lenny": 5.00,
-			"squeeze": 6.00,
-			"wheezy": 7.00
-		},
-		{
-			"Ubuntu": [
-				"Kubuntu",
-				"Xubuntu",
-				"Lubuntu"
-			]
-		},
-		[10.04,10.10,11.04,11.10]
+		[
+			{
+				"buzz": 1.10,
+				"rex": 1.20,
+				"bo": 1.30,
+				"hamm": 2.00,
+				"slink": 2.10,
+				"potato": 2.20,
+				"woody": 3.00,
+				"sarge": 3.10,
+				"etch": 4.00,
+				"lenny": 5.00,
+				"squeeze": 6.00,
+				"wheezy": 7.00
+			},
+			{
+				"Ubuntu": [
+					"Kubuntu",
+					"Xubuntu",
+					"Lubuntu"
+				]
+			},
+			[10.04,10.10,11.04,11.10]
+		]
 	]
 }
 
@@ -343,7 +545,7 @@ ans =
 >> 
 json2data = 
 
-    debian: {[1x1 struct]  [1x1 struct]  [10.0400 10.1000 11.0400 11.1000]}
+    debian: {{1x3 cell}}
 
 >> >> 
 %=================================================
@@ -357,5 +559,104 @@ json2data =
        x0x5F_InvalidName: 2
        x0x3A_Field_0x3A_: 3
     x0xE9A1B9__0xE79BAE_: '绝密'
+
+>> >> 
+%=================================================
+>> %  a 2D cell array
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{
+	"data2json": [
+		[
+			[
+				[1],
+				[
+					[2],
+					[3]
+				]
+			],
+				[7]
+		],
+		[
+			[
+				[4],
+				[5]
+			],
+			[
+				[8],
+				[9]
+			]
+		],
+		[
+				[6],
+				[10]
+		]
+	]
+}
+
+
+>> 
+json2data = 
+
+    data2json: [10x1 double]
+
+>> >> 
+%=================================================
+>> %  a 2D struct array
+>> %=================================================
+
+>> >> 
+data2json = 
+
+2x3 struct array with fields:
+    idx
+    data
+
+>> >> 
+ans =
+
+{
+	"data2json": [
+		[
+			{
+				"idx": 1,
+				"data": "structs"
+			},
+			{
+				"idx": 2,
+				"data": "structs"
+			}
+		],
+		[
+			{
+				"idx": 3,
+				"data": "structs"
+			},
+			{
+				"idx": 4,
+				"data": "structs"
+			}
+		],
+		[
+			{
+				"idx": 5,
+				"data": "structs"
+			},
+			{
+				"idx": 6,
+				"data": "structs"
+			}
+		]
+	]
+}
+
+
+>> 
+json2data = 
+
+    data2json: {{1x2 cell}  {1x2 cell}  {1x2 cell}}
 
 >> >> >> >> 
