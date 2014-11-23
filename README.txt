@@ -3,9 +3,9 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-*Copyright (c) 2011-2014  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
+*Copyright (C) 2011-2014  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 1.0.0-RC1 (Optimus - RC2)
+*Version: 1.0.0-RC2 (Optimus - RC2)
 
 -------------------------------------------------------------------------------
 
@@ -93,14 +93,33 @@ JSON. The detailed help info for the four functions can be found below:
           http://www.mathworks.com/matlabcentral/fileexchange/20565
              date: 2008/07/03
  
-  $Id: loadjson.m 437 2014-09-15 18:59:36Z fangq $
+  $Id: loadjson.m 452 2014-11-22 16:43:33Z fangq $
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
               will be interpreted as a JSON string
        opt: a struct to store parsing options, opt can be replaced by 
-            a list of ('param',value) pairs. The param string is equivallent
-            to a field in opt.
+            a list of ('param',value) pairs. opt can have the following 
+            fields (first in [.|.] is the default)
+ 
+         opt.SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
+                          for each element of the JSON data, and group 
+                          arrays based on the cell2mat rules.
+         opt.FastArrayParser [1|0 or integer]: if set to 1, use a
+                          speed-optimized array parser when loading an 
+                          array object. The fast array parser may 
+                          collapse block arrays into a single large
+                          array similar to rules defined in cell2mat; 0 to 
+                          use a legacy parser; if set to a larger-than-1
+                          value, this option will specify the minimum
+                          dimension to enable the fast array parser. For
+                          example, if the input is a 3D array, setting
+                          FastArrayParser to 1 will return a 3D array;
+                          setting to 2 will return a cell array of 2D
+                          arrays; setting to 3 will return to a 2D cell
+                          array of 1D vectors; setting to 4 will return a
+                          3D cell array.
+         opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
  
   output:
        dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -121,7 +140,7 @@ JSON. The detailed help info for the four functions can be found below:
   author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
              created on 2011/09/09
  
-  $Id: savejson.m 439 2014-09-17 05:31:08Z fangq $
+  $Id: savejson.m 450 2014-11-18 20:53:31Z fangq $
  
   input:
        rootname: name of the root-object, if set to '', will use variable name
@@ -170,8 +189,10 @@ JSON. The detailed help info for the four functions can be found below:
          opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
                           back to the string form
          opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
+         opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
+ 
          opt can be replaced by a list of ('param',value) pairs. The param 
-         string is equivallent to a field in opt.
+         string is equivallent to a field in opt and is case sensitive.
   output:
        json: a string in the JSON format (see http://json.org)
  
@@ -222,7 +243,7 @@ JSON. The detailed help info for the four functions can be found below:
   author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
              created on 2013/08/17
  
-  $Id: saveubjson.m 439 2014-09-17 05:31:08Z fangq $
+  $Id: saveubjson.m 440 2014-09-17 19:59:45Z fangq $
  
   input:
        rootname: name of the root-object, if set to '', will use variable name
