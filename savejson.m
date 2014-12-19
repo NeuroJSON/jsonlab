@@ -314,14 +314,18 @@ if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
               padding1,checkname(name,varargin{:}),nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     end
 else
+    if(numel(item)==1 && jsonopt('NoRowBracket',1,varargin{:})==1 && level>0)
+        numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^\[',''),']','');
+    else
+        numtxt=matdata2json(item,level+1,varargin{:});
+    end
     if(isempty(name))
-    	txt=sprintf('%s%s',padding1,matdata2json(item,level+1,varargin{:}));
+    	txt=sprintf('%s%s',padding1,numtxt);
     else
         if(numel(item)==1 && jsonopt('NoRowBracket',1,varargin{:})==1)
-            numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^\[',''),']','');
            	txt=sprintf('%s"%s": %s',padding1,checkname(name,varargin{:}),numtxt);
         else
-    	    txt=sprintf('%s"%s": %s',padding1,checkname(name,varargin{:}),matdata2json(item,level+1,varargin{:}));
+    	    txt=sprintf('%s"%s": %s',padding1,checkname(name,varargin{:}),numtxt);
         end
     end
     return;
