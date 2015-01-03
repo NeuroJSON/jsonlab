@@ -3,7 +3,7 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-Copyright (C) 2011-2014  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
+Copyright (C) 2011-2015  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 
 -------------------------------------------------------------------------------
 
