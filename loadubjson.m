@@ -7,7 +7,7 @@ function data = loadubjson(fname,varargin)
 % parse a JSON (JavaScript Object Notation) file or string
 %
 % authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
-%            date: 2013/08/01
+% created on 2013/08/01
 %
 % $Id$
 %
@@ -15,17 +15,33 @@ function data = loadubjson(fname,varargin)
 %      fname: input file name, if fname contains "{}" or "[]", fname
 %             will be interpreted as a UBJSON string
 %      opt: a struct to store parsing options, opt can be replaced by 
-%           a list of ('param',value) pairs. The param string is equivallent
-%           to a field in opt.
+%           a list of ('param',value) pairs - the param string is equivallent
+%           to a field in opt. opt can have the following 
+%           fields (first in [.|.] is the default)
+%
+%           opt.SimplifyCell [0|1]: if set to 1, loadubjson will call cell2mat
+%                         for each element of the JSON data, and group 
+%                         arrays based on the cell2mat rules.
+%           opt.IntEndian [B|L]: specify the endianness of the integer fields
+%                         in the UBJSON input data. B - Big-Endian format for 
+%                         integers (as required in the UBJSON specification); 
+%                         L - input integer fields are in Little-Endian order.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
 %           and [...] are converted to arrays
 %
+% examples:
+%      obj=struct('string','value','array',[1 2 3]);
+%      ubjdata=saveubjson('obj',obj);
+%      dat=loadubjson(ubjdata)
+%      dat=loadubjson(['examples' filesep 'example1.ubj'])
+%      dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',1)
+%
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 %
-% -- this function is part of jsonlab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
+% -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
 global pos inStr len  esc index_esc len_esc isoct arraytoken fileendian systemendian

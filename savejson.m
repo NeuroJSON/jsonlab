@@ -9,15 +9,17 @@ function json=savejson(rootname,obj,varargin)
 % Object Notation) string
 %
 % author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
-%            created on 2011/09/09
+% created on 2011/09/09
 %
 % $Id$
 %
 % input:
-%      rootname: name of the root-object, if set to '', will use variable name
-%      obj: a MATLAB object (array, cell, cell array, struct, struct array)
-%      filename: a string for the file name to save the output JSON data
-%      opt: a struct for additional options, use [] if all use default
+%      rootname: the name of the root-object, when set to '', the root name
+%        is ignored, however, when opt.ForceRootName is set to 1 (see below),
+%        the MATLAB variable name will be used as the root name.
+%      obj: a MATLAB object (array, cell, cell array, struct, struct array).
+%      filename: a string for the file name to save the output JSON data.
+%      opt: a struct for additional options, ignore to use default values.
 %        opt can have the following fields (first in [.|.] is the default)
 %
 %        opt.FileName [''|string]: a file name to save the output JSON data
@@ -55,7 +57,7 @@ function json=savejson(rootname,obj,varargin)
 %        opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
 %                         to represent NaN
 %        opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
-%                         for example, if opt.JSON='foo', the JSON data is
+%                         for example, if opt.JSONP='foo', the JSON data is
 %                         wrapped inside a function call as 'foo(...);'
 %        opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
@@ -68,15 +70,19 @@ function json=savejson(rootname,obj,varargin)
 %      json: a string in the JSON format (see http://json.org)
 %
 % examples:
-%      a=struct('node',[1  9  10; 2 1 1.2], 'elem',[9 1;1 2;2 3],...
-%           'face',[9 01 2; 1 2 3; NaN,Inf,-Inf], 'author','FangQ');
-%      savejson('mesh',a)
-%      savejson('',a,'ArrayIndent',0,'FloatFormat','\t%.5g')
+%      jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
+%               'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
+%               'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
+%                          2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
+%               'MeshCreator','FangQ','MeshTitle','T6 Cube',...
+%               'SpecialData',[nan, inf, -inf]);
+%      savejson('jmesh',jsonmesh)
+%      savejson('',jsonmesh,'ArrayIndent',0,'FloatFormat','\t%.5g')
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
-% -- this function is part of jsonlab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
+% -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
 if(nargin==1)
