@@ -6,6 +6,11 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 1.0 (codename: Optimus - Final), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2015/01/02 polish help info for all major functions, update examples, finalize 1.0
+ 2014/12/19 fix a bug to strictly respect NoRowBracket in savejson
+
 == JSONlab 1.0.0-RC2 (codename: Optimus - RC2), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2014/11/22 show progress bar in loadjson ('ShowProgress') 
