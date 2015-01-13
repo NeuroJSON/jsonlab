@@ -196,7 +196,7 @@ end
 for j=1:dim(2)
     if(dim(1)>1) txt=sprintf('%s%s[%s',txt,padding2,nl); end
     for i=1:dim(1)
-       txt=sprintf('%s%s',txt,obj2json(name,item{i,j},level+(dim(1)>1)+1,varargin{:}));
+       txt=sprintf('%s%s',txt,obj2json(name,item{i,j},level+(dim(1)>1)+(len>1),varargin{:}));
        if(i<dim(1)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
     end
     if(dim(1)>1) txt=sprintf('%s%s%s]',txt,nl,padding2); end
