@@ -26,6 +26,11 @@ function data = loadubjson(fname,varargin)
 %                         in the UBJSON input data. B - Big-Endian format for 
 %                         integers (as required in the UBJSON specification); 
 %                         L - input integer fields are in Little-Endian order.
+%           opt.NameIsString [0|1]: for UBJSON Specification Draft 8 or 
+%                         earlier versions (JSONLab 1.0 final or earlier), 
+%                         the "name" tag is treated as a string. To load 
+%                         these UBJSON data, you need to manually set this 
+%                         flag to 1.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -200,7 +205,11 @@ function object = parse_object(varargin)
     if next_char ~= '}'
         num=0;
         while 1
-            str = parseStr(varargin{:});
+            if(jsonopt('NameIsString',0,varargin{:}))
+                str = parseStr(varargin{:});
+            else
+                str = parse_name(varargin{:});
+            end
             if isempty(str)
                 error_pos('Name of value at position %d cannot be empty');
             end
@@ -347,8 +356,19 @@ function skip_whitespace
     end
 
 %%-------------------------------------------------------------------------
+function str = parse_name(varargin)
+    global pos inStr
+    bytelen=double(parse_number());
+    if(length(inStr)>=pos+bytelen-1)
+        str=inStr(pos:pos+bytelen-1);
+        pos=pos+bytelen;
+    else
+        error_pos('End of file while expecting end of name');
+    end
+%%-------------------------------------------------------------------------
+
 function str = parseStr(varargin)
-    global pos inStr esc index_esc len_esc
+    global pos inStr
  % len, ns = length(inStr), keyboard
     type=inStr(pos);
     if type ~= 'S' && type ~= 'C' && type ~= 'H'

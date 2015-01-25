@@ -148,13 +148,13 @@ end
 len=numel(item); % let's handle 1D cell first
 if(len>1) 
     if(~isempty(name))
-        txt=[S_(checkname(name,varargin{:})) '[']; name=''; 
+        txt=[N_(checkname(name,varargin{:})) '[']; name=''; 
     else
         txt='['; 
     end
 elseif(len==0)
     if(~isempty(name))
-        txt=[S_(checkname(name,varargin{:})) 'Z']; name=''; 
+        txt=[N_(checkname(name,varargin{:})) 'Z']; name=''; 
     else
         txt='Z'; 
     end
@@ -182,7 +182,7 @@ end
 len=numel(item);
 
 if(~isempty(name)) 
-    if(len>1) txt=[S_(checkname(name,varargin{:})) '[']; end
+    if(len>1) txt=[N_(checkname(name,varargin{:})) '[']; end
 else
     if(len>1) txt='['; end
 end
@@ -191,7 +191,7 @@ for j=1:dim(2)
   for i=1:dim(1)
      names = fieldnames(item(i,j));
      if(~isempty(name) && len==1)
-        txt=[txt S_(checkname(name,varargin{:})) '{']; 
+        txt=[txt N_(checkname(name,varargin{:})) '{']; 
      else
         txt=[txt '{']; 
      end
@@ -217,7 +217,7 @@ item=reshape(item, max(size(item),[1 0]));
 len=size(item,1);
 
 if(~isempty(name)) 
-    if(len>1) txt=[S_(checkname(name,varargin{:})) '[']; end
+    if(len>1) txt=[N_(checkname(name,varargin{:})) '[']; end
 else
     if(len>1) txt='['; end
 end
@@ -225,7 +225,7 @@ isoct=jsonopt('IsOctave',0,varargin{:});
 for e=1:len
     val=item(e,:);
     if(len==1)
-        obj=['' S_(checkname(name,varargin{:})) '' '',S_(val),''];
+        obj=[N_(checkname(name,varargin{:})) '' '',S_(val),''];
 	if(isempty(name)) obj=['',S_(val),'']; end
         txt=[txt,'',obj];
     else
@@ -244,13 +244,13 @@ if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
    isempty(item) || jsonopt('ArrayToStruct',0,varargin{:}))
       cid=I_(uint32(max(size(item))));
       if(isempty(name))
-    	txt=['{' S_('_ArrayType_'),S_(class(item)),S_('_ArraySize_'),I_a(size(item),cid(1)) ];
+    	txt=['{' N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1)) ];
       else
           if(isempty(item))
-              txt=[S_(checkname(name,varargin{:})),'Z'];
+              txt=[N_(checkname(name,varargin{:})),'Z'];
               return;
           else
-    	      txt=[S_(checkname(name,varargin{:})),'{',S_('_ArrayType_'),S_(class(item)),S_('_ArraySize_'),I_a(size(item),cid(1))];
+    	      txt=[N_(checkname(name,varargin{:})),'{',N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1))];
           end
       end
 else
@@ -259,9 +259,9 @@ else
     else
         if(numel(item)==1 && jsonopt('NoRowBracket',1,varargin{:})==1)
             numtxt=regexprep(regexprep(matdata2ubjson(item,level+1,varargin{:}),'^\[',''),']','');
-           	txt=[S_(checkname(name,varargin{:})) numtxt];
+           	txt=[N_(checkname(name,varargin{:})) numtxt];
         else
-    	    txt=[S_(checkname(name,varargin{:})),matdata2ubjson(item,level+1,varargin{:})];
+    	    txt=[N_(checkname(name,varargin{:})),matdata2ubjson(item,level+1,varargin{:})];
         end
     end
     return;
@@ -276,29 +276,29 @@ if(issparse(item))
            % (Necessary for complex row vector handling below.)
            data=data';
        end
-       txt=[txt,S_('_ArrayIsComplex_'),'T'];
+       txt=[txt,N_('_ArrayIsComplex_'),'T'];
     end
-    txt=[txt,S_('_ArrayIsSparse_'),'T'];
+    txt=[txt,N_('_ArrayIsSparse_'),'T'];
     if(size(item,1)==1)
         % Row vector, store only column indices.
-        txt=[txt,S_('_ArrayData_'),...
+        txt=[txt,N_('_ArrayData_'),...
            matdata2ubjson([iy(:),data'],level+2,varargin{:})];
     elseif(size(item,2)==1)
         % Column vector, store only row indices.
-        txt=[txt,S_('_ArrayData_'),...
+        txt=[txt,N_('_ArrayData_'),...
            matdata2ubjson([ix,data],level+2,varargin{:})];
     else
         % General case, store row and column indices.
-        txt=[txt,S_('_ArrayData_'),...
+        txt=[txt,N_('_ArrayData_'),...
            matdata2ubjson([ix,iy,data],level+2,varargin{:})];
     end
 else
     if(isreal(item))
-        txt=[txt,S_('_ArrayData_'),...
+        txt=[txt,N_('_ArrayData_'),...
             matdata2ubjson(item(:)',level+2,varargin{:})];
     else
-        txt=[txt,S_('_ArrayIsComplex_'),'T'];
-        txt=[txt,S_('_ArrayData_'),...
+        txt=[txt,N_('_ArrayIsComplex_'),'T'];
+        txt=[txt,N_('_ArrayData_'),...
             matdata2ubjson([real(item(:)) imag(item(:))],level+2,varargin{:})];
     end
 end
@@ -384,6 +384,9 @@ if(isunpack)
         end
     end
 end
+%%-------------------------------------------------------------------------
+function val=N_(str)
+val=[I_(int32(length(str))) str];
 %%-------------------------------------------------------------------------
 function val=S_(str)
 if(length(str)==1)
