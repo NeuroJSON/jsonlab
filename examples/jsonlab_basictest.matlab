@@ -281,11 +281,7 @@ json2data =
 ans =
 
 {
-	"empty_0by0_real": {
-		"_ArrayType_": "double",
-		"_ArraySize_": [0,0],
-		"_ArrayData_": null
-	}
+	"empty_0by0_real": null
 }
 
 

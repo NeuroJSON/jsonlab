@@ -302,7 +302,7 @@ nl=ws.newline;
 sep=ws.sep;
 
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
-   isempty(item) ||jsonopt('ArrayToStruct',0,varargin{:}))
+   (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}))
     if(isempty(name))
     	txt=sprintf('%s{%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
               padding1,nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
