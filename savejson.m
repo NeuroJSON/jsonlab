@@ -276,16 +276,7 @@ else
 end
 isoct=jsonopt('IsOctave',0,varargin{:});
 for e=1:len
-    if(isoct)
-        val=regexprep(item(e,:),'\\','\\');
-        val=regexprep(val,'"','\"');
-        val=regexprep(val,'^"','\"');
-    else
-        val=regexprep(item(e,:),'\\','\\\\');
-        val=regexprep(val,'"','\\"');
-        val=regexprep(val,'^"','\\"');
-    end
-    val=escapejsonstring(val);
+    val=escapejsonstring(item(e,:));
     if(len==1)
         obj=['"' checkname(name,varargin{:}) '": ' '"',val,'"'];
 	if(isempty(name)) obj=['"',val,'"']; end
@@ -463,12 +454,12 @@ if(isoct)
    if(vv(1)>=3.8) isoct=0; end
 end
 if(isoct)
-  escapechars={'\a','\f','\n','\r','\t','\v'};
+  escapechars={'\\','\"','\/','\a','\f','\n','\r','\t','\v'};
   for i=1:length(escapechars);
     newstr=regexprep(newstr,escapechars{i},escapechars{i});
   end
 else
-  escapechars={'\a','\b','\f','\n','\r','\t','\v'};
+  escapechars={'\\','\"','\/','\a','\b','\f','\n','\r','\t','\v'};
   for i=1:length(escapechars);
     newstr=regexprep(newstr,escapechars{i},regexprep(escapechars{i},'\\','\\\\'));
   end
