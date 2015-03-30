@@ -223,7 +223,14 @@ padding0=repmat(ws.tab,1,level);
 padding2=repmat(ws.tab,1,level+1);
 padding1=repmat(ws.tab,1,level+(dim(1)>1)+(len>1));
 nl=ws.newline;
-
+if(isempty(item)) 
+    if(~isempty(name)) 
+        txt=sprintf('%s"%s": []',padding0,checkname(name,varargin{:}));
+    else
+        txt=sprintf('%s[]',padding0);
+    end
+    return;
+end
 if(~isempty(name)) 
     if(len>1) txt=sprintf('%s"%s": [%s',padding0,checkname(name,varargin{:}),nl); end
 else
