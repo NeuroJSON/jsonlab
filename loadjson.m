@@ -66,9 +66,11 @@ global pos inStr len  esc index_esc len_esc isoct arraytoken
 if(regexp(fname,'[\{\}\]\[]','once'))
    string=fname;
 elseif(exist(fname,'file'))
-   fid = fopen(fname,'rb');
-   string = fread(fid,inf,'uint8=>char')';
-   fclose(fid);
+   try
+       string = fileread(fname);
+   catch
+       string = urlread(['file:///',fullfile(pwd,fname)]);
+   end
 else
    error('input file does not exist');
 end
