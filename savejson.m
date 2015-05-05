@@ -217,12 +217,14 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     dim=size(item);
 end
 len=numel(item);
+forcearray= (len>1 || (jsonopt('NoRowBracket',1,varargin{:})==0 && level>0));
 ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'));
 ws=jsonopt('whitespaces_',ws,varargin{:});
 padding0=repmat(ws.tab,1,level);
 padding2=repmat(ws.tab,1,level+1);
-padding1=repmat(ws.tab,1,level+(dim(1)>1)+(len>1));
+padding1=repmat(ws.tab,1,level+(dim(1)>1)+forcearray);
 nl=ws.newline;
+
 if(isempty(item)) 
     if(~isempty(name)) 
         txt=sprintf('%s"%s": []',padding0,checkname(name,varargin{:}));
@@ -232,15 +234,15 @@ if(isempty(item))
     return;
 end
 if(~isempty(name)) 
-    if(len>1) txt=sprintf('%s"%s": [%s',padding0,checkname(name,varargin{:}),nl); end
+    if(forcearray) txt=sprintf('%s"%s": [%s',padding0,checkname(name,varargin{:}),nl); end
 else
-    if(len>1) txt=sprintf('%s[%s',padding0,nl); end
+    if(forcearray) txt=sprintf('%s[%s',padding0,nl); end
 end
 for j=1:dim(2)
   if(dim(1)>1) txt=sprintf('%s%s[%s',txt,padding2,nl); end
   for i=1:dim(1)
     names = fieldnames(item(i,j));
-    if(~isempty(name) && len==1)
+    if(~isempty(name) && len==1 && ~forcearray)
         txt=sprintf('%s%s"%s": {%s',txt,padding1, checkname(name,varargin{:}),nl); 
     else
         txt=sprintf('%s%s{%s',txt,padding1,nl); 
@@ -248,7 +250,7 @@ for j=1:dim(2)
     if(~isempty(names))
       for e=1:length(names)
 	    txt=sprintf('%s%s',txt,obj2json(names{e},getfield(item(i,j),...
-             names{e}),level+(dim(1)>1)+1+(len>1),varargin{:}));
+             names{e}),level+(dim(1)>1)+1+forcearray,varargin{:}));
         if(e<length(names)) txt=sprintf('%s%s',txt,','); end
         txt=sprintf('%s%s',txt,nl);
       end
@@ -259,7 +261,7 @@ for j=1:dim(2)
   if(dim(1)>1) txt=sprintf('%s%s%s]',txt,nl,padding2); end
   if(j<dim(2)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
 end
-if(len>1) txt=sprintf('%s%s%s]',txt,nl,padding0); end
+if(forcearray) txt=sprintf('%s%s%s]',txt,nl,padding0); end
 
 %%-------------------------------------------------------------------------
 function txt=str2json(name,item,level,varargin)
