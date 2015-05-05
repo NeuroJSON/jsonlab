@@ -128,6 +128,7 @@ data2json=struct('name','Think Different','year',1997,'magic',magic(3),...
                  'misfits',[Inf,NaN],'embedded',struct('left',true,'right',false))
 savejson('astruct',data2json,struct('ParseLogical',1))
 json2data=loadjson(ans)
+class(json2data.astruct.embedded.left)
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a structure array\n')

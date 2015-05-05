@@ -424,7 +424,6 @@ function num = parse_number(varargin)
 
 function val = parse_value(varargin)
     global pos inStr len
-    true = 1; false = 0;
     
     pbar=jsonopt('progressbar_',-1,varargin{:});
     if(pbar>0)

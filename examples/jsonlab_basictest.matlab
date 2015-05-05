@@ -462,6 +462,11 @@ json2data =
 
     astruct: [1x1 struct]
 
+>> 
+ans =
+
+logical
+
 >> >> 
 %=================================================
 >> %  a structure array
