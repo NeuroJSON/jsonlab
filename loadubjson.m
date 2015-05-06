@@ -94,15 +94,6 @@ if(jsoncount==1 && iscell(data))
     data=data{1};
 end
 
-if(~isempty(data))
-      if(isstruct(data)) % data can be a struct array
-          data=jstruct2array(data);
-      elseif(iscell(data))
-          data=jcell2array(data);
-      end
-end
-
-
 %%
 function newdata=parse_collection(id,data,obj)
 
@@ -112,80 +103,6 @@ if(jsoncount>0 && exist('data','var'))
        newdata{1}=data;
        data=newdata;
     end
-end
-
-%%
-function newdata=jcell2array(data)
-len=length(data);
-newdata=data;
-for i=1:len
-      if(isstruct(data{i}))
-          newdata{i}=jstruct2array(data{i});
-      elseif(iscell(data{i}))
-          newdata{i}=jcell2array(data{i});
-      end
-end
-
-%%-------------------------------------------------------------------------
-function newdata=jstruct2array(data)
-fn=fieldnames(data);
-newdata=data;
-len=length(data);
-for i=1:length(fn) % depth-first
-    for j=1:len
-        if(isstruct(getfield(data(j),fn{i})))
-            newdata(j)=setfield(newdata(j),fn{i},jstruct2array(getfield(data(j),fn{i})));
-        end
-    end
-end
-if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && ~isempty(strmatch('x0x5F_ArrayData_',fn)))
-  newdata=cell(len,1);
-  for j=1:len
-    ndata=cast(data(j).x0x5F_ArrayData_,data(j).x0x5F_ArrayType_);
-    iscpx=0;
-    if(~isempty(strmatch('x0x5F_ArrayIsComplex_',fn)))
-        if(data(j).x0x5F_ArrayIsComplex_)
-           iscpx=1;
-        end
-    end
-    if(~isempty(strmatch('x0x5F_ArrayIsSparse_',fn)))
-        if(data(j).x0x5F_ArrayIsSparse_)
-            if(~isempty(strmatch('x0x5F_ArraySize_',fn)))
-                dim=double(data(j).x0x5F_ArraySize_);
-                if(iscpx && size(ndata,2)==4-any(dim==1))
-                    ndata(:,end-1)=complex(ndata(:,end-1),ndata(:,end));
-                end
-                if isempty(ndata)
-                    % All-zeros sparse
-                    ndata=sparse(dim(1),prod(dim(2:end)));
-                elseif dim(1)==1
-                    % Sparse row vector
-                    ndata=sparse(1,ndata(:,1),ndata(:,2),dim(1),prod(dim(2:end)));
-                elseif dim(2)==1
-                    % Sparse column vector
-                    ndata=sparse(ndata(:,1),1,ndata(:,2),dim(1),prod(dim(2:end)));
-                else
-                    % Generic sparse array.
-                    ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3),dim(1),prod(dim(2:end)));
-                end
-            else
-                if(iscpx && size(ndata,2)==4)
-                    ndata(:,3)=complex(ndata(:,3),ndata(:,4));
-                end
-                ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3));
-            end
-        end
-    elseif(~isempty(strmatch('x0x5F_ArraySize_',fn)))
-        if(iscpx && size(ndata,2)==2)
-             ndata=complex(ndata(:,1),ndata(:,2));
-        end
-        ndata=reshape(ndata(:),data(j).x0x5F_ArraySize_);
-    end
-    newdata{j}=ndata;
-  end
-  if(len==1)
-      newdata=newdata{1};
-  end
 end
 
 %%-------------------------------------------------------------------------
@@ -226,6 +143,9 @@ function object = parse_object(varargin)
     if(count==-1)
         parse_char('}');
     end
+    if(isstruct(object))
+        object=struct2jdata(object);
+    end
 
 %%-------------------------------------------------------------------------
 function [cid,len]=elem_info(type)
@@ -241,7 +161,7 @@ end
 %%-------------------------------------------------------------------------
 
 
-function [data adv]=parse_block(type,count,varargin)
+function [data, adv]=parse_block(type,count,varargin)
 global pos inStr isoct fileendian systemendian
 [cid,len]=elem_info(type);
 datastr=inStr(pos:pos+len*count-1);
@@ -282,7 +202,7 @@ global pos inStr isoct
     end
     if(~isempty(type))
         if(count>=0)
-            [object adv]=parse_block(type,count,varargin{:});
+            [object, adv]=parse_block(type,count,varargin{:});
             if(~isempty(dim))
                 object=reshape(object,dim);
             end
@@ -292,7 +212,7 @@ global pos inStr isoct
             endpos=matching_bracket(inStr,pos);
             [cid,len]=elem_info(type);
             count=(endpos-pos)/len;
-            [object adv]=parse_block(type,count,varargin{:});
+            [object, adv]=parse_block(type,count,varargin{:});
             pos=pos+adv;
             parse_char(']');
             return;
@@ -426,13 +346,6 @@ function val = parse_value(varargin)
             return;
         case '{'
             val = parse_object(varargin{:});
-            if isstruct(val)
-                if(~isempty(strmatch('x0x5F_ArrayType_',fieldnames(val), 'exact')))
-                    val=jstruct2array(val);
-                end
-            elseif isempty(val)
-                val = struct;
-            end
             return;
         case {'i','U','I','l','L','d','D'}
             val = parse_number(varargin{:});
@@ -511,7 +424,7 @@ while(pos<len)
 end
 error('unmatched quotation mark');
 %%-------------------------------------------------------------------------
-function [endpos e1l e1r maxlevel] = matching_bracket(str,pos)
+function [endpos, e1l, e1r, maxlevel] = matching_bracket(str,pos)
 global arraytoken
 level=1;
 maxlevel=level;
