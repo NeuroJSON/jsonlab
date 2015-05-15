@@ -180,17 +180,18 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     dim=size(item);
 end
 len=numel(item);
+forcearray= (len>1 || (jsonopt('NoRowBracket',1,varargin{:})==0 && level>0));
 
 if(~isempty(name)) 
-    if(len>1) txt=[N_(checkname(name,varargin{:})) '[']; end
+    if(forcearray) txt=[N_(checkname(name,varargin{:})) '[']; end
 else
-    if(len>1) txt='['; end
+    if(forcearray) txt='['; end
 end
 for j=1:dim(2)
   if(dim(1)>1) txt=[txt '[']; end
   for i=1:dim(1)
      names = fieldnames(item(i,j));
-     if(~isempty(name) && len==1)
+     if(~isempty(name) && len==1 && ~forcearray)
         txt=[txt N_(checkname(name,varargin{:})) '{']; 
      else
         txt=[txt '{']; 
@@ -198,14 +199,14 @@ for j=1:dim(2)
      if(~isempty(names))
        for e=1:length(names)
 	     txt=[txt obj2ubjson(names{e},getfield(item(i,j),...
-             names{e}),level+(dim(1)>1)+1+(len>1),varargin{:})];
+             names{e}),level+(dim(1)>1)+1+forcearray,varargin{:})];
        end
      end
      txt=[txt '}'];
   end
   if(dim(1)>1) txt=[txt ']']; end
 end
-if(len>1) txt=[txt ']']; end
+if(forcearray) txt=[txt ']']; end
 
 %%-------------------------------------------------------------------------
 function txt=str2ubjson(name,item,level,varargin)
@@ -241,7 +242,7 @@ if(~isnumeric(item) && ~islogical(item))
 end
 
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
-   isempty(item) || jsonopt('ArrayToStruct',0,varargin{:}))
+   (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}))
       cid=I_(uint32(max(size(item))));
       if(isempty(name))
     	txt=['{' N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1)) ];

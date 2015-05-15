@@ -312,7 +312,7 @@ function str = parseStr(varargin)
 %%-------------------------------------------------------------------------
 
 function num = parse_number(varargin)
-    global pos inStr len isoct fileendian systemendian
+    global pos inStr isoct fileendian systemendian
     id=strfind('iUIlLdD',inStr(pos));
     if(isempty(id))
         error_pos('expecting a number at position %d');
@@ -335,7 +335,6 @@ function num = parse_number(varargin)
 
 function val = parse_value(varargin)
     global pos inStr len
-    true = 1; false = 0;
 
     switch(inStr(pos))
         case {'S','C','H'}
