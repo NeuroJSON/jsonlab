@@ -6,22 +6,35 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 1.1 (codename: Optimus - Update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2015/05/05 *massively accelerating loadjson for parsing large collection of unstructured small objects
+ 2015/05/05  force array bracket in 1x1 struct to maintain depth (Issue#1)
+ 2015/05/05  parse logicals in loadjson
+ 2015/05/05  make options case insensitive
+ 2015/05/01  reading unicode encoded json files (thanks to Sertan Senturk,Issue#3)
+ 2015/04/30  allow \uXXXX to represent a unicode in a string (Issue#2)
+ 2015/03/30  save a 0x0 solid real empty array as null and handel empty struct array
+ 2015/03/30  properly handle escape characters in a string
+ 2015/01/24 *implement the UBJSON Draft12 new name format
+ 2015/01/13  correct cell array indentation inconsistency
+
 == JSONlab 1.0 (codename: Optimus - Final), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
- 2015/01/02 polish help info for all major functions, update examples, finalize 1.0
- 2014/12/19 fix a bug to strictly respect NoRowBracket in savejson
+ 2015/01/02  polish help info for all major functions, update examples, finalize 1.0
+ 2014/12/19  fix a bug to strictly respect NoRowBracket in savejson
 
 == JSONlab 1.0.0-RC2 (codename: Optimus - RC2), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
- 2014/11/22 show progress bar in loadjson ('ShowProgress') 
- 2014/11/17 add Compact option in savejson to output compact JSON format ('Compact')
- 2014/11/17 add FastArrayParser in loadjson to specify fast parser applicable levels
- 2014/09/18 start official github mirror: https://github.com/fangq/jsonlab
+ 2014/11/22  show progress bar in loadjson ('ShowProgress') 
+ 2014/11/17 *add Compact option in savejson to output compact JSON format ('Compact')
+ 2014/11/17  add FastArrayParser in loadjson to specify fast parser applicable levels
+ 2014/09/18 *start official github mirror: https://github.com/fangq/jsonlab
 
 == JSONlab 1.0.0-RC1 (codename: Optimus - RC1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2014/09/17  fix several compatibility issues when running on octave versions 3.2-3.8
- 2014/09/17  support 2D cell and struct arrays in both savejson and saveubjson
+ 2014/09/17 *support 2D cell and struct arrays in both savejson and saveubjson
  2014/08/04  escape special characters in a JSON string
  2014/02/16  fix a bug when saving ubjson files
 
@@ -31,7 +44,7 @@ JSONlab ChangeLog (key features marked by *):
 
 == JSONlab 0.9.8-1 (codename: Optimus - alpha update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
- 2013/10/07 better round-trip conservation for empty arrays and structs (patch submitted by Yul Kang)
+ 2013/10/07  better round-trip conservation for empty arrays and structs (patch submitted by Yul Kang)
 
 == JSONlab 0.9.8 (codename: Optimus - alpha), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
  2013/08/23 *universal Binary JSON (UBJSON) support, including both saveubjson and loadubjson

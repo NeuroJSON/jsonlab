@@ -5,7 +5,7 @@
 
 *Copyright (C) 2011-2015  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 1.0 (Optimus - Final)
+*Version: 1.1 (Optimus - Update 1)
 
 -------------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ JSON. The detailed help info for the four functions can be found below:
           http://www.mathworks.com/matlabcentral/fileexchange/20565
              created on 2008/07/03
  
-  $Id: loadjson.m 452 2014-11-22 16:43:33Z fangq $
+  $Id: loadjson.m 487 2015-05-06 18:19:07Z fangq $
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
@@ -147,7 +147,7 @@ JSON. The detailed help info for the four functions can be found below:
   author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
   created on 2011/09/09
  
-  $Id: savejson.m 458 2014-12-19 22:17:17Z fangq $
+  $Id: savejson.m 486 2015-05-05 20:37:11Z fangq $
  
   input:
        rootname: the name of the root-object, when set to '', the root name
@@ -228,7 +228,7 @@ JSON. The detailed help info for the four functions can be found below:
   authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
   created on 2013/08/01
  
-  $Id: loadubjson.m 436 2014-08-05 20:51:40Z fangq $
+  $Id: loadubjson.m 487 2015-05-06 18:19:07Z fangq $
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
@@ -245,6 +245,11 @@ JSON. The detailed help info for the four functions can be found below:
                           in the UBJSON input data. B - Big-Endian format for 
                           integers (as required in the UBJSON specification); 
                           L - input integer fields are in Little-Endian order.
+            opt.NameIsString [0|1]: for UBJSON Specification Draft 8 or 
+                          earlier versions (JSONLab 1.0 final or earlier), 
+                          the "name" tag is treated as a string. To load 
+                          these UBJSON data, you need to manually set this 
+                          flag to 1.
  
   output:
        dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -272,7 +277,7 @@ JSON. The detailed help info for the four functions can be found below:
   author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
   created on 2013/08/17
  
-  $Id: saveubjson.m 440 2014-09-17 19:59:45Z fangq $
+  $Id: saveubjson.m 465 2015-01-25 00:46:07Z fangq $
  
   input:
        rootname: the name of the root-object, when set to '', the root name
@@ -338,7 +343,7 @@ will see the conversions from MATLAB data structure to JSON text and backward.
 In "jsonlab_selftest.m", we load complex JSON files downloaded from the Internet
 and validate the loadjson/savejson functions for regression testing purposes.
 Similarly, a "demo_ubjson_basic.m" script is provided to test the saveubjson
-and loadubjson pairs for various matlab data structures.
+and loadubjson functions for various matlab data structures.
 
 Please run these examples and understand how JSONLab works before you use
 it to process your data.
@@ -371,8 +376,16 @@ V. Contribution and feedback
 JSONLab is an open-source project. This means you can not only use it and modify
 it as you wish, but also you can contribute your changes back to JSONLab so
 that everyone else can enjoy the improvement. For anyone who want to contribute,
-please download JSONLab source code from it's subversion repository by using the
+please download JSONLab source code from its source code repositories by using the
 following command:
+
+ git clone https://github.com/fangq/jsonlab.git jsonlab
+
+or browsing the github site at
+
+ https://github.com/fangq/jsonlab
+
+alternatively, if you prefer svn, you can checkout the latest code by using
 
  svn checkout svn://svn.code.sf.net/p/iso2mesh/code/trunk/jsonlab jsonlab
 
@@ -380,15 +393,19 @@ You can make changes to the files as needed. Once you are satisfied with your
 changes, and ready to share it with others, please cd the root directory of 
 JSONLab, and type
 
+ git diff --no-prefix > yourname_featurename.patch
+
+or
+
  svn diff > yourname_featurename.patch
 
 You then email the .patch file to JSONLab's maintainer, Qianqian Fang, at
 the email address shown in the beginning of this file. Qianqian will review 
 the changes and commit it to the subversion if they are satisfactory.
 
-We appreciate any suggestions and feedbacks from you. Please use iso2mesh's
-mailing list to report any questions you may have with JSONLab:
+We appreciate any suggestions and feedbacks from you. Please use the following
+mailing list to report any questions you may have regarding JSONLab:
 
-http://groups.google.com/group/iso2mesh-users?hl=en&pli=1
+https://groups.google.com/forum/?hl=en#!forum/jsonlab-users
 
 (Subscription to the mailing list is needed in order to post messages).
