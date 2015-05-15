@@ -69,7 +69,11 @@ elseif(exist(fname,'file'))
    try
        string = fileread(fname);
    catch
-       string = urlread(['file:///',fullfile(pwd,fname)]);
+       try
+           string = urlread(['file://',fname]);
+       catch
+           string = urlread(['file://',fullfile(pwd,fname)]);
+       end
    end
 else
    error('input file does not exist');
@@ -114,61 +118,6 @@ if(isfield(opt,'progressbar_'))
 end
 
 %%-------------------------------------------------------------------------
-function newdata=jstruct2array(data)
-fn=fieldnames(data);
-newdata=data;
-len=length(data);
-if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && ~isempty(strmatch('x0x5F_ArrayData_',fn)))
-  newdata=cell(len,1);
-  for j=1:len
-    ndata=cast(data(j).x0x5F_ArrayData_,data(j).x0x5F_ArrayType_);
-    iscpx=0;
-    if(~isempty(strmatch('x0x5F_ArrayIsComplex_',fn)))
-        if(data(j).x0x5F_ArrayIsComplex_)
-           iscpx=1;
-        end
-    end
-    if(~isempty(strmatch('x0x5F_ArrayIsSparse_',fn)))
-        if(data(j).x0x5F_ArrayIsSparse_)
-            if(~isempty(strmatch('x0x5F_ArraySize_',fn)))
-                dim=data(j).x0x5F_ArraySize_;
-                if(iscpx && size(ndata,2)==4-any(dim==1))
-                    ndata(:,end-1)=complex(ndata(:,end-1),ndata(:,end));
-                end
-                if isempty(ndata)
-                    % All-zeros sparse
-                    ndata=sparse(dim(1),prod(dim(2:end)));
-                elseif dim(1)==1
-                    % Sparse row vector
-                    ndata=sparse(1,ndata(:,1),ndata(:,2),dim(1),prod(dim(2:end)));
-                elseif dim(2)==1
-                    % Sparse column vector
-                    ndata=sparse(ndata(:,1),1,ndata(:,2),dim(1),prod(dim(2:end)));
-                else
-                    % Generic sparse array.
-                    ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3),dim(1),prod(dim(2:end)));
-                end
-            else
-                if(iscpx && size(ndata,2)==4)
-                    ndata(:,3)=complex(ndata(:,3),ndata(:,4));
-                end
-                ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3));
-            end
-        end
-    elseif(~isempty(strmatch('x0x5F_ArraySize_',fn)))
-        if(iscpx && size(ndata,2)==2)
-             ndata=complex(ndata(:,1),ndata(:,2));
-        end
-        ndata=reshape(ndata(:),data(j).x0x5F_ArraySize_);
-    end
-    newdata{j}=ndata;
-  end
-  if(len==1)
-      newdata=newdata{1};
-  end
-end
-
-%%-------------------------------------------------------------------------
 function object = parse_object(varargin)
     parse_char('{');
     object = [];
@@ -189,7 +138,7 @@ function object = parse_object(varargin)
     end
     parse_char('}');
     if(isstruct(object))
-        object=jstruct2array(object);
+        object=struct2jdata(object);
     end
 
 %%-------------------------------------------------------------------------
@@ -200,7 +149,10 @@ global pos inStr isoct
     object = cell(0, 1);
     dim2=[];
     arraydepth=jsonopt('JSONLAB_ArrayDepth_',1,varargin{:});
-    pbar=jsonopt('progressbar_',-1,varargin{:});
+    pbar=-1;
+    if(isfield(varargin{1},'progressbar_'))
+        pbar=varargin{1}.progressbar_;
+    end
 
     if next_char ~= ']'
 	if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
@@ -291,19 +243,19 @@ global pos inStr isoct
 
 function parse_char(c)
     global pos inStr len
-    skip_whitespace;
+    pos=skip_whitespace(pos,inStr,len);
     if pos > len || inStr(pos) ~= c
         error_pos(sprintf('Expected %c at position %%d', c));
     else
         pos = pos + 1;
-        skip_whitespace;
+        pos=skip_whitespace(pos,inStr,len);
     end
 
 %%-------------------------------------------------------------------------
 
 function c = next_char
     global pos inStr len
-    skip_whitespace;
+    pos=skip_whitespace(pos,inStr,len);
     if pos > len
         c = [];
     else
@@ -312,10 +264,10 @@ function c = next_char
 
 %%-------------------------------------------------------------------------
 
-function skip_whitespace
-    global pos inStr len
-    while pos <= len && isspace(inStr(pos))
-        pos = pos + 1;
+function newpos=skip_whitespace(pos,inStr,len)
+    newpos=pos;
+    while newpos <= len && isspace(inStr(newpos))
+        newpos = newpos + 1;
     end
 
 %%-------------------------------------------------------------------------
@@ -401,9 +353,8 @@ function num = parse_number(varargin)
 function val = parse_value(varargin)
     global pos inStr len
     
-    pbar=jsonopt('progressbar_',-1,varargin{:});
-    if(pbar>0)
-        waitbar(pos/len,pbar,'loading ...');
+    if(isfield(varargin{1},'progressbar_'))
+        waitbar(pos/len,varargin{1}.progressbar_,'loading ...');
     end
     
     switch(inStr(pos))
