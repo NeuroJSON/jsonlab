@@ -129,7 +129,7 @@ function object = parse_object(varargin)
             end
             parse_char(':');
             val = parse_value(varargin{:});
-            eval( sprintf( 'object.%s  = val;', valid_field(str) ) );
+            object.(valid_field(str))=val;
             if next_char == '}'
                 break;
             end
@@ -156,7 +156,7 @@ global pos inStr isoct
 
     if next_char ~= ']'
 	if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
-            [endpos, e1l, e1r, maxlevel]=matching_bracket(inStr,pos);
+            [endpos, e1l, e1r]=matching_bracket(inStr,pos);
             arraystr=['[' inStr(pos:endpos)];
             arraystr=regexprep(arraystr,'"_NaN_"','NaN');
             arraystr=regexprep(arraystr,'"([-+]*)_Inf_"','$1Inf');
@@ -228,7 +228,7 @@ global pos inStr isoct
         object=cell2mat(object')';
         if(iscell(oldobj) && isstruct(object) && numel(object)>1 && jsonopt('SimplifyCellArray',1,varargin{:})==0)
             object=oldobj;
-        elseif(size(object,1)>1 && ndims(object)==2)
+        elseif(size(object,1)>1 && ismatrix(object))
             object=object';
         end
       catch
@@ -292,7 +292,8 @@ function str = parseStr(varargin)
             str = [str inStr(pos:esc(index_esc)-1)];
             pos = esc(index_esc);
         end
-        nstr = length(str); switch inStr(pos)
+        nstr = length(str);
+        switch inStr(pos)
             case '"'
                 pos = pos + 1;
                 if(~isempty(str))
@@ -325,7 +326,8 @@ function str = parseStr(varargin)
                         pos = pos + 5;
                 end
             otherwise % should never happen
-                str(nstr+1) = inStr(pos), keyboard
+                str(nstr+1) = inStr(pos);
+                keyboard;
                 pos = pos + 1;
         end
     end
@@ -338,7 +340,7 @@ function num = parse_number(varargin)
     currstr=inStr(pos:min(pos+30,end));
     if(isoct~=0)
         numstr=regexp(currstr,'^\s*-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+\-]?\d+)?','end');
-        [num, one] = sscanf(currstr, '%f', 1);
+        [num] = sscanf(currstr, '%f', 1);
         delta=numstr+1;
     else
         [num, one, err, delta] = sscanf(currstr, '%f', 1);
@@ -418,12 +420,16 @@ global isoct
             str=sprintf('x0x%X_%s',char(str(1)),str(2:end));
         end
     end
-    if(isempty(regexp(str,'[^0-9A-Za-z_]', 'once' ))) return;  end
+    if(isempty(regexp(str,'[^0-9A-Za-z_]', 'once' )))
+        return;
+    end
     if(~isoct)
         str=regexprep(str,'([^0-9A-Za-z_])','_0x${sprintf(''%X'',unicode2native($1))}_');
     else
         pos=regexp(str,'[^0-9A-Za-z_]');
-        if(isempty(pos)) return; end
+        if(isempty(pos))
+            return;
+        end
         str0=str;
         pos0=[0 pos(:)' length(str)];
         str='';
@@ -465,14 +471,18 @@ while(pos<=len)
     c=tokens(pos);
     if(c==']')
         level=level-1;
-        if(isempty(e1r)) e1r=bpos(pos); end
+        if(isempty(e1r))
+            e1r=bpos(pos);
+        end
         if(level==0)
             endpos=bpos(pos);
             return
         end
     end
     if(c=='[')
-        if(isempty(e1l)) e1l=bpos(pos); end
+        if(isempty(e1l))
+            e1l=bpos(pos);
+        end
         level=level+1;
         maxlevel=max(maxlevel,level);
     end

@@ -194,16 +194,26 @@ elseif(len==0)
     end
 end
 for j=1:dim(2)
-    if(dim(1)>1) txt=sprintf('%s%s[%s',txt,padding2,nl); end
+    if(dim(1)>1)
+        txt=sprintf('%s%s[%s',txt,padding2,nl);
+    end
     for i=1:dim(1)
        txt=sprintf('%s%s',txt,obj2json(name,item{i,j},level+(dim(1)>1)+(len>1),varargin{:}));
-       if(i<dim(1)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
+       if(i<dim(1))
+           txt=sprintf('%s%s',txt,sprintf(',%s',nl));
+       end
     end
-    if(dim(1)>1) txt=sprintf('%s%s%s]',txt,nl,padding2); end
-    if(j<dim(2)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
+    if(dim(1)>1)
+        txt=sprintf('%s%s%s]',txt,nl,padding2);
+    end
+    if(j<dim(2))
+        txt=sprintf('%s%s',txt,sprintf(',%s',nl));
+    end
     %if(j==dim(2)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
 end
-if(len>1) txt=sprintf('%s%s%s]',txt,nl,padding0); end
+if(len>1)
+    txt=sprintf('%s%s%s]',txt,nl,padding0);
+end
 
 %%-------------------------------------------------------------------------
 function txt=struct2json(name,item,level,varargin)
@@ -234,12 +244,18 @@ if(isempty(item))
     return;
 end
 if(~isempty(name)) 
-    if(forcearray) txt=sprintf('%s"%s": [%s',padding0,checkname(name,varargin{:}),nl); end
+    if(forcearray)
+        txt=sprintf('%s"%s": [%s',padding0,checkname(name,varargin{:}),nl);
+    end
 else
-    if(forcearray) txt=sprintf('%s[%s',padding0,nl); end
+    if(forcearray)
+        txt=sprintf('%s[%s',padding0,nl);
+    end
 end
 for j=1:dim(2)
-  if(dim(1)>1) txt=sprintf('%s%s[%s',txt,padding2,nl); end
+  if(dim(1)>1)
+      txt=sprintf('%s%s[%s',txt,padding2,nl);
+  end
   for i=1:dim(1)
     names = fieldnames(item(i,j));
     if(~isempty(name) && len==1 && ~forcearray)
@@ -249,19 +265,29 @@ for j=1:dim(2)
     end
     if(~isempty(names))
       for e=1:length(names)
-	    txt=sprintf('%s%s',txt,obj2json(names{e},getfield(item(i,j),...
-             names{e}),level+(dim(1)>1)+1+forcearray,varargin{:}));
-        if(e<length(names)) txt=sprintf('%s%s',txt,','); end
+	    txt=sprintf('%s%s',txt,obj2json(names{e},item(i,j).(names{e}),...
+             level+(dim(1)>1)+1+forcearray,varargin{:}));
+        if(e<length(names))
+            txt=sprintf('%s%s',txt,',');
+        end
         txt=sprintf('%s%s',txt,nl);
       end
     end
     txt=sprintf('%s%s}',txt,padding1);
-    if(i<dim(1)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
+    if(i<dim(1))
+        txt=sprintf('%s%s',txt,sprintf(',%s',nl));
+    end
   end
-  if(dim(1)>1) txt=sprintf('%s%s%s]',txt,nl,padding2); end
-  if(j<dim(2)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
+  if(dim(1)>1)
+      txt=sprintf('%s%s%s]',txt,nl,padding2);
+  end
+  if(j<dim(2))
+      txt=sprintf('%s%s',txt,sprintf(',%s',nl));
+  end
 end
-if(forcearray) txt=sprintf('%s%s%s]',txt,nl,padding0); end
+if(forcearray)
+    txt=sprintf('%s%s%s]',txt,nl,padding0);
+end
 
 %%-------------------------------------------------------------------------
 function txt=str2json(name,item,level,varargin)
@@ -279,24 +305,33 @@ nl=ws.newline;
 sep=ws.sep;
 
 if(~isempty(name)) 
-    if(len>1) txt=sprintf('%s"%s": [%s',padding1,checkname(name,varargin{:}),nl); end
+    if(len>1)
+        txt=sprintf('%s"%s": [%s',padding1,checkname(name,varargin{:}),nl);
+    end
 else
-    if(len>1) txt=sprintf('%s[%s',padding1,nl); end
+    if(len>1)
+        txt=sprintf('%s[%s',padding1,nl);
+    end
 end
-isoct=jsonopt('IsOctave',0,varargin{:});
 for e=1:len
     val=escapejsonstring(item(e,:));
     if(len==1)
         obj=['"' checkname(name,varargin{:}) '": ' '"',val,'"'];
-	if(isempty(name)) obj=['"',val,'"']; end
+        if(isempty(name))
+            obj=['"',val,'"'];
+        end
         txt=sprintf('%s%s%s%s',txt,padding1,obj);
     else
         txt=sprintf('%s%s%s%s',txt,padding0,['"',val,'"']);
     end
-    if(e==len) sep=''; end
+    if(e==len)
+        sep='';
+    end
     txt=sprintf('%s%s',txt,sep);
 end
-if(len>1) txt=sprintf('%s%s%s%s',txt,nl,padding1,']'); end
+if(len>1)
+    txt=sprintf('%s%s%s%s',txt,nl,padding1,']');
+end
 
 %%-------------------------------------------------------------------------
 function txt=mat2json(name,item,level,varargin)
@@ -441,7 +476,9 @@ if(isunpack)
     else
         pos=regexp(name,'(^x|_){1}0x([0-9a-fA-F]+)_','start');
         pend=regexp(name,'(^x|_){1}0x([0-9a-fA-F]+)_','end');
-        if(isempty(pos)) return; end
+        if(isempty(pos))
+            return;
+        end
         str0=name;
         pos0=[0 pend(:)' length(name)];
         newname='';
@@ -460,7 +497,9 @@ newstr=str;
 isoct=exist('OCTAVE_VERSION','builtin');
 if(isoct)
    vv=sscanf(OCTAVE_VERSION,'%f');
-   if(vv(1)>=3.8) isoct=0; end
+   if(vv(1)>=3.8)
+       isoct=0;
+   end
 end
 if(isoct)
   escapechars={'\\','\"','\/','\a','\f','\n','\r','\t','\v'};

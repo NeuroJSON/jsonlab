@@ -94,17 +94,6 @@ if(jsoncount==1 && iscell(data))
     data=data{1};
 end
 
-%%
-function newdata=parse_collection(id,data,obj)
-
-if(jsoncount>0 && exist('data','var')) 
-    if(~iscell(data))
-       newdata=cell(1);
-       newdata{1}=data;
-       data=newdata;
-    end
-end
-
 %%-------------------------------------------------------------------------
 function object = parse_object(varargin)
     parse_char('{');
@@ -133,7 +122,7 @@ function object = parse_object(varargin)
             %parse_char(':');
             val = parse_value(varargin{:});
             num=num+1;
-            eval( sprintf( 'object.%s  = val;', valid_field(str) ) );
+            object.(valid_field(str))=val;
             if next_char == '}' || (count>=0 && num>=count)
                 break;
             end
@@ -181,7 +170,7 @@ adv=double(len*count);
 
 
 function object = parse_array(varargin) % JSON array is written in row-major order
-global pos inStr isoct
+global pos inStr
     parse_char('[');
     object = cell(0, 1);
     dim=[];
@@ -234,7 +223,7 @@ global pos inStr isoct
         object=cell2mat(object')';
         if(iscell(oldobj) && isstruct(object) && numel(object)>1 && jsonopt('SimplifyCellArray',1,varargin{:})==0)
             object=oldobj;
-        elseif(size(object,1)>1 && ndims(object)==2)
+        elseif(size(object,1)>1 && ismatrix(object))
             object=object';
         end
       catch
@@ -334,7 +323,7 @@ function num = parse_number(varargin)
 %%-------------------------------------------------------------------------
 
 function val = parse_value(varargin)
-    global pos inStr len
+    global pos inStr
 
     switch(inStr(pos))
         case {'S','C','H'}
@@ -391,12 +380,16 @@ global isoct
             str=sprintf('x0x%X_%s',char(str(1)),str(2:end));
         end
     end
-    if(isempty(regexp(str,'[^0-9A-Za-z_]', 'once' ))) return;  end
+    if(isempty(regexp(str,'[^0-9A-Za-z_]', 'once' )))
+        return;
+    end
     if(~isoct)
         str=regexprep(str,'([^0-9A-Za-z_])','_0x${sprintf(''%X'',unicode2native($1))}_');
     else
         pos=regexp(str,'[^0-9A-Za-z_]');
-        if(isempty(pos)) return; end
+        if(isempty(pos))
+            return;
+        end
         str0=str;
         pos0=[0 pos(:)' length(str)];
         str='';
@@ -438,14 +431,18 @@ while(pos<=len)
     c=tokens(pos);
     if(c==']')
         level=level-1;
-        if(isempty(e1r)) e1r=bpos(pos); end
+        if(isempty(e1r))
+            e1r=bpos(pos);
+        end
         if(level==0)
             endpos=bpos(pos);
             return
         end
     end
     if(c=='[')
-        if(isempty(e1l)) e1l=bpos(pos); end
+        if(isempty(e1l))
+            e1l=bpos(pos);
+        end
         level=level+1;
         maxlevel=max(maxlevel,level);
     end

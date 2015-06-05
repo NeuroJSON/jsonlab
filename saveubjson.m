@@ -160,13 +160,19 @@ elseif(len==0)
     end
 end
 for j=1:dim(2)
-    if(dim(1)>1) txt=[txt '[']; end
+    if(dim(1)>1)
+        txt=[txt '['];
+    end
     for i=1:dim(1)
        txt=[txt obj2ubjson(name,item{i,j},level+(len>1),varargin{:})];
     end
-    if(dim(1)>1) txt=[txt ']']; end
+    if(dim(1)>1)
+        txt=[txt ']'];
+    end
 end
-if(len>1) txt=[txt ']']; end
+if(len>1)
+    txt=[txt ']'];
+end
 
 %%-------------------------------------------------------------------------
 function txt=struct2ubjson(name,item,level,varargin)
@@ -183,12 +189,18 @@ len=numel(item);
 forcearray= (len>1 || (jsonopt('NoRowBracket',1,varargin{:})==0 && level>0));
 
 if(~isempty(name)) 
-    if(forcearray) txt=[N_(checkname(name,varargin{:})) '[']; end
+    if(forcearray)
+        txt=[N_(checkname(name,varargin{:})) '['];
+    end
 else
-    if(forcearray) txt='['; end
+    if(forcearray)
+        txt='[';
+    end
 end
 for j=1:dim(2)
-  if(dim(1)>1) txt=[txt '[']; end
+  if(dim(1)>1)
+      txt=[txt '['];
+  end
   for i=1:dim(1)
      names = fieldnames(item(i,j));
      if(~isempty(name) && len==1 && ~forcearray)
@@ -198,15 +210,19 @@ for j=1:dim(2)
      end
      if(~isempty(names))
        for e=1:length(names)
-	     txt=[txt obj2ubjson(names{e},getfield(item(i,j),...
-             names{e}),level+(dim(1)>1)+1+forcearray,varargin{:})];
+	     txt=[txt obj2ubjson(names{e},item(i,j).(names{e}),...
+             level+(dim(1)>1)+1+forcearray,varargin{:})];
        end
      end
      txt=[txt '}'];
   end
-  if(dim(1)>1) txt=[txt ']']; end
+  if(dim(1)>1)
+      txt=[txt ']'];
+  end
 end
-if(forcearray) txt=[txt ']']; end
+if(forcearray)
+    txt=[txt ']'];
+end
 
 %%-------------------------------------------------------------------------
 function txt=str2ubjson(name,item,level,varargin)
@@ -218,22 +234,29 @@ item=reshape(item, max(size(item),[1 0]));
 len=size(item,1);
 
 if(~isempty(name)) 
-    if(len>1) txt=[N_(checkname(name,varargin{:})) '[']; end
+    if(len>1)
+        txt=[N_(checkname(name,varargin{:})) '['];
+    end
 else
-    if(len>1) txt='['; end
+    if(len>1)
+        txt='[';
+    end
 end
-isoct=jsonopt('IsOctave',0,varargin{:});
 for e=1:len
     val=item(e,:);
     if(len==1)
         obj=[N_(checkname(name,varargin{:})) '' '',S_(val),''];
-	if(isempty(name)) obj=['',S_(val),'']; end
+        if(isempty(name))
+            obj=['',S_(val),''];
+        end
         txt=[txt,'',obj];
     else
         txt=[txt,'',['',S_(val),'']];
     end
 end
-if(len>1) txt=[txt ']']; end
+if(len>1)
+    txt=[txt ']'];
+end
 
 %%-------------------------------------------------------------------------
 function txt=mat2ubjson(name,item,level,varargin)
@@ -311,9 +334,6 @@ if(isempty(mat))
     txt='Z';
     return;
 end
-if(size(mat,1)==1)
-    level=level-1;
-end
 type='';
 hasnegtive=(mat<0);
 if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) == 0)))
@@ -325,11 +345,11 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
     if(isempty(type))
         % todo - need to consider negative ones separately
         id= histc(abs(max(mat(:))),[0 2^7 2^15 2^31 2^63]);
-        if(isempty(find(id)))
+        if(isempty(id~=0))
             error('high-precision data is not yet supported');
         end
         key='iIlL';
-	type=key(find(id));
+	type=key(id~=0);
     end
     txt=[I_a(mat(:),type,size(mat))];
 elseif(islogical(mat))
@@ -373,7 +393,9 @@ if(isunpack)
     else
         pos=regexp(name,'(^x|_){1}0x([0-9a-fA-F]+)_','start');
         pend=regexp(name,'(^x|_){1}0x([0-9a-fA-F]+)_','end');
-        if(isempty(pos)) return; end
+        if(isempty(pos))
+            return;
+        end
         str0=name;
         pos0=[0 pend(:)' length(name)];
         newname='';
