@@ -17,7 +17,8 @@ function json=savejson(rootname,obj,varargin)
 %      rootname: the name of the root-object, when set to '', the root name
 %        is ignored, however, when opt.ForceRootName is set to 1 (see below),
 %        the MATLAB variable name will be used as the root name.
-%      obj: a MATLAB object (array, cell, cell array, struct, struct array).
+%      obj: a MATLAB object (array, cell, cell array, struct, struct array,
+%      class instance).
 %      filename: a string for the file name to save the output JSON data.
 %      opt: a struct for additional options, ignore to use default values.
 %        opt can have the following fields (first in [.|.] is the default)
@@ -104,7 +105,8 @@ opt.IsOctave=exist('OCTAVE_VERSION','builtin');
 rootisarray=0;
 rootlevel=1;
 forceroot=jsonopt('ForceRootName',0,opt);
-if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || iscell(obj)) && isempty(rootname) && forceroot==0)
+if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || ...
+        iscell(obj) || isobject(obj)) && isempty(rootname) && forceroot==0)
     rootisarray=1;
     rootlevel=0;
 else

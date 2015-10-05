@@ -17,7 +17,8 @@ function json=saveubjson(rootname,obj,varargin)
 %      rootname: the name of the root-object, when set to '', the root name
 %        is ignored, however, when opt.ForceRootName is set to 1 (see below),
 %        the MATLAB variable name will be used as the root name.
-%      obj: a MATLAB object (array, cell, cell array, struct, struct array)
+%      obj: a MATLAB object (array, cell, cell array, struct, struct array,
+%      class instance)
 %      filename: a string for the file name to save the output UBJSON data
 %      opt: a struct for additional options, ignore to use default values.
 %        opt can have the following fields (first in [.|.] is the default)
@@ -92,7 +93,8 @@ opt.IsOctave=exist('OCTAVE_VERSION','builtin');
 rootisarray=0;
 rootlevel=1;
 forceroot=jsonopt('ForceRootName',0,opt);
-if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || iscell(obj)) && isempty(rootname) && forceroot==0)
+if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || ...
+        iscell(obj) || isobject(obj)) && isempty(rootname) && forceroot==0)
     rootisarray=1;
     rootlevel=0;
 else
@@ -129,6 +131,8 @@ elseif(isstruct(item))
     txt=struct2ubjson(name,item,level,varargin{:});
 elseif(ischar(item))
     txt=str2ubjson(name,item,level,varargin{:});
+elseif(isobject(item)) 
+    txt=matlabobject2ubjson(name,item,level,varargin{:});
 else
     txt=mat2ubjson(name,item,level,varargin{:});
 end
@@ -327,6 +331,23 @@ else
     end
 end
 txt=[txt,'}'];
+
+%%-------------------------------------------------------------------------
+function txt=matlabobject2ubjson(name,item,level,varargin)
+if numel(item) == 0 %empty object
+    st = struct();
+else
+    % "st = struct(item);" would produce an inmutable warning, because it
+    % make the protected and private properties visible. Instead we get the
+    % visible properties
+    propertynames = properties(item);
+    for p = 1:numel(propertynames)
+        for o = numel(item):-1:1 % aray of objects
+            st(o).(propertynames{p}) = item(o).(propertynames{p});
+        end
+    end
+end
+txt=struct2ubjson(name,st,level,varargin{:});
 
 %%-------------------------------------------------------------------------
 function txt=matdata2ubjson(mat,level,varargin)
