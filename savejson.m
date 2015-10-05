@@ -105,7 +105,8 @@ opt.IsOctave=exist('OCTAVE_VERSION','builtin');
 rootisarray=0;
 rootlevel=1;
 forceroot=jsonopt('ForceRootName',0,opt);
-if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || iscell(obj)) && isempty(rootname) && forceroot==0)
+if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || ...
+        iscell(obj) || isobject(obj)) && isempty(rootname) && forceroot==0)
     rootisarray=1;
     rootlevel=0;
 else
