@@ -63,7 +63,7 @@ function data = loadjson(fname,varargin)
 
 global pos inStr len  esc index_esc len_esc isoct arraytoken
 
-if(regexp(fname,'[\{\}\]\[]','once'))
+if(regexp(fname,'^\s*(?:\[.+\])|(?:\{.+\})\s*$','once'))
    string=fname;
 elseif(exist(fname,'file'))
    try
