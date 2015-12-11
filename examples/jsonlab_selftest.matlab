@@ -1,8 +1,8 @@
 
-                              < M A T L A B >
-                  Copyright 1984-2007 The MathWorks, Inc.
-                         Version 7.4.0.287 (R2007a)
-                              January 29, 2007
+                            < M A T L A B (R) >
+                  Copyright 1984-2010 The MathWorks, Inc.
+                Version 7.11.0.584 (R2010b) 64-bit (glnxa64)
+                              August 16, 2010
 
  
   To get started, type one of these: helpwin, helpdesk, or demo.
@@ -150,5 +150,5 @@ GlossEntry{UIDSUSGMLUSortAsSUSGMLU	GlossTermSU$Standard Generalized Markup L
 CloseDoc()}]}}}}
 ===============================================
 >> example4.json
-{Udata[{Usample{Urhoi}}{Usample{Urhoi}}[[$i#U
+{Udata[{Usample{Urhoi}}{Usample{Urhoi}}[[$i#U[$i#U[$i#U][SUPaperSUScissorsSUStone][CaSUb\SUc"SUd\"SUe"[SUf\"[SUg[\SUh[\"]]}
 >> 

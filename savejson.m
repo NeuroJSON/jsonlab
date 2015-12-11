@@ -41,10 +41,13 @@ function json=savejson(rootname,obj,varargin)
 %                         parts, and also "_ArrayIsComplex_":1 is added. 
 %        opt.ParseLogical [0|1]: if this is set to 1, logical array elem
 %                         will use true/false rather than 1/0.
-%        opt.NoRowBracket [1|0]: if this is set to 1, arrays with a single
+%        opt.SingletArray [0|1]: if this is set to 1, arrays with a single
 %                         numerical element will be shown without a square
 %                         bracket, unless it is the root object; if 0, square
 %                         brackets are forced for any numerical arrays.
+%        opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
+%                         even it has only one element; if 0, brackets
+%                         are ignored when a cell has only 1 element.
 %        opt.ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
 %                         will use the name of the passed obj variable as the 
 %                         root object name; if obj is an expression and 
@@ -97,11 +100,17 @@ else
    varname=inputname(2);
 end
 if(length(varargin)==1 && ischar(varargin{1}))
-   opt=struct('FileName',varargin{1});
+   opt=struct('filename',varargin{1});
 else
    opt=varargin2struct(varargin{:});
 end
 opt.IsOctave=exist('OCTAVE_VERSION','builtin');
+if(isfield(opt,'norowbracket'))
+    warning('Option ''NoRowBracket'' is depreciated, please use ''SingletArray'' and set its value to not(NoRowBracket)');
+    if(~isfield(opt,'singletarray'))
+        opt.singletarray=not(opt.norowbracket);
+    end
+end
 rootisarray=0;
 rootlevel=1;
 forceroot=jsonopt('ForceRootName',0,opt);
@@ -184,7 +193,8 @@ ws=jsonopt('whitespaces_',struct('tab',sprintf('\t'),'newline',sprintf('\n'),'se
 padding0=repmat(ws.tab,1,level);
 padding2=repmat(ws.tab,1,level+1);
 nl=ws.newline;
-if(len>1)
+bracketlevel=~jsonopt('singletcell',1,varargin{:});
+if(len>bracketlevel)
     if(~isempty(name))
         txt=sprintf('%s"%s": [%s',padding0, checkname(name,varargin{:}),nl); name=''; 
     else
@@ -202,7 +212,7 @@ for i=1:dim(1)
         txt=sprintf('%s%s[%s',txt,padding2,nl);
     end
     for j=1:dim(2)
-       txt=sprintf('%s%s',txt,obj2json(name,item{i,j},level+(dim(1)>1)+(len>1),varargin{:}));
+       txt=sprintf('%s%s',txt,obj2json(name,item{i,j},level+(dim(1)>1)+(len>bracketlevel),varargin{:}));
        if(j<dim(2))
            txt=sprintf('%s%s',txt,sprintf(',%s',nl));
        end
@@ -215,7 +225,7 @@ for i=1:dim(1)
     end
     %if(j==dim(2)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
 end
-if(len>1)
+if(len>bracketlevel)
     txt=sprintf('%s%s%s]',txt,nl,padding0);
 end
 
@@ -231,7 +241,7 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     dim=size(item);
 end
 len=numel(item);
-forcearray= (len>1 || (jsonopt('NoRowBracket',1,varargin{:})==0 && level>0));
+forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
 ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'));
 ws=jsonopt('whitespaces_',ws,varargin{:});
 padding0=repmat(ws.tab,1,level);
@@ -359,7 +369,7 @@ if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
               padding1,checkname(name,varargin{:}),nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     end
 else
-    if(numel(item)==1 && jsonopt('NoRowBracket',1,varargin{:})==1 && level>0)
+    if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0 && level>0)
         numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^\[',''),']','');
     else
         numtxt=matdata2json(item,level+1,varargin{:});
@@ -367,7 +377,7 @@ else
     if(isempty(name))
     	txt=sprintf('%s%s',padding1,numtxt);
     else
-        if(numel(item)==1 && jsonopt('NoRowBracket',1,varargin{:})==1)
+        if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0)
            	txt=sprintf('%s"%s": %s',padding1,checkname(name,varargin{:}),numtxt);
         else
     	    txt=sprintf('%s"%s": %s',padding1,checkname(name,varargin{:}),numtxt);
