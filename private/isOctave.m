@@ -1,3 +1,7 @@
 function bool = isOctave()
-bool = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+persistent tf
+if isempty(tf)
+    tf = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+end
+bool = tf;
 end
