@@ -61,7 +61,7 @@ function data = loadjson(fname,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-global pos inStr len  esc index_esc len_esc isoct arraytoken
+global pos inStr len  esc index_esc len_esc arraytoken
 
 if(regexp(fname,'^\s*(?:\[.+\])|(?:\{.+\})\s*$','once'))
    string=fname;
@@ -80,7 +80,6 @@ else
 end
 
 pos = 1; len = length(string); inStr = string;
-isoct=exist('OCTAVE_VERSION','builtin');
 arraytoken=find(inStr=='[' | inStr==']' | inStr=='"');
 jstr=regexprep(inStr,'\\\\','  ');
 escquote=regexp(jstr,'\\"');
@@ -144,7 +143,7 @@ function object = parse_object(varargin)
 %%-------------------------------------------------------------------------
 
 function object = parse_array(varargin) % JSON array is written in row-major order
-global pos inStr isoct
+global pos inStr 
     parse_char('[');
     object = cell(0, 1);
     dim2=[];
@@ -205,7 +204,7 @@ global pos inStr isoct
             arraystr='[';
 	end
         try
-           if(isoct && regexp(arraystr,'"','once'))
+           if(isOctave() && regexp(arraystr,'"','once'))
                 error('Octave eval can produce empty cells for JSON-like input');
            end
            object=eval(arraystr);
@@ -336,9 +335,9 @@ function str = parseStr(varargin)
 %%-------------------------------------------------------------------------
 
 function num = parse_number(varargin)
-    global pos inStr isoct
+    global pos inStr
     currstr=inStr(pos:min(pos+30,end));
-    if(isoct~=0)
+    if ~isOctave()
         numstr=regexp(currstr,'^\s*-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+\-]?\d+)?','end');
         [num] = sscanf(currstr, '%f', 1);
         delta=numstr+1;
@@ -407,14 +406,13 @@ function error_pos(msg)
 %%-------------------------------------------------------------------------
 
 function str = valid_field(str)
-global isoct
 % From MATLAB doc: field names must begin with a letter, which may be
 % followed by any combination of letters, digits, and underscores.
 % Invalid characters will be converted to underscores, and the prefix
 % "x0x[Hex code]_" will be added if the first character is not a letter.
     pos=regexp(str,'^[^A-Za-z]','once');
     if(~isempty(pos))
-        if(~isoct)
+        if ~isOctave()
             str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
         else
             str=sprintf('x0x%X_%s',char(str(1)),str(2:end));
@@ -423,7 +421,7 @@ global isoct
     if(isempty(regexp(str,'[^0-9A-Za-z_]', 'once' )))
         return;
     end
-    if(~isoct)
+    if ~isOctave()
         str=regexprep(str,'([^0-9A-Za-z_])','_0x${sprintf(''%X'',unicode2native($1))}_');
     else
         pos=regexp(str,'[^0-9A-Za-z_]');
