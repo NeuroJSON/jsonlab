@@ -125,8 +125,9 @@ if(~isempty(jsonp))
 end
 
 % save to a file if FileName is set, suggested by Patrick Rapin
-if(~isempty(jsonopt('FileName','',opt)))
-    fid = fopen(opt.filename, 'wb');
+filename=jsonopt('FileName','',opt);
+if(~isempty(filename))
+    fid = fopen(filename, 'wb');
     fwrite(fid,json);
     fclose(fid);
 end
