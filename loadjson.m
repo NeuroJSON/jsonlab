@@ -416,7 +416,7 @@ function str = valid_field(str)
         outstr = cell(1,N);
         for ii = 1:N
             if iconvert(ii)
-                outstr{ii} = sprintf('_0x%x_',str(ii));
+                outstr{ii} = sprintf('_0x%X_',str(ii));
             else
                 outstr{ii} = str(ii);
             end
@@ -426,7 +426,9 @@ function str = valid_field(str)
             str(1) = 'x';
         end
     end
-    %str(~isletter(str) & ~('0' <= str & str <= '9')) = '_';
+    if isstrprop(str(1), 'digit')
+        str = [sprintf('x0x%X_',str(1)) str(2:end)];
+    end
 
 %%-------------------------------------------------------------------------
 function endpos = matching_quote(str,pos)
