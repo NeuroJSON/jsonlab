@@ -6,6 +6,15 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 1.2 (codename: Optimus - Update 2), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
+
+ 2015/12/16  replacing string concatenation by str cells to gain 2x speed in savejson (Issue#17)
+ 2015/12/11  fix FileName option case bug (SVN rev#495)
+ 2015/12/11  add SingletCell option, add SingletArray to replace NoRowBracket (Issue#15,#8)
+ 2015/11/10  fix bug for inerpreting file names as JSON string - by Mykhailo Bratukha (Pull#14)
+ 2015/10/16  fix bug for cell with transposed data - by Insik Kim (Pull#12)
+ 2015/09/25  support exporting matlab object to JSON - by Sertan Senturk (Pull#10, #11)
+
 == JSONlab 1.1 (codename: Optimus - Update 1), FangQ <fangq (at) nmr.mgh.harvard.edu> ==
 
  2015/05/05 *massively accelerating loadjson for parsing large collection of unstructured small objects
