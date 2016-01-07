@@ -257,6 +257,7 @@ if(isempty(item))
     else
         txt={padding0, '[]'};
     end
+    txt = sprintf('%s',txt{:});
     return;
 end
 if(~isempty(name)) 
