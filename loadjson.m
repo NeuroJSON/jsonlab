@@ -494,3 +494,13 @@ end
 if(endpos==0) 
     error('unmatched "]"');
 end
+
+%!assert ( loadjson('[1]'), 1 )
+%!assert ( loadjson('[1, 2]'), [1, 2] )
+
+%!assert ( loadjson('["a"]'),  cellstr("a") )
+%!assert ( loadjson('["a", "b"]'),  cellstr(["a"; "b"])' )
+
+%!assert ( loadjson('{"a":1}'), struct("a", 1) )
+%!assert ( loadjson('{"a":"b"}'), struct("a", "b") )
+%!assert ( loadjson('{"1":"2"}'), struct("x0x31_", "2") )
