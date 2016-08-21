@@ -153,6 +153,7 @@ global pos inStr isoct
     if(isfield(varargin{1},'progressbar_'))
         pbar=varargin{1}.progressbar_;
     end
+    fastparserfailed=0;
 
     if next_char ~= ']'
 	if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
@@ -184,7 +185,9 @@ global pos inStr isoct
                     return;
         	end
             end
-            if(~isempty(dim2))
+
+            try
+              if(~isempty(dim2))
         	astr=arraystr;
         	astr(astr=='[')='';
         	astr(astr==']')='';
@@ -199,12 +202,18 @@ global pos inStr isoct
                     end
                     return;
         	end
+              end
+              arraystr=regexprep(arraystr,'\]\s*,','];');
+            catch
+              fastparserfailed=1;
             end
-            arraystr=regexprep(arraystr,'\]\s*,','];');
 	else
             arraystr='[';
 	end
         try
+           if(fastparserfailed)
+                throw;
+           end
            if(isoct && regexp(arraystr,'"','once'))
                 error('Octave eval can produce empty cells for JSON-like input');
            end
