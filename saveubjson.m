@@ -8,7 +8,7 @@ function json=saveubjson(rootname,obj,varargin)
 % convert a MATLAB object (cell, struct or array) into a Universal 
 % Binary JSON (UBJSON) binary string
 %
-% author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+% author: Qianqian Fang (q.fang <at> neu.edu)
 % created on 2013/08/17
 %
 % $Id$

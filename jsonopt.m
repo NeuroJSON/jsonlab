@@ -5,7 +5,7 @@ function val=jsonopt(key,default,varargin)
 % setting options based on a struct. The struct can be produced
 % by varargin2struct from a list of 'param','value' pairs
 %
-% authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+% authors:Qianqian Fang (q.fang <at> neu.edu)
 %
 % $Id: loadjson.m 371 2012-06-20 12:43:06Z fangq $
 %

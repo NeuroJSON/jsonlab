@@ -3,9 +3,9 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-*Copyright (C) 2011-2015  Qianqian Fang <fangq at nmr.mgh.harvard.edu>
+*Copyright (C) 2011-2017  Qianqian Fang <q.fang at neu.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 1.2 (Optimus - Update 2)
+*Version: 1.8 (Magnus - alpha)
 
 -------------------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ JSON. The detailed help info for the four functions can be found below:
  
   parse a JSON (JavaScript Object Notation) file or string
  
-  authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+  authors:Qianqian Fang (q.fang <at> neu.edu)
   created on 2011/09/09, including previous works from 
  
           Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
@@ -94,7 +94,7 @@ JSON. The detailed help info for the four functions can be found below:
           http://www.mathworks.com/matlabcentral/fileexchange/20565
              created on 2008/07/03
  
-  $Id: loadjson.m 487 2015-05-06 18:19:07Z fangq $
+  $Id$
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
@@ -131,7 +131,10 @@ JSON. The detailed help info for the four functions can be found below:
        dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
        dat=loadjson(['examples' filesep 'example1.json'])
        dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',1)
-</pre>
+ 
+  license:
+      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+ </pre>
 
 === savejson.m ===
 
@@ -144,16 +147,17 @@ JSON. The detailed help info for the four functions can be found below:
   convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
   Object Notation) string
  
-  author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+  author: Qianqian Fang (q.fang <at> neu.edu)
   created on 2011/09/09
  
-  $Id: savejson.m 486 2015-05-05 20:37:11Z fangq $
+  $Id$
  
   input:
        rootname: the name of the root-object, when set to '', the root name
          is ignored, however, when opt.ForceRootName is set to 1 (see below),
          the MATLAB variable name will be used as the root name.
-       obj: a MATLAB object (array, cell, cell array, struct, struct array).
+       obj: a MATLAB object (array, cell, cell array, struct, struct array,
+       class instance).
        filename: a string for the file name to save the output JSON data.
        opt: a struct for additional options, ignore to use default values.
          opt can have the following fields (first in [.|.] is the default)
@@ -176,10 +180,13 @@ JSON. The detailed help info for the four functions can be found below:
                           parts, and also "_ArrayIsComplex_":1 is added. 
          opt.ParseLogical [0|1]: if this is set to 1, logical array elem
                           will use true/false rather than 1/0.
-         opt.NoRowBracket [1|0]: if this is set to 1, arrays with a single
+         opt.SingletArray [0|1]: if this is set to 1, arrays with a single
                           numerical element will be shown without a square
                           bracket, unless it is the root object; if 0, square
                           brackets are forced for any numerical arrays.
+         opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
+                          even it has only one element; if 0, brackets
+                          are ignored when a cell has only 1 element.
          opt.ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
                           will use the name of the passed obj variable as the 
                           root object name; if obj is an expression and 
@@ -214,6 +221,9 @@ JSON. The detailed help info for the four functions can be found below:
                 'SpecialData',[nan, inf, -inf]);
        savejson('jmesh',jsonmesh)
        savejson('',jsonmesh,'ArrayIndent',0,'FloatFormat','\t%.5g')
+ 
+  license:
+      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
  </pre>
 
 === loadubjson.m ===
@@ -225,10 +235,10 @@ JSON. The detailed help info for the four functions can be found below:
  
   parse a JSON (JavaScript Object Notation) file or string
  
-  authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+  authors:Qianqian Fang (q.fang <at> neu.edu)
   created on 2013/08/01
  
-  $Id: loadubjson.m 487 2015-05-06 18:19:07Z fangq $
+  $Id$
  
   input:
        fname: input file name, if fname contains "{}" or "[]", fname
@@ -261,6 +271,9 @@ JSON. The detailed help info for the four functions can be found below:
        dat=loadubjson(ubjdata)
        dat=loadubjson(['examples' filesep 'example1.ubj'])
        dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',1)
+ 
+  license:
+      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 </pre>
 
 === saveubjson.m ===
@@ -274,16 +287,17 @@ JSON. The detailed help info for the four functions can be found below:
   convert a MATLAB object (cell, struct or array) into a Universal 
   Binary JSON (UBJSON) binary string
  
-  author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+  author: Qianqian Fang (q.fang <at> neu.edu)
   created on 2013/08/17
  
-  $Id: saveubjson.m 465 2015-01-25 00:46:07Z fangq $
+  $Id$
  
   input:
        rootname: the name of the root-object, when set to '', the root name
          is ignored, however, when opt.ForceRootName is set to 1 (see below),
          the MATLAB variable name will be used as the root name.
-       obj: a MATLAB object (array, cell, cell array, struct, struct array)
+       obj: a MATLAB object (array, cell, cell array, struct, struct array,
+       class instance)
        filename: a string for the file name to save the output UBJSON data
        opt: a struct for additional options, ignore to use default values.
          opt can have the following fields (first in [.|.] is the default)
@@ -302,10 +316,13 @@ JSON. The detailed help info for the four functions can be found below:
                           parts, and also "_ArrayIsComplex_":1 is added. 
          opt.ParseLogical [1|0]: if this is set to 1, logical array elem
                           will use true/false rather than 1/0.
-         opt.NoRowBracket [1|0]: if this is set to 1, arrays with a single
+         opt.SingletArray [0|1]: if this is set to 1, arrays with a single
                           numerical element will be shown without a square
                           bracket, unless it is the root object; if 0, square
                           brackets are forced for any numerical arrays.
+         opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
+                          even it has only one element; if 0, brackets
+                          are ignored when a cell has only 1 element.
          opt.ForceRootName [0|1]: when set to 1 and rootname is empty, saveubjson
                           will use the name of the passed obj variable as the 
                           root object name; if obj is an expression and 
@@ -332,6 +349,9 @@ JSON. The detailed help info for the four functions can be found below:
                 'SpecialData',[nan, inf, -inf]);
        saveubjson('jsonmesh',jsonmesh)
        saveubjson('jsonmesh',jsonmesh,'meshdata.ubj')
+ 
+  license:
+      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 </pre>
 
 

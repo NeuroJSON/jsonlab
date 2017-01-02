@@ -8,7 +8,7 @@ function json=savejson(rootname,obj,varargin)
 % convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
 % Object Notation) string
 %
-% author: Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+% author: Qianqian Fang (q.fang <at> neu.edu)
 % created on 2011/09/09
 %
 % $Id$

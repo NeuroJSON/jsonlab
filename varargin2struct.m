@@ -6,7 +6,7 @@ function opt=varargin2struct(varargin)
 %
 % convert a series of input parameters into a structure
 %
-% authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+% authors:Qianqian Fang (q.fang <at> neu.edu)
 % date: 2012/12/22
 %
 % input:

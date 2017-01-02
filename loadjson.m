@@ -6,7 +6,7 @@ function data = loadjson(fname,varargin)
 %
 % parse a JSON (JavaScript Object Notation) file or string
 %
-% authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+% authors:Qianqian Fang (q.fang <at> neu.edu)
 % created on 2011/09/09, including previous works from 
 %
 %         Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713

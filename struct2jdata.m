@@ -4,7 +4,7 @@ function newdata=struct2jdata(data,varargin)
 %
 % convert a JData object (in the form of a struct array) into an array
 %
-% authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+% authors:Qianqian Fang (q.fang <at> neu.edu)
 %
 % input:
 %      data: a struct array. If data contains JData keywords in the first

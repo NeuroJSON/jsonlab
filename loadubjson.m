@@ -6,7 +6,7 @@ function data = loadubjson(fname,varargin)
 %
 % parse a JSON (JavaScript Object Notation) file or string
 %
-% authors:Qianqian Fang (fangq<at> nmr.mgh.harvard.edu)
+% authors:Qianqian Fang (q.fang <at> neu.edu)
 % created on 2013/08/01
 %
 % $Id$
