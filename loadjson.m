@@ -190,6 +190,7 @@ global pos inStr isoct
         	astr=arraystr;
         	astr(astr=='[')='';
         	astr(astr==']')='';
+                astr=regexprep(astr,'\s*$','');
         	astr(astr==' ')='';
         	[obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
         	if(nextidx>=length(astr)-1)
