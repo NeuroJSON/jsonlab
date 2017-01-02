@@ -160,7 +160,7 @@ else
     newdata=uint8(datastr);
 end
 id=strfind('iUIlLdD',type);
-if(id<=5 && fileendian~=systemendian)
+if(fileendian~=systemendian)
     newdata=swapbytes(typecast(newdata,cid));
 end
 data=typecast(newdata,cid);
@@ -314,7 +314,7 @@ function num = parse_number(varargin)
     else
         newdata=uint8(datastr);
     end
-    if(id<=5 && fileendian~=systemendian)
+    if(fileendian~=systemendian)
         newdata=swapbytes(typecast(newdata,type{id}));
     end
     num=typecast(newdata,type{id});
