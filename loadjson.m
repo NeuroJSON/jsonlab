@@ -61,7 +61,7 @@ function data = loadjson(fname,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-global pos inStr len  esc index_esc len_esc isoct arraytoken
+global pos index_esc isoct arraytoken
 
 if(regexp(fname,'^\s*(?:\[.*\])|(?:\{.*\})\s*$','once'))
    string=fname;
@@ -88,7 +88,7 @@ arraytoken=sort([arraytoken escquote]);
 
 % String delimiters and escape chars identified to improve speed:
 esc = find(inStr=='"' | inStr=='\' ); % comparable to: regexp(inStr, '["\\]');
-index_esc = 1; len_esc = length(esc);
+index_esc = 1;
 
 opt=varargin2struct(varargin{:});
 
@@ -97,13 +97,13 @@ if(jsonopt('ShowProgress',0,opt)==1)
 end
 jsoncount=1;
 while pos <= len
-    switch(next_char)
+    switch(next_char(inStr))
         case '{'
-            data{jsoncount} = parse_object(opt);
+            data{jsoncount} = parse_object(inStr, esc, opt);
         case '['
-            data{jsoncount} = parse_array(opt);
+            data{jsoncount} = parse_array(inStr, esc, opt);
         otherwise
-            error_pos('Outer level structure must be an object or an array');
+            error_pos('Outer level structure must be an object or an array',inStr);
     end
     jsoncount=jsoncount+1;
 end % while
@@ -118,34 +118,34 @@ if(isfield(opt,'progressbar_'))
 end
 
 %%-------------------------------------------------------------------------
-function object = parse_object(varargin)
-    parse_char('{');
+function object = parse_object(inStr, esc, varargin)
+    parse_char(inStr, '{');
     object = [];
-    if next_char ~= '}'
+    if next_char(inStr) ~= '}'
         while 1
-            str = parseStr(varargin{:});
+            str = parseStr(inStr, esc, varargin{:});
             if isempty(str)
-                error_pos('Name of value at position %d cannot be empty');
+                error_pos('Name of value at position %d cannot be empty',inStr);
             end
-            parse_char(':');
-            val = parse_value(varargin{:});
+            parse_char(inStr, ':');
+            val = parse_value(inStr, esc, varargin{:});
             object.(valid_field(str))=val;
-            if next_char == '}'
+            if next_char(inStr) == '}'
                 break;
             end
-            parse_char(',');
+            parse_char(inStr, ',');
         end
     end
-    parse_char('}');
+    parse_char(inStr, '}');
     if(isstruct(object))
         object=struct2jdata(object);
     end
 
 %%-------------------------------------------------------------------------
 
-function object = parse_array(varargin) % JSON array is written in row-major order
-global pos inStr isoct
-    parse_char('[');
+function object = parse_array(inStr, esc, varargin) % JSON array is written in row-major order
+    global pos isoct
+    parse_char(inStr, '[');
     object = cell(0, 1);
     dim2=[];
     arraydepth=jsonopt('JSONLAB_ArrayDepth_',1,varargin{:});
@@ -154,7 +154,7 @@ global pos inStr isoct
         pbar=varargin{1}.progressbar_;
     end
 
-    if next_char ~= ']'
+    if next_char(inStr) ~= ']'
 	if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
             [endpos, e1l, e1r]=matching_bracket(inStr,pos);
             arraystr=['[' inStr(pos:endpos)];
@@ -180,7 +180,7 @@ global pos inStr isoct
         	if(nextidx>=length(astr)-1)
                     object=obj;
                     pos=endpos;
-                    parse_char(']');
+                    parse_char(inStr, ']');
                     return;
         	end
             end
@@ -196,7 +196,7 @@ global pos inStr isoct
         	if(nextidx>=length(astr)-1)
                     object=reshape(obj,dim2,numel(obj)/dim2)';
                     pos=endpos;
-                    parse_char(']');
+                    parse_char(inStr, ']');
                     if(pbar>0)
                         waitbar(pos/length(inStr),pbar,'loading ...');
                     end
@@ -220,12 +220,12 @@ global pos inStr isoct
         catch
          while 1
             newopt=varargin2struct(varargin{:},'JSONLAB_ArrayDepth_',arraydepth+1);
-            val = parse_value(newopt);
+            val = parse_value(inStr, esc, newopt);
             object{end+1} = val;
-            if next_char == ']'
+            if next_char(inStr) == ']'
                 break;
             end
-            parse_char(',');
+            parse_char(inStr, ',');
          end
         end
     end
@@ -241,29 +241,29 @@ global pos inStr isoct
       catch
       end
     end
-    parse_char(']');
+    parse_char(inStr, ']');
     
     if(pbar>0)
         waitbar(pos/length(inStr),pbar,'loading ...');
     end
 %%-------------------------------------------------------------------------
 
-function parse_char(c)
-    global pos inStr len
-    pos=skip_whitespace(pos,inStr,len);
-    if pos > len || inStr(pos) ~= c
-        error_pos(sprintf('Expected %c at position %%d', c));
+function parse_char(inStr, c)
+    global pos
+    pos=skip_whitespace(pos, inStr);
+    if pos > length(inStr) || inStr(pos) ~= c
+        error_pos(sprintf('Expected %c at position %%d', c),inStr);
     else
         pos = pos + 1;
-        pos=skip_whitespace(pos,inStr,len);
+        pos=skip_whitespace(pos, inStr);
     end
 
 %%-------------------------------------------------------------------------
 
-function c = next_char
-    global pos inStr len
-    pos=skip_whitespace(pos,inStr,len);
-    if pos > len
+function c = next_char(inStr)
+    global pos
+    pos=skip_whitespace(pos, inStr);
+    if pos > length(inStr)
         c = [];
     else
         c = inStr(pos);
@@ -271,29 +271,29 @@ function c = next_char
 
 %%-------------------------------------------------------------------------
 
-function newpos=skip_whitespace(pos,inStr,len)
+function newpos=skip_whitespace(pos, inStr)
     newpos=pos;
-    while newpos <= len && isspace(inStr(newpos))
+    while newpos <= length(inStr) && isspace(inStr(newpos))
         newpos = newpos + 1;
     end
 
 %%-------------------------------------------------------------------------
-function str = parseStr(varargin)
-    global pos inStr len  esc index_esc len_esc
+function str = parseStr(inStr, esc, varargin)
+    global pos index_esc
  % len, ns = length(inStr), keyboard
     if inStr(pos) ~= '"'
-        error_pos('String starting with " expected at position %d');
+        error_pos('String starting with " expected at position %d',inStr);
     else
         pos = pos + 1;
     end
     str = '';
-    while pos <= len
-        while index_esc <= len_esc && esc(index_esc) < pos
+    while pos <= length(inStr)
+        while index_esc <= length(esc) && esc(index_esc) < pos
             index_esc = index_esc + 1;
         end
-        if index_esc > len_esc
-            str = [str inStr(pos:len)];
-            pos = len + 1;
+        if index_esc > length(esc)
+            str = [str inStr(pos:end)];
+            pos = length(inStr) + 1;
             break;
         else
             str = [str inStr(pos:esc(index_esc)-1)];
@@ -314,8 +314,8 @@ function str = parseStr(varargin)
                 end
                 return;
             case '\'
-                if pos+1 > len
-                    error_pos('End of file reached right after escape character');
+                if pos+1 > length(inStr)
+                    error_pos('End of file reached right after escape character',inStr);
                 end
                 pos = pos + 1;
                 switch inStr(pos)
@@ -326,8 +326,8 @@ function str = parseStr(varargin)
                         str(nstr+1) = sprintf(['\' inStr(pos)]);
                         pos = pos + 1;
                     case 'u'
-                        if pos+4 > len
-                            error_pos('End of file reached in escaped unicode character');
+                        if pos+4 > length(inStr)
+                            error_pos('End of file reached in escaped unicode character',inStr);
                         end
                         str(nstr+(1:6)) = inStr(pos-1:pos+4);
                         pos = pos + 5;
@@ -338,12 +338,12 @@ function str = parseStr(varargin)
                 pos = pos + 1;
         end
     end
-    error_pos('End of file while expecting end of inStr');
+    error_pos('End of file while expecting end of inStr',inStr);
 
 %%-------------------------------------------------------------------------
 
-function num = parse_number(varargin)
-    global pos inStr isoct
+function num = parse_number(inStr, varargin)
+    global pos isoct
     currstr=inStr(pos:min(pos+30,end));
     if(isoct~=0)
         numstr=regexp(currstr,'^\s*-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+\-]?\d+)?','end');
@@ -352,32 +352,32 @@ function num = parse_number(varargin)
     else
         [num, one, err, delta] = sscanf(currstr, '%f', 1);
         if ~isempty(err)
-            error_pos('Error reading number at position %d');
+            error_pos('Error reading number at position %d',inStr);
         end
     end
     pos = pos + delta-1;
 
 %%-------------------------------------------------------------------------
 
-function val = parse_value(varargin)
-    global pos inStr len
-    
+function val = parse_value(inStr, esc, varargin)
+    global pos
+    len=length(inStr);
     if(isfield(varargin{1},'progressbar_'))
         waitbar(pos/len,varargin{1}.progressbar_,'loading ...');
     end
     
     switch(inStr(pos))
         case '"'
-            val = parseStr(varargin{:});
+            val = parseStr(inStr, esc, varargin{:});
             return;
         case '['
-            val = parse_array(varargin{:});
+            val = parse_array(inStr, esc, varargin{:});
             return;
         case '{'
-            val = parse_object(varargin{:});
+            val = parse_object(inStr, esc, varargin{:});
             return;
         case {'-','0','1','2','3','4','5','6','7','8','9'}
-            val = parse_number(varargin{:});
+            val = parse_number(inStr, varargin{:});
             return;
         case 't'
             if pos+3 <= len && strcmpi(inStr(pos:pos+3), 'true')
@@ -398,11 +398,11 @@ function val = parse_value(varargin)
                 return;
             end
     end
-    error_pos('Value expected at position %d');
+    error_pos('Value expected at position %d',inStr);
 %%-------------------------------------------------------------------------
 
-function error_pos(msg)
-    global pos inStr len
+function error_pos(msg, inStr)
+    global pos len
     poShow = max(min([pos-15 pos-1 pos pos+20],len),1);
     if poShow(3) == poShow(2)
         poShow(3:4) = poShow(2)+[0 -1];  % display nothing after
@@ -421,7 +421,7 @@ global isoct
 % "x0x[Hex code]_" will be added if the first character is not a letter.
     pos=regexp(str,'^[^A-Za-z]','once');
     if(~isempty(pos))
-        if(~isoct)
+        if(~isoct && str(1)+0 > 255)
             str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
         else
             str=sprintf('x0x%X_%s',char(str(1)),str(2:end));

@@ -610,7 +610,7 @@ ans =
 >> 
 json2data = 
 
-    data2json: {{1x3 cell}  {1x3 cell}}
+    data2json: {{3x1 cell}  {3x1 cell}}
 
 >> >> 
 %=================================================
