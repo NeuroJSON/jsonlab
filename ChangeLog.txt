@@ -6,6 +6,16 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 1.5 (codename: Nominus - alpha), FangQ <q.fang <at> neu.edu> ==
+
+ 2017/01/02 *use Big-endian format to store floating points (d/D) in saveubjson (Issue #25)
+ 2017/01/02 *speedup parsing large unstructured data by 2x (Issue #9)
+ 2017/01/01  make parsing independent of white space (Issue #30)
+ 2016/08/27  allow to parse array of homogeneous elements (Issue 5)
+ 2016/08/22  permit [] inside file names in savejson
+ 2016/01/06  fix a bug that prevents saving to a file in savejson
+ 
+
 == JSONlab 1.2 (codename: Optimus - Update 2), FangQ <q.fang <at> neu.edu> ==
 
  2015/12/16  replacing string concatenation by str cells to gain 2x speed in savejson (Issue#17)
