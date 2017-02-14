@@ -468,7 +468,11 @@ if(isempty(mat))
     txt='null';
     return;
 end
-floatformat=jsonopt('FloatFormat','%.10g',varargin{:});
+if(isinteger(mat))
+  floatformat=jsonopt('FloatFormat','%d',varargin{:});
+else
+  floatformat=jsonopt('FloatFormat','%.10g',varargin{:});
+end
 %if(numel(mat)>1)
     formatstr=['[' repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf('],%s',nl)]];
 %else
