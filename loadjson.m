@@ -485,15 +485,13 @@ while(pos<=len)
             endpos=bpos(pos);
             return
         end
-    end
-    if(c=='[')
+    elseif(c=='[')
         if(isempty(e1l))
             e1l=bpos(pos);
         end
         level=level+1;
         maxlevel=max(maxlevel,level);
-    end
-    if(c=='"')
+    elseif(c=='"')
         pos=matching_quote(tokens,pos+1);
     end
     pos=pos+1;
