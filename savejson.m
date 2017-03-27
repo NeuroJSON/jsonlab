@@ -432,9 +432,8 @@ txt=sprintf('%s%s%s',txt,padding1,'}');
 
 %%-------------------------------------------------------------------------
 function txt=matlabobject2json(name,item,level,varargin)
-if numel(item) == 0 %empty object
-    st = struct();
-else
+st = struct();
+if numel(item) > 0 %non-empty object
     % "st = struct(item);" would produce an inmutable warning, because it
     % make the protected and private properties visible. Instead we get the
     % visible properties
