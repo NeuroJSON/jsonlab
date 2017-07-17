@@ -2,9 +2,9 @@
       JSONLab: An open-source MATLAB/Octave JSON encoder and decoder             
 ##############################################################################
 
-*Copyright (C) 2011-2017  Qianqian Fang <q.fang at neu.edu>
-*License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 1.5 (Nominus - alpha)
+* Copyright (C) 2011-2017  Qianqian Fang <q.fang at neu.edu>
+* License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
+* Version: 1.5 (Nominus - alpha)
 
 
 Table of Content:
