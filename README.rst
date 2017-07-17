@@ -1,13 +1,12 @@
-===============================================================================
-=                                 JSONLab                                     =
-=           An open-source MATLAB/Octave JSON encoder and decoder             =
-===============================================================================
+##############################################################################
+                                 JSONLab                                     
+           An open-source MATLAB/Octave JSON encoder and decoder             
+##############################################################################
 
 *Copyright (C) 2011-2017  Qianqian Fang <q.fang at neu.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
 *Version: 1.5 (Nominus - alpha)
 
--------------------------------------------------------------------------------
 
 Table of Content:
 
@@ -17,9 +16,9 @@ III.Using JSONLab
 IV. Known Issues and TODOs
 V.  Contribution and feedback
 
--------------------------------------------------------------------------------
-
-I.  Introduction
+============
+Introduction
+============
 
 JSON ([http://www.json.org/ JavaScript Object Notation]) is a highly portable, 
 human-readable and "[http://en.wikipedia.org/wiki/JSON fat-free]" text format 
@@ -50,9 +49,9 @@ JSON/UBJSON formatted strings, or to decode a JSON/UBJSON file into MATLAB
 data structure. JSONLab supports both MATLAB and  
 [http://www.gnu.org/software/octave/ GNU Octave] (a free MATLAB clone).
 
--------------------------------------------------------------------------------
-
+================
 II. Installation
+================
 
 The installation of JSONLab is no different than any other simple
 MATLAB toolbox. You only need to download/unzip the JSONLab package
@@ -66,9 +65,10 @@ browse to the jsonlab root folder and add to the list, then click "Save".
 Then, run "rehash" in MATLAB, and type "which loadjson", if you see an 
 output, that means JSONLab is installed for MATLAB/Octave.
 
--------------------------------------------------------------------------------
 
-III.Using JSONLab
+================
+Using JSONLab
+================
 
 JSONLab provides two functions, loadjson.m -- a MATLAB->JSON decoder, 
 and savejson.m -- a MATLAB->JSON encoder, for the text-based JSON, and 
@@ -368,9 +368,9 @@ and loadubjson functions for various matlab data structures.
 Please run these examples and understand how JSONLab works before you use
 it to process your data.
 
--------------------------------------------------------------------------------
-
-IV. Known Issues and TODOs
+=======================
+Known Issues and TODOs
+=======================
 
 JSONLab has several known limitations. We are striving to make it more general
 and robust. Hopefully in a few future releases, the limitations become less.
@@ -389,9 +389,9 @@ possibility of making it upstream
 # loadubjson can not parse all UBJSON Specification (Draft 9) compliant \
 files, however, it can parse all UBJSON files produced by saveubjson.
 
--------------------------------------------------------------------------------
-
-V. Contribution and feedback
+==========================
+Contribution and feedback
+==========================
 
 JSONLab is an open-source project. This means you can not only use it and modify
 it as you wish, but also you can contribute your changes back to JSONLab so
