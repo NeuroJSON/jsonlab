@@ -56,7 +56,7 @@ MATLAB toolbox. You only need to download/unzip the JSONLab package
 to a folder, and add the folder's path to MATLAB/Octave's path list
 by using the following command:
 
-.. bash:: shell
+.. code:: shell
 
     addpath('/path/to/jsonlab');
 
@@ -141,226 +141,241 @@ loadjson.m
             BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
        </pre>
 
-=== savejson.m ===
+----------
+savejson.m
+----------
 
-<pre>
-  json=savejson(rootname,obj,filename)
-     or
-  json=savejson(rootname,obj,opt)
-  json=savejson(rootname,obj,'param1',value1,'param2',value2,...)
- 
-  convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
-  Object Notation) string
- 
-  author: Qianqian Fang (q.fang <at> neu.edu)
-  created on 2011/09/09
- 
-  $Id$
- 
-  input:
-       rootname: the name of the root-object, when set to '', the root name
-         is ignored, however, when opt.ForceRootName is set to 1 (see below),
-         the MATLAB variable name will be used as the root name.
-       obj: a MATLAB object (array, cell, cell array, struct, struct array,
-       class instance).
-       filename: a string for the file name to save the output JSON data.
-       opt: a struct for additional options, ignore to use default values.
-         opt can have the following fields (first in [.|.] is the default)
- 
-         opt.FileName [''|string]: a file name to save the output JSON data
-         opt.FloatFormat ['%.10g'|string]: format to show each numeric element
-                          of a 1D/2D array;
-         opt.ArrayIndent [1|0]: if 1, output explicit data array with
-                          precedent indentation; if 0, no indentation
-         opt.ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
-                          array in JSON array format; if sets to 1, an
-                          array will be shown as a struct with fields
-                          "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
-                          sparse arrays, the non-zero elements will be
-                          saved to _ArrayData_ field in triplet-format i.e.
-                          (ix,iy,val) and "_ArrayIsSparse_" will be added
-                          with a value of 1; for a complex array, the 
-                          _ArrayData_ array will include two columns 
-                          (4 for sparse) to record the real and imaginary 
-                          parts, and also "_ArrayIsComplex_":1 is added. 
-         opt.ParseLogical [0|1]: if this is set to 1, logical array elem
-                          will use true/false rather than 1/0.
-         opt.SingletArray [0|1]: if this is set to 1, arrays with a single
-                          numerical element will be shown without a square
-                          bracket, unless it is the root object; if 0, square
-                          brackets are forced for any numerical arrays.
-         opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
-                          even it has only one element; if 0, brackets
-                          are ignored when a cell has only 1 element.
-         opt.ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
-                          will use the name of the passed obj variable as the 
-                          root object name; if obj is an expression and 
-                          does not have a name, 'root' will be used; if this 
-                          is set to 0 and rootname is empty, the root level 
-                          will be merged down to the lower level.
-         opt.Inf ['"$1_Inf_"'|string]: a customized regular expression pattern
-                          to represent +/-Inf. The matched pattern is '([-+]*)Inf'
-                          and $1 represents the sign. For those who want to use
-                          1e999 to represent Inf, they can set opt.Inf to '$11e999'
-         opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
-                          to represent NaN
-         opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
-                          for example, if opt.JSONP='foo', the JSON data is
-                          wrapped inside a function call as 'foo(...);'
-         opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
-                          back to the string form
-         opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
-         opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
- 
-         opt can be replaced by a list of ('param',value) pairs. The param 
-         string is equivallent to a field in opt and is case sensitive.
-  output:
-       json: a string in the JSON format (see http://json.org)
- 
-  examples:
-       jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
-                'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
-                'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
-                           2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
-                'MeshCreator','FangQ','MeshTitle','T6 Cube',...
-                'SpecialData',[nan, inf, -inf]);
-       savejson('jmesh',jsonmesh)
-       savejson('',jsonmesh,'ArrayIndent',0,'FloatFormat','\t%.5g')
- 
-  license:
-      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
- </pre>
+.. code-block:: matlab
 
-=== loadubjson.m ===
+      <pre>
+        json=savejson(rootname,obj,filename)
+           or
+        json=savejson(rootname,obj,opt)
+        json=savejson(rootname,obj,'param1',value1,'param2',value2,...)
 
-<pre>
-  data=loadubjson(fname,opt)
-     or
-  data=loadubjson(fname,'param1',value1,'param2',value2,...)
- 
-  parse a JSON (JavaScript Object Notation) file or string
- 
-  authors:Qianqian Fang (q.fang <at> neu.edu)
-  created on 2013/08/01
- 
-  $Id$
- 
-  input:
-       fname: input file name, if fname contains "{}" or "[]", fname
-              will be interpreted as a UBJSON string
-       opt: a struct to store parsing options, opt can be replaced by 
-            a list of ('param',value) pairs - the param string is equivallent
-            to a field in opt. opt can have the following 
-            fields (first in [.|.] is the default)
- 
-            opt.SimplifyCell [0|1]: if set to 1, loadubjson will call cell2mat
-                          for each element of the JSON data, and group 
-                          arrays based on the cell2mat rules.
-            opt.IntEndian [B|L]: specify the endianness of the integer fields
-                          in the UBJSON input data. B - Big-Endian format for 
-                          integers (as required in the UBJSON specification); 
-                          L - input integer fields are in Little-Endian order.
-            opt.NameIsString [0|1]: for UBJSON Specification Draft 8 or 
-                          earlier versions (JSONLab 1.0 final or earlier), 
-                          the "name" tag is treated as a string. To load 
-                          these UBJSON data, you need to manually set this 
-                          flag to 1.
- 
-  output:
-       dat: a cell array, where {...} blocks are converted into cell arrays,
-            and [...] are converted to arrays
- 
-  examples:
-       obj=struct('string','value','array',[1 2 3]);
-       ubjdata=saveubjson('obj',obj);
-       dat=loadubjson(ubjdata)
-       dat=loadubjson(['examples' filesep 'example1.ubj'])
-       dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',1)
- 
-  license:
-      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
-</pre>
+        convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
+        Object Notation) string
 
-=== saveubjson.m ===
+        author: Qianqian Fang (q.fang <at> neu.edu)
+        created on 2011/09/09
 
-<pre>
-  json=saveubjson(rootname,obj,filename)
-     or
-  json=saveubjson(rootname,obj,opt)
-  json=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
- 
-  convert a MATLAB object (cell, struct or array) into a Universal 
-  Binary JSON (UBJSON) binary string
- 
-  author: Qianqian Fang (q.fang <at> neu.edu)
-  created on 2013/08/17
- 
-  $Id$
- 
-  input:
-       rootname: the name of the root-object, when set to '', the root name
-         is ignored, however, when opt.ForceRootName is set to 1 (see below),
-         the MATLAB variable name will be used as the root name.
-       obj: a MATLAB object (array, cell, cell array, struct, struct array,
-       class instance)
-       filename: a string for the file name to save the output UBJSON data
-       opt: a struct for additional options, ignore to use default values.
-         opt can have the following fields (first in [.|.] is the default)
- 
-         opt.FileName [''|string]: a file name to save the output JSON data
-         opt.ArrayToStruct[0|1]: when set to 0, saveubjson outputs 1D/2D
-                          array in JSON array format; if sets to 1, an
-                          array will be shown as a struct with fields
-                          "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
-                          sparse arrays, the non-zero elements will be
-                          saved to _ArrayData_ field in triplet-format i.e.
-                          (ix,iy,val) and "_ArrayIsSparse_" will be added
-                          with a value of 1; for a complex array, the 
-                          _ArrayData_ array will include two columns 
-                          (4 for sparse) to record the real and imaginary 
-                          parts, and also "_ArrayIsComplex_":1 is added. 
-         opt.ParseLogical [1|0]: if this is set to 1, logical array elem
-                          will use true/false rather than 1/0.
-         opt.SingletArray [0|1]: if this is set to 1, arrays with a single
-                          numerical element will be shown without a square
-                          bracket, unless it is the root object; if 0, square
-                          brackets are forced for any numerical arrays.
-         opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
-                          even it has only one element; if 0, brackets
-                          are ignored when a cell has only 1 element.
-         opt.ForceRootName [0|1]: when set to 1 and rootname is empty, saveubjson
-                          will use the name of the passed obj variable as the 
-                          root object name; if obj is an expression and 
-                          does not have a name, 'root' will be used; if this 
-                          is set to 0 and rootname is empty, the root level 
-                          will be merged down to the lower level.
-         opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
-                          for example, if opt.JSON='foo', the JSON data is
-                          wrapped inside a function call as 'foo(...);'
-         opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
-                          back to the string form
- 
-         opt can be replaced by a list of ('param',value) pairs. The param 
-         string is equivallent to a field in opt and is case sensitive.
-  output:
-       json: a binary string in the UBJSON format (see http://ubjson.org)
- 
-  examples:
-       jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
-                'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
-                'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
-                           2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
-                'MeshCreator','FangQ','MeshTitle','T6 Cube',...
-                'SpecialData',[nan, inf, -inf]);
-       saveubjson('jsonmesh',jsonmesh)
-       saveubjson('jsonmesh',jsonmesh,'meshdata.ubj')
- 
-  license:
-      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
-</pre>
+        $Id$
+
+        input:
+             rootname: the name of the root-object, when set to '', the root name
+               is ignored, however, when opt.ForceRootName is set to 1 (see below),
+               the MATLAB variable name will be used as the root name.
+             obj: a MATLAB object (array, cell, cell array, struct, struct array,
+             class instance).
+             filename: a string for the file name to save the output JSON data.
+             opt: a struct for additional options, ignore to use default values.
+               opt can have the following fields (first in [.|.] is the default)
+
+               opt.FileName [''|string]: a file name to save the output JSON data
+               opt.FloatFormat ['%.10g'|string]: format to show each numeric element
+                                of a 1D/2D array;
+               opt.ArrayIndent [1|0]: if 1, output explicit data array with
+                                precedent indentation; if 0, no indentation
+               opt.ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
+                                array in JSON array format; if sets to 1, an
+                                array will be shown as a struct with fields
+                                "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
+                                sparse arrays, the non-zero elements will be
+                                saved to _ArrayData_ field in triplet-format i.e.
+                                (ix,iy,val) and "_ArrayIsSparse_" will be added
+                                with a value of 1; for a complex array, the 
+                                _ArrayData_ array will include two columns 
+                                (4 for sparse) to record the real and imaginary 
+                                parts, and also "_ArrayIsComplex_":1 is added. 
+               opt.ParseLogical [0|1]: if this is set to 1, logical array elem
+                                will use true/false rather than 1/0.
+               opt.SingletArray [0|1]: if this is set to 1, arrays with a single
+                                numerical element will be shown without a square
+                                bracket, unless it is the root object; if 0, square
+                                brackets are forced for any numerical arrays.
+               opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
+                                even it has only one element; if 0, brackets
+                                are ignored when a cell has only 1 element.
+               opt.ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
+                                will use the name of the passed obj variable as the 
+                                root object name; if obj is an expression and 
+                                does not have a name, 'root' will be used; if this 
+                                is set to 0 and rootname is empty, the root level 
+                                will be merged down to the lower level.
+               opt.Inf ['"$1_Inf_"'|string]: a customized regular expression pattern
+                                to represent +/-Inf. The matched pattern is '([-+]*)Inf'
+                                and $1 represents the sign. For those who want to use
+                                1e999 to represent Inf, they can set opt.Inf to '$11e999'
+               opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
+                                to represent NaN
+               opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
+                                for example, if opt.JSONP='foo', the JSON data is
+                                wrapped inside a function call as 'foo(...);'
+               opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
+                                back to the string form
+               opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
+               opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
+
+               opt can be replaced by a list of ('param',value) pairs. The param 
+               string is equivallent to a field in opt and is case sensitive.
+        output:
+             json: a string in the JSON format (see http://json.org)
+
+        examples:
+             jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
+                      'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
+                      'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
+                                 2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
+                      'MeshCreator','FangQ','MeshTitle','T6 Cube',...
+                      'SpecialData',[nan, inf, -inf]);
+             savejson('jmesh',jsonmesh)
+             savejson('',jsonmesh,'ArrayIndent',0,'FloatFormat','\t%.5g')
+
+        license:
+            BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
+       </pre>
+
+-------------
+loadubjson.m
+-------------
+
+.. code-block:: matlab
+
+      <pre>
+        data=loadubjson(fname,opt)
+           or
+        data=loadubjson(fname,'param1',value1,'param2',value2,...)
+
+        parse a JSON (JavaScript Object Notation) file or string
+
+        authors:Qianqian Fang (q.fang <at> neu.edu)
+        created on 2013/08/01
+
+        $Id$
+
+        input:
+             fname: input file name, if fname contains "{}" or "[]", fname
+                    will be interpreted as a UBJSON string
+             opt: a struct to store parsing options, opt can be replaced by 
+                  a list of ('param',value) pairs - the param string is equivallent
+                  to a field in opt. opt can have the following 
+                  fields (first in [.|.] is the default)
+
+                  opt.SimplifyCell [0|1]: if set to 1, loadubjson will call cell2mat
+                                for each element of the JSON data, and group 
+                                arrays based on the cell2mat rules.
+                  opt.IntEndian [B|L]: specify the endianness of the integer fields
+                                in the UBJSON input data. B - Big-Endian format for 
+                                integers (as required in the UBJSON specification); 
+                                L - input integer fields are in Little-Endian order.
+                  opt.NameIsString [0|1]: for UBJSON Specification Draft 8 or 
+                                earlier versions (JSONLab 1.0 final or earlier), 
+                                the "name" tag is treated as a string. To load 
+                                these UBJSON data, you need to manually set this 
+                                flag to 1.
+
+        output:
+             dat: a cell array, where {...} blocks are converted into cell arrays,
+                  and [...] are converted to arrays
+
+        examples:
+             obj=struct('string','value','array',[1 2 3]);
+             ubjdata=saveubjson('obj',obj);
+             dat=loadubjson(ubjdata)
+             dat=loadubjson(['examples' filesep 'example1.ubj'])
+             dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',1)
+
+        license:
+            BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+      </pre>
+
+-------------
+saveubjson.m
+-------------
 
 
-=== examples ===
+.. code-block:: matlab
+
+
+      <pre>
+        json=saveubjson(rootname,obj,filename)
+           or
+        json=saveubjson(rootname,obj,opt)
+        json=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
+
+        convert a MATLAB object (cell, struct or array) into a Universal 
+        Binary JSON (UBJSON) binary string
+
+        author: Qianqian Fang (q.fang <at> neu.edu)
+        created on 2013/08/17
+
+        $Id$
+
+        input:
+             rootname: the name of the root-object, when set to '', the root name
+               is ignored, however, when opt.ForceRootName is set to 1 (see below),
+               the MATLAB variable name will be used as the root name.
+             obj: a MATLAB object (array, cell, cell array, struct, struct array,
+             class instance)
+             filename: a string for the file name to save the output UBJSON data
+             opt: a struct for additional options, ignore to use default values.
+               opt can have the following fields (first in [.|.] is the default)
+
+               opt.FileName [''|string]: a file name to save the output JSON data
+               opt.ArrayToStruct[0|1]: when set to 0, saveubjson outputs 1D/2D
+                                array in JSON array format; if sets to 1, an
+                                array will be shown as a struct with fields
+                                "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
+                                sparse arrays, the non-zero elements will be
+                                saved to _ArrayData_ field in triplet-format i.e.
+                                (ix,iy,val) and "_ArrayIsSparse_" will be added
+                                with a value of 1; for a complex array, the 
+                                _ArrayData_ array will include two columns 
+                                (4 for sparse) to record the real and imaginary 
+                                parts, and also "_ArrayIsComplex_":1 is added. 
+               opt.ParseLogical [1|0]: if this is set to 1, logical array elem
+                                will use true/false rather than 1/0.
+               opt.SingletArray [0|1]: if this is set to 1, arrays with a single
+                                numerical element will be shown without a square
+                                bracket, unless it is the root object; if 0, square
+                                brackets are forced for any numerical arrays.
+               opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
+                                even it has only one element; if 0, brackets
+                                are ignored when a cell has only 1 element.
+               opt.ForceRootName [0|1]: when set to 1 and rootname is empty, saveubjson
+                                will use the name of the passed obj variable as the 
+                                root object name; if obj is an expression and 
+                                does not have a name, 'root' will be used; if this 
+                                is set to 0 and rootname is empty, the root level 
+                                will be merged down to the lower level.
+               opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
+                                for example, if opt.JSON='foo', the JSON data is
+                                wrapped inside a function call as 'foo(...);'
+               opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
+                                back to the string form
+
+               opt can be replaced by a list of ('param',value) pairs. The param 
+               string is equivallent to a field in opt and is case sensitive.
+        output:
+             json: a binary string in the UBJSON format (see http://ubjson.org)
+
+        examples:
+             jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
+                      'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
+                      'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
+                                 2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
+                      'MeshCreator','FangQ','MeshTitle','T6 Cube',...
+                      'SpecialData',[nan, inf, -inf]);
+             saveubjson('jsonmesh',jsonmesh)
+             saveubjson('jsonmesh',jsonmesh,'meshdata.ubj')
+
+        license:
+            BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
+      </pre>
+
+---------
+examples
+---------
 
 Under the "examples" folder, you can find several scripts to demonstrate the
 basic utilities of JSONLab. Running the "demo_jsonlab_basic.m" script, you 
@@ -404,11 +419,17 @@ that everyone else can enjoy the improvement. For anyone who want to contribute,
 please download JSONLab source code from its source code repositories by using the
 following command:
 
- git clone https://github.com/fangq/jsonlab.git jsonlab
+
+.. code:: shell
+
+      git clone https://github.com/fangq/jsonlab.git jsonlab
 
 or browsing the github site at
 
- https://github.com/fangq/jsonlab
+.. code:: shell
+
+      https://github.com/fangq/jsonlab
+ 
 
 alternatively, if you prefer svn, you can checkout the latest code by using
 
@@ -418,11 +439,16 @@ You can make changes to the files as needed. Once you are satisfied with your
 changes, and ready to share it with others, please cd the root directory of 
 JSONLab, and type
 
- git diff --no-prefix > yourname_featurename.patch
+.. code:: shell
+
+      git diff --no-prefix > yourname_featurename.patch
+ 
 
 or
 
- svn diff > yourname_featurename.patch
+.. code:: shell
+
+      svn diff > yourname_featurename.patch
 
 You then email the .patch file to JSONLab's maintainer, Qianqian Fang, at
 the email address shown in the beginning of this file. Qianqian will review 
