@@ -48,7 +48,7 @@ data structure. JSONLab supports both MATLAB and
 [http://www.gnu.org/software/octave/ GNU Octave] (a free MATLAB clone).
 
 ================
-II. Installation
+Installation
 ================
 
 The installation of JSONLab is no different than any other simple
@@ -73,66 +73,71 @@ and savejson.m -- a MATLAB->JSON encoder, for the text-based JSON, and
 two equivallent functions -- loadubjson and saveubjson for the binary 
 JSON. The detailed help info for the four functions can be found below:
 
-=== loadjson.m ===
-<pre>
-  data=loadjson(fname,opt)
-     or
-  data=loadjson(fname,'param1',value1,'param2',value2,...)
- 
-  parse a JSON (JavaScript Object Notation) file or string
- 
-  authors:Qianqian Fang (q.fang <at> neu.edu)
-  created on 2011/09/09, including previous works from 
- 
-          Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
-             created on 2009/11/02
-          François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
-             created on  2009/03/22
-          Joel Feenstra:
-          http://www.mathworks.com/matlabcentral/fileexchange/20565
-             created on 2008/07/03
- 
-  $Id$
- 
-  input:
-       fname: input file name, if fname contains "{}" or "[]", fname
-              will be interpreted as a JSON string
-       opt: a struct to store parsing options, opt can be replaced by 
-            a list of ('param',value) pairs - the param string is equivallent
-            to a field in opt. opt can have the following 
-            fields (first in [.|.] is the default)
- 
-            opt.SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
-                          for each element of the JSON data, and group 
-                          arrays based on the cell2mat rules.
-            opt.FastArrayParser [1|0 or integer]: if set to 1, use a
-                          speed-optimized array parser when loading an 
-                          array object. The fast array parser may 
-                          collapse block arrays into a single large
-                          array similar to rules defined in cell2mat; 0 to 
-                          use a legacy parser; if set to a larger-than-1
-                          value, this option will specify the minimum
-                          dimension to enable the fast array parser. For
-                          example, if the input is a 3D array, setting
-                          FastArrayParser to 1 will return a 3D array;
-                          setting to 2 will return a cell array of 2D
-                          arrays; setting to 3 will return to a 2D cell
-                          array of 1D vectors; setting to 4 will return a
-                          3D cell array.
-            opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
- 
-  output:
-       dat: a cell array, where {...} blocks are converted into cell arrays,
-            and [...] are converted to arrays
- 
-  examples:
-       dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
-       dat=loadjson(['examples' filesep 'example1.json'])
-       dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',1)
- 
-  license:
-      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
- </pre>
+----------
+loadjson.m
+----------
+
+.. code-block:: matlab
+
+      <pre>
+        data=loadjson(fname,opt)
+           or
+        data=loadjson(fname,'param1',value1,'param2',value2,...)
+
+        parse a JSON (JavaScript Object Notation) file or string
+
+        authors:Qianqian Fang (q.fang <at> neu.edu)
+        created on 2011/09/09, including previous works from 
+
+                Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
+                   created on 2009/11/02
+                François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
+                   created on  2009/03/22
+                Joel Feenstra:
+                http://www.mathworks.com/matlabcentral/fileexchange/20565
+                   created on 2008/07/03
+
+        $Id$
+
+        input:
+             fname: input file name, if fname contains "{}" or "[]", fname
+                    will be interpreted as a JSON string
+             opt: a struct to store parsing options, opt can be replaced by 
+                  a list of ('param',value) pairs - the param string is equivallent
+                  to a field in opt. opt can have the following 
+                  fields (first in [.|.] is the default)
+
+                  opt.SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
+                                for each element of the JSON data, and group 
+                                arrays based on the cell2mat rules.
+                  opt.FastArrayParser [1|0 or integer]: if set to 1, use a
+                                speed-optimized array parser when loading an 
+                                array object. The fast array parser may 
+                                collapse block arrays into a single large
+                                array similar to rules defined in cell2mat; 0 to 
+                                use a legacy parser; if set to a larger-than-1
+                                value, this option will specify the minimum
+                                dimension to enable the fast array parser. For
+                                example, if the input is a 3D array, setting
+                                FastArrayParser to 1 will return a 3D array;
+                                setting to 2 will return a cell array of 2D
+                                arrays; setting to 3 will return to a 2D cell
+                                array of 1D vectors; setting to 4 will return a
+                                3D cell array.
+                  opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
+
+        output:
+             dat: a cell array, where {...} blocks are converted into cell arrays,
+                  and [...] are converted to arrays
+
+        examples:
+             dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
+             dat=loadjson(['examples' filesep 'example1.json'])
+             dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',1)
+
+        license:
+            BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+       </pre>
 
 === savejson.m ===
 
