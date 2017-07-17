@@ -433,7 +433,9 @@ or browsing the github site at
 
 alternatively, if you prefer svn, you can checkout the latest code by using
 
- svn checkout svn://svn.code.sf.net/p/iso2mesh/code/trunk/jsonlab jsonlab
+.. code:: shell
+
+       svn checkout svn://svn.code.sf.net/p/iso2mesh/code/trunk/jsonlab jsonlab
 
 You can make changes to the files as needed. Once you are satisfied with your
 changes, and ready to share it with others, please cd the root directory of 
