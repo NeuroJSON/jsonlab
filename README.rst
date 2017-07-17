@@ -56,6 +56,8 @@ MATLAB toolbox. You only need to download/unzip the JSONLab package
 to a folder, and add the folder's path to MATLAB/Octave's path list
 by using the following command:
 
+.. bash:: shell
+
     addpath('/path/to/jsonlab');
 
 If you want to add this path permanently, you need to type "pathtool", 
