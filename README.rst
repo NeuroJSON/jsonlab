@@ -7,13 +7,12 @@
 * Version: 1.5 (Nominus - alpha)
 
 
-Table of Content:
-
-I.  Introduction
-II. Installation
-III.Using JSONLab
-IV. Known Issues and TODOs
-V.  Contribution and feedback
+#################
+Table of Contents
+#################
+.. contents::
+  :local:
+  :depth: 3
 
 ============
 Introduction
