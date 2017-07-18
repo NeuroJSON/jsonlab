@@ -33,8 +33,7 @@ without accuracy loss due to text conversions.
 We envision that both JSON and its binary version will serve as part of 
 the mainstream data-exchange formats for scientific research in the future. 
 It will provide the flexibility and generality achieved by other popular 
-general-purpose file specifications, such as
- `HDF5 <http://www.hdfgroup.org/HDF5/whatishdf5.html>`_, with significantly 
+general-purpose file specifications, such as  `HDF5 <http://www.hdfgroup.org/HDF5/whatishdf5.html>`_, with significantly 
 reduced complexity and enhanced performance.
 
 JSONLab is a free and open-source implementation of a JSON/UBJSON encoder 
