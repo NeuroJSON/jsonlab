@@ -372,12 +372,12 @@ saveubjson.m
 examples
 ---------
 
-Under the "examples" folder, you can find several scripts to demonstrate the
-basic utilities of JSONLab. Running the "demo_jsonlab_basic.m" script, you 
+Under the ``"examples"`` folder, you can find several scripts to demonstrate the
+basic utilities of JSONLab. Running the ``"demo_jsonlab_basic.m"`` script, you 
 will see the conversions from MATLAB data structure to JSON text and backward.
-In "jsonlab_selftest.m", we load complex JSON files downloaded from the Internet
-and validate the loadjson/savejson functions for regression testing purposes.
-Similarly, a "demo_ubjson_basic.m" script is provided to test the saveubjson
+In ``"jsonlab_selftest.m"``, we load complex JSON files downloaded from the Internet
+and validate the ``loadjson/savejson`` functions for regression testing purposes.
+Similarly, a ``"demo_ubjson_basic.m"`` script is provided to test the saveubjson
 and loadubjson functions for various matlab data structures.
 
 Please run these examples and understand how JSONLab works before you use
@@ -392,17 +392,17 @@ and robust. Hopefully in a few future releases, the limitations become less.
 
 Here are the known issues:
 
-# 3D or higher dimensional cell/struct-arrays will be converted to 2D arrays;
-# When processing names containing multi-byte characters, Octave and MATLAB \
-can give different field-names; you can use feature('DefaultCharacterSet','latin1') \
-in MATLAB to get consistant results
-# savejson can not handle class and dataset.
-# saveubjson converts a logical array into a uint8 ([U]) array
-# an unofficial N-D array count syntax is implemented in saveubjson. We are \
-actively communicating with the UBJSON spec maintainer to investigate the \
-possibility of making it upstream
-# loadubjson can not parse all UBJSON Specification (Draft 9) compliant \
-files, however, it can parse all UBJSON files produced by saveubjson.
+  * 3D or higher dimensional cell/struct-arrays will be converted to 2D arrays
+  
+  * When processing names containing multi-byte characters, Octave and MATLAB can give different field-names; you can use feature('DefaultCharacterSet','latin1') in MATLAB to get consistant results
+  
+  * savejson can not handle class and dataset.
+  
+  * saveubjson converts a logical array into a uint8 ([U]) array
+  
+  * an unofficial N-D array count syntax is implemented in saveubjson. We are actively communicating with the UBJSON spec maintainer to investigate the possibility of making it upstream 
+  
+  * loadubjson can not parse all UBJSON Specification (Draft 9) compliant files, however, it can parse all UBJSON files produced by saveubjson.
 
 ==========================
 Contribution and feedback
@@ -454,6 +454,6 @@ the changes and commit it to the subversion if they are satisfactory.
 We appreciate any suggestions and feedbacks from you. Please use the following
 mailing list to report any questions you may have regarding JSONLab:
 
-https://groups.google.com/forum/?hl=en#!forum/jsonlab-users
+`forum/jsonlab-users <https://groups.google.com/forum/?hl=en#>`_
 
 (Subscription to the mailing list is needed in order to post messages).
