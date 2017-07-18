@@ -34,15 +34,14 @@ We envision that both JSON and its binary version will serve as part of
 the mainstream data-exchange formats for scientific research in the future. 
 It will provide the flexibility and generality achieved by other popular 
 general-purpose file specifications, such as
-[http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5], with significantly 
+ `HDF5 <http://www.hdfgroup.org/HDF5/whatishdf5.html>`_, with significantly 
 reduced complexity and enhanced performance.
 
 JSONLab is a free and open-source implementation of a JSON/UBJSON encoder 
 and a decoder in the native MATLAB language. It can be used to convert a MATLAB 
 data structure (array, struct, cell, struct array and cell array) into 
 JSON/UBJSON formatted strings, or to decode a JSON/UBJSON file into MATLAB 
-data structure. JSONLab supports both MATLAB and  
-[http://www.gnu.org/software/octave/ GNU Octave] (a free MATLAB clone).
+data structure. JSONLab supports both MATLAB and `GNU Octave <http://www.gnu.org/software/octave/>`_ (a free MATLAB clone).
 
 ================
 Installation
