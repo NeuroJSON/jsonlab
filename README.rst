@@ -20,11 +20,8 @@ Introduction
 
 JSON (`JavaScript Object Notation <http://www.json.org/>`_) is a highly portable, 
 human-readable and " `fat-free <http://en.wikipedia.org/wiki/JSON>`_" text format 
-to represent complex and hierarchical data. It is as powerful as 
- `XML <http://en.wikipedia.org/wiki/XML>`_, but less verbose. JSON format is widely 
-used for data-exchange in applications, and is essential for the wild success 
-of (programming) `Ajax <http://en.wikipedia.org/wiki/Ajax_>`_ and 
- `Web2.0 <http://en.wikipedia.org/wiki/Web_2.0>`_.
+to represent complex and hierarchical data. It is as powerful as `XML <http://en.wikipedia.org/wiki/XML>`_, but less verbose. JSON format is widely used for data-exchange in applications, and is essential for the wild success 
+of (programming) `Ajax <http://en.wikipedia.org/wiki/Ajax_>`_ and `Web2.0 <http://en.wikipedia.org/wiki/Web_2.0>`_.
 
 UBJSON (Universal Binary JSON) is a binary JSON format, specifically 
 optimized for compact file size and better performance while keeping
