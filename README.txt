@@ -88,7 +88,7 @@ JSON. The detailed help info for the four functions can be found below:
  
           Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
              created on 2009/11/02
-          François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
+          FranÃ§ois Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
              created on  2009/03/22
           Joel Feenstra:
           http://www.mathworks.com/matlabcentral/fileexchange/20565
