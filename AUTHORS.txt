@@ -51,3 +51,6 @@ This toolbox contains patches submitted by the following contributors:
 
 - Sertan Senturk <contact at sertansenturk.com>
   (Pull#10,#11) Feature: Added matlab object saving to savejson and saveubjson
+
+- Paul Koprowski <https://github.com/pjkoprowski>
+  (Issue#29) Feature: Added support to save MATLAB tables to json.
