@@ -169,7 +169,7 @@ if(iscell(item))
     txt=cell2json(name,item,level,varargin{:});
 elseif(isstruct(item))
     txt=struct2json(name,item,level,varargin{:});
-elseif(ischar(item))
+elseif (ischar(item)) || (isstring(item))
     txt=str2json(name,item,level,varargin{:});
 elseif(isa(item,'string'))
     txt=str2json(name,item{:},level,varargin{:});
@@ -312,7 +312,7 @@ txt = sprintf('%s',txt{:});
 %%-------------------------------------------------------------------------
 function txt=str2json(name,item,level,varargin)
 txt={};
-if(~ischar(item))
+if ~(ischar(item) || isstring(item))
         error('input is not a string');
 end
 item=reshape(item, max(size(item),[1 0]));
