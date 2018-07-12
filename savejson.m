@@ -171,6 +171,8 @@ elseif(isstruct(item))
     txt=struct2json(name,item,level,varargin{:});
 elseif(ischar(item))
     txt=str2json(name,item,level,varargin{:});
+elseif(isa(item,'string'))
+    txt=str2json(name,item{:},level,varargin{:});
 elseif(isobject(item)) 
     txt=matlabobject2json(name,item,level,varargin{:});
 else
