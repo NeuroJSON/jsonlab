@@ -558,4 +558,4 @@ end
 %%-------------------------------------------------------------------------
 function bytes=data2byte(varargin)
 bytes=typecast(varargin{:});
-bytes=bytes(:)';
+bytes=char(bytes(:)');
