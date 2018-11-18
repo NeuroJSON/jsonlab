@@ -375,7 +375,7 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
     end
     if(isempty(type))
         % todo - need to consider negative ones separately
-        id= histc(abs(max(mat(:))),[0 2^7 2^15 2^31 2^63]);
+        id= histc(abs(max(double(mat(:)))),[0 2^7 2^15 2^31 2^63]);
         if(isempty(id~=0))
             error('high-precision data is not yet supported');
         end
