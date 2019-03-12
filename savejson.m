@@ -165,14 +165,12 @@ end
 %%-------------------------------------------------------------------------
 function txt=obj2json(name,item,level,varargin)
 
-if(iscell(item))
+if(iscell(item) || isa(item,'string'))
     txt=cell2json(name,item,level,varargin{:});
 elseif(isstruct(item))
     txt=struct2json(name,item,level,varargin{:});
 elseif(ischar(item))
     txt=str2json(name,item,level,varargin{:});
-elseif(isa(item,'string'))
-    txt=str2json(name,item{:},level,varargin{:});
 elseif(isobject(item))
     if(~exist('OCTAVE_VERSION','builtin') && istable(item))
         txt=matlabtable2json(name,item,level,varargin{:});
@@ -186,8 +184,8 @@ end
 %%-------------------------------------------------------------------------
 function txt=cell2json(name,item,level,varargin)
 txt={};
-if(~iscell(item))
-        error('input is not a cell');
+if(~iscell(item) && ~isa(item,'string'))
+        error('input is not a cell or string array');
 end
 
 dim=size(item);
