@@ -45,6 +45,7 @@ function data = loadjson(fname,varargin)
 %                         array of 1D vectors; setting to 4 will return a
 %                         3D cell array.
 %           opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
+%           opt.ParseStringArray [0|1]: if set to 1, loadjson displays a progress bar.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -217,6 +218,9 @@ function object = parse_array(inStr, esc, varargin) % JSON array is written in r
            end
            if(regexp(arraystr,':','once'))
                 error('One can not use MATLAB-like ":" construct inside a JSON array');
+           end
+           if(jsonopt('ParseStringArray',0,varargin{:})==0)
+               arraystr=regexprep(arraystr,'\"','''');
            end
            object=eval(arraystr);
            pos=endpos;
