@@ -177,6 +177,8 @@ elseif(isobject(item))
     else
         txt=matlabobject2json(name,item,level,varargin{:});
     end
+elseif(isa(item,'function_handle'))
+    txt=struct2json(name,functions(item),level,varargin{:});
 else
     txt=mat2json(name,item,level,varargin{:});
 end
