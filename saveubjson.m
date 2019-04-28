@@ -379,6 +379,9 @@ else
     if(~isempty(dozip) && numel(item)>zipsize)
         if(isreal(item))
             fulldata=item(:)';
+            if(islogical(fulldata))
+                fulldata=int32(fulldata);
+            end
         else
             txt=[txt,N_('_ArrayIsComplex_'),'T'];
             fulldata=[real(item(:)) imag(item(:))];

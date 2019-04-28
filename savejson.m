@@ -471,6 +471,9 @@ else
     if(~isempty(dozip) && numel(item)>zipsize)
         if(isreal(item))
             fulldata=item(:)';
+            if(islogical(fulldata))
+                fulldata=int32(fulldata);
+            end
         else
             txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','1', sep);
             fulldata=[real(item(:)) imag(item(:))];
