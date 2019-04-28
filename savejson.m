@@ -116,7 +116,11 @@ if(~opt.IsOctave && ~isempty(dozip))
     end
     try
         error(javachk('jvm'));
-        matlab.net.base64decode('test');
+        try
+           base64decode('test');
+        catch
+           matlab.net.base64decode('test');
+        end
     catch
         error('java-based compression is not supported');
     end
@@ -391,6 +395,10 @@ sep=ws.sep;
 dozip=jsonopt('Compression','',varargin{:});
 zipsize=jsonopt('CompressArraySize',100,varargin{:});
 
+if(islogical(item))
+    item=uint8(item);
+end
+
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
    (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
     if(isempty(name))
@@ -471,9 +479,6 @@ else
     if(~isempty(dozip) && numel(item)>zipsize)
         if(isreal(item))
             fulldata=item(:)';
-            if(islogical(fulldata))
-                fulldata=int32(fulldata);
-            end
         else
             txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','1', sep);
             fulldata=[real(item(:)) imag(item(:))];
