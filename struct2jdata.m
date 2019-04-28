@@ -12,11 +12,17 @@ function newdata=struct2jdata(data,varargin)
 %            data object (arrays, trees, graphs etc) based on JData 
 %            specification. The JData keywords are
 %               "_ArrayType_", "_ArraySize_", "_ArrayData_"
-%               "_ArrayIsSparse_", "_ArrayIsComplex_"
+%               "_ArrayIsSparse_", "_ArrayIsComplex_", 
+%               "_ArrayCompressionMethod_", "_ArrayCompressionSize",
+%               "_ArrayCompressedData_"
 %      opt: (optional) a list of 'Param',value pairs for additional options 
 %           The supported options include
 %               'Recursive', if set to 1, will apply the conversion to 
 %                            every child; 0 to disable
+%               'Base64'. if set to 1, _ArrayCompressedData_ is assumed to
+%                         be encoded with base64 format and need to be
+%                         decoded first. This is needed for JSON but not
+%                         UBJSON data
 %
 % output:
 %      newdata: the covnerted data if the input data does contain a JData 
@@ -36,6 +42,7 @@ function newdata=struct2jdata(data,varargin)
 fn=fieldnames(data);
 newdata=data;
 len=length(data);
+needbase64=jsonopt('Base64',0,varargin{:});
 if(jsonopt('Recursive',0,varargin{:})==1)
   for i=1:length(fn) % depth-first
     for j=1:len
@@ -45,10 +52,32 @@ if(jsonopt('Recursive',0,varargin{:})==1)
     end
   end
 end
-if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && ~isempty(strmatch('x0x5F_ArrayData_',fn)))
+if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayData_',fn)) || ~isempty(strmatch('x0x5F_ArrayCompressedData_',fn))))
   newdata=cell(len,1);
   for j=1:len
-    ndata=cast(data(j).x0x5F_ArrayData_,data(j).x0x5F_ArrayType_);
+    if(~isempty(strmatch('x0x5F_ArrayCompressionSize_',fn)) && ~isempty(strmatch('x0x5F_ArrayCompressedData_',fn)))
+        zipmethod='zip';
+        if(~isempty(strmatch('x0x5F_ArrayCompressionMethod_',fn)))
+            zipmethod=data(j).x0x5F_ArrayCompressionMethod_;
+        end
+        if(strcmpi(zipmethod,'gzip'))
+            if(needbase64)
+                ndata=reshape(typecast(gzipdecode(base64decode(data(j).x0x5F_ArrayCompressedData_)),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
+            else
+                ndata=reshape(typecast(gzipdecode(data(j).x0x5F_ArrayCompressedData_),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
+            end
+        elseif(strcmpi(zipmethod,'zlib'))
+            if(needbase64)
+                ndata=reshape(typecast(zlibdecode(base64decode(data(j).x0x5F_ArrayCompressedData_)),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
+            else
+                ndata=reshape(typecast(zlibdecode(data(j).x0x5F_ArrayCompressedData_),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
+            end
+        else
+            error('compression method is not supported');
+        end
+    else
+        ndata=cast(data(j).x0x5F_ArrayData_,data(j).x0x5F_ArrayType_);
+    end
     iscpx=0;
     if(~isempty(strmatch('x0x5F_ArrayIsComplex_',fn)))
         if(data(j).x0x5F_ArrayIsComplex_)

@@ -22,6 +22,13 @@ The script loadjson.m was built upon previous works by
 - Joel Feenstra: http://www.mathworks.com/matlabcentral/fileexchange/20565
        date: 2008/07/03
 
+The data compression/decompression utilities ({zlib,gzip,base64}{encode,decode}.m)
+were copied from 
+
+- "Byte encoding utilities" by Kota Yamaguchi
+       https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
+       date: 2013/01/04
+
 
 This toolbox contains patches submitted by the following contributors:
 

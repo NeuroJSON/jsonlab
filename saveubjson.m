@@ -93,6 +93,20 @@ else
    opt=varargin2struct(varargin{:});
 end
 opt.IsOctave=exist('OCTAVE_VERSION','builtin');
+
+dozip=jsonopt('Compression','',opt);
+if(~opt.IsOctave && ~isempty(dozip))
+    if(~(strcmpi(dozip,'gzip') || strcmpi(dozip,'zlib')))
+        error('compression method "%s" is not supported',dozip);
+    end
+    try
+        error(javachk('jvm'));
+    catch
+        error('java-based compression is not supported');
+    end
+    opt.Compression=dozip;
+end
+
 if(isfield(opt,'norowbracket'))
     warning('Option ''NoRowBracket'' is depreciated, please use ''SingletArray'' and set its value to not(NoRowBracket)');
     if(~isfield(opt,'singletarray'))
@@ -279,8 +293,11 @@ if(~isnumeric(item) && ~islogical(item))
         error('input is not an array');
 end
 
+dozip=jsonopt('Compression','',varargin{:});
+zipsize=jsonopt('CompressArraySize',0,varargin{:});
+
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
-   (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}))
+   (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
       cid=I_(uint32(max(size(item))));
       if(isempty(name))
     	txt=['{' N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1)) ];
@@ -318,27 +335,69 @@ if(issparse(item))
        txt=[txt,N_('_ArrayIsComplex_'),'T'];
     end
     txt=[txt,N_('_ArrayIsSparse_'),'T'];
-    if(size(item,1)==1)
-        % Row vector, store only column indices.
-        txt=[txt,N_('_ArrayData_'),...
-           matdata2ubjson([iy(:),data'],level+2,varargin{:})];
-    elseif(size(item,2)==1)
-        % Column vector, store only row indices.
-        txt=[txt,N_('_ArrayData_'),...
-           matdata2ubjson([ix,data],level+2,varargin{:})];
+    if(~isempty(dozip) && numel(data*2)>zipsize)
+        if(size(item,1)==1)
+            % Row vector, store only column indices.
+            fulldata=[iy(:),data'];
+        elseif(size(item,2)==1)
+            % Column vector, store only row indices.
+            fulldata=[ix,data];
+        else
+            % General case, store row and column indices.
+            fulldata=[ix,iy,data];
+        end
+        cid=I_(uint32(max(size(fulldata))));
+        txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1))];
+        txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
+        if(strcmpi(dozip,'gzip'))
+            txt=[txt,N_('_ArrayCompressedData_'), I_a(gzipencode(typecast(fulldata(:),'uint8')),'U')];
+        elseif(strcmpi(dozip,'zlib'))
+            txt=[txt,N_('_ArrayCompressedData_'), I_a(zlibencode(typecast(fulldata(:),'uint8')),'U')];
+        else
+            error('compression method not supported');
+        end
     else
-        % General case, store row and column indices.
-        txt=[txt,N_('_ArrayData_'),...
-           matdata2ubjson([ix,iy,data],level+2,varargin{:})];
+        if(size(item,1)==1)
+            % Row vector, store only column indices.
+            txt=[txt,N_('_ArrayData_'),...
+               matdata2ubjson([iy(:),data'],level+2,varargin{:})];
+        elseif(size(item,2)==1)
+            % Column vector, store only row indices.
+            txt=[txt,N_('_ArrayData_'),...
+               matdata2ubjson([ix,data],level+2,varargin{:})];
+        else
+            % General case, store row and column indices.
+            txt=[txt,N_('_ArrayData_'),...
+               matdata2ubjson([ix,iy,data],level+2,varargin{:})];
+        end
     end
 else
-    if(isreal(item))
-        txt=[txt,N_('_ArrayData_'),...
-            matdata2ubjson(item(:)',level+2,varargin{:})];
+    if(~isempty(dozip) && numel(item)>zipsize)
+        if(isreal(item))
+            fulldata=item(:)';
+        else
+            txt=[txt,N_('_ArrayIsComplex_'),'T'];
+            fulldata=[real(item(:)) imag(item(:))];
+        end
+        cid=I_(uint32(max(size(fulldata))));
+        txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1))];
+        txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
+        if(strcmpi(dozip,'gzip'))
+            txt=[txt,N_('_ArrayCompressedData_'), I_a(gzipencode(typecast(fulldata(:),'uint8')),'U')];
+        elseif(strcmpi(dozip,'zlib'))
+            txt=[txt,N_('_ArrayCompressedData_'), I_a(zlibencode(typecast(fulldata(:),'uint8')),'U')];
+        else
+            error('compression method not supported');
+        end
     else
-        txt=[txt,N_('_ArrayIsComplex_'),'T'];
-        txt=[txt,N_('_ArrayData_'),...
-            matdata2ubjson([real(item(:)) imag(item(:))],level+2,varargin{:})];
+        if(isreal(item))
+            txt=[txt,N_('_ArrayData_'),...
+                matdata2ubjson(item(:)',level+2,varargin{:})];
+        else
+            txt=[txt,N_('_ArrayIsComplex_'),'T'];
+            txt=[txt,N_('_ArrayData_'),...
+                matdata2ubjson([real(item(:)) imag(item(:))],level+2,varargin{:})];
+        end
     end
 end
 txt=[txt,'}'];
