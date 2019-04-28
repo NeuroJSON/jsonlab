@@ -55,6 +55,10 @@ function json=saveubjson(rootname,obj,varargin)
 %                         wrapped inside a function call as 'foo(...);'
 %        opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
+%        opt.Compression  'zlib' or 'gzip': specify array compression
+%                         method; currently only support 'gzip' or 'zlib'.
+%        opt.CompressArraySize [100|int]: only compress arrays with a total 
+%                         element count larger than this number.
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
@@ -294,7 +298,7 @@ if(~isnumeric(item) && ~islogical(item))
 end
 
 dozip=jsonopt('Compression','',varargin{:});
-zipsize=jsonopt('CompressArraySize',0,varargin{:});
+zipsize=jsonopt('CompressArraySize',100,varargin{:});
 
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
    (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))

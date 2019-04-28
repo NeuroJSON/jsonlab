@@ -31,10 +31,6 @@ function data = loadubjson(fname,varargin)
 %                         the "name" tag is treated as a string. To load 
 %                         these UBJSON data, you need to manually set this 
 %                         flag to 1.
-%           opt.Compression  'zlib' or 'gzip': specify array compression
-%                         method; currently only support 'gzip' or 'zlib'.
-%           opt.CompressArraySize [0|int]: only compress arrays with a total 
-%                         element count larger than this number.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,

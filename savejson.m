@@ -69,7 +69,7 @@ function json=savejson(rootname,obj,varargin)
 %        opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
 %        opt.Compression  'zlib' or 'gzip': specify array compression
 %                         method; currently only support 'gzip' or 'zlib'.
-%        opt.CompressArraySize [0|int]: only compress arrays with a total 
+%        opt.CompressArraySize [100|int]: only compress arrays with a total 
 %                         element count larger than this number.
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
@@ -389,7 +389,7 @@ nl=ws.newline;
 sep=ws.sep;
 
 dozip=jsonopt('Compression','',varargin{:});
-zipsize=jsonopt('CompressArraySize',0,varargin{:});
+zipsize=jsonopt('CompressArraySize',100,varargin{:});
 
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
    (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
