@@ -14,10 +14,12 @@ function output = base64encode(input)
 % License : BSD, see LICENSE_*.txt
 %
 
-error(nargchk(1, 1, nargin));
+if(nargin==0)
+    error('you must provide at least 1 input');
+end
 error(javachk('jvm'));
 if ischar(input), input = uint8(input); end
 
 output = char(org.apache.commons.codec.binary.Base64.encodeBase64Chunked(input))';
-
+output = regexprep(output,'\r','');
 end

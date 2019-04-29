@@ -15,7 +15,9 @@ function output = gzipencode(input)
 % License : BSD, see LICENSE_*.txt
 %
 
-error(nargchk(1, 1, nargin));
+if(nargin==0)
+    error('you must provide at least 1 input');
+end
 error(javachk('jvm'));
 if ischar(input), input = uint8(input); end
 if ~isa(input, 'int8') && ~isa(input, 'uint8')
