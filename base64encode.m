@@ -17,6 +17,10 @@ function output = base64encode(input)
 if(nargin==0)
     error('you must provide at least 1 input');
 end
+if(exist('OCTAVE_VERSION','builtin'))
+    output = base64_encode(uint8(input));
+    return;
+end
 error(javachk('jvm'));
 if ischar(input), input = uint8(input); end
 

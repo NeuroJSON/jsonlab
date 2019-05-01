@@ -18,6 +18,10 @@ function output = gzipencode(input)
 if(nargin==0)
     error('you must provide at least 1 input');
 end
+if(exist('zmat')==3)
+    output=zmat(uint8(input),1,'gzip');
+    return;
+end
 error(javachk('jvm'));
 if ischar(input), input = uint8(input); end
 if ~isa(input, 'int8') && ~isa(input, 'uint8')

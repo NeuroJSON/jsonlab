@@ -17,6 +17,10 @@ function output = zlibdecode(input)
 if(nargin==0)
     error('you must provide at least 1 input');
 end
+if(exist('zmat')==3)
+    output=zmat(uint8(input),0,'zlib');
+    return;
+end
 error(javachk('jvm'));
 if ischar(input)
   warning('zlibdecode:inputTypeMismatch', ...

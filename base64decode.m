@@ -17,6 +17,14 @@ function output = base64decode(input)
 if(nargin==0)
     error('you must provide at least 1 input');
 end
+if(exist('OCTAVE_VERSION','builtin'))
+    len=rem(numel(input),8)
+    if(len)
+       input=[input(:)', repmat(sprintf('\0'),1,(8-len))];
+    end
+    output = base64_decode(input);
+    return;
+end
 error(javachk('jvm'));
 if ischar(input), input = uint8(input); end
 
