@@ -318,7 +318,7 @@ else
     	txt=matdata2ubjson(item,level+1,varargin{:});
     else
         if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0)
-            numtxt=regexprep(regexprep(matdata2ubjson(item,level+1,varargin{:}),'^\[',''),']','');
+            numtxt=regexprep(regexprep(matdata2ubjson(item,level+1,varargin{:}),'^\[',''),']$','');
            	txt=[N_(checkname(name,varargin{:})) numtxt];
         else
     	    txt=[N_(checkname(name,varargin{:})),matdata2ubjson(item,level+1,varargin{:})];

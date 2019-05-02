@@ -410,7 +410,7 @@ if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
     end
 else
     if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0 && level>0)
-        numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^\[',''),']','');
+        numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^\[',''),']$','');
     else
         numtxt=matdata2json(item,level+1,varargin{:});
     end
