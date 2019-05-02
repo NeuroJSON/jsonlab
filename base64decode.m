@@ -17,6 +17,10 @@ function output = base64decode(input)
 if(nargin==0)
     error('you must provide at least 1 input');
 end
+if(exist('zmat')==3)
+    output=zmat(uint8(input),0,'base64');
+    return;
+end
 if(exist('OCTAVE_VERSION','builtin'))
     len=rem(numel(input),8)
     if(len)
