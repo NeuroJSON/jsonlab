@@ -68,9 +68,17 @@ function json=savejson(rootname,obj,varargin)
 %        opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
 %        opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
 %        opt.Compression  'zlib' or 'gzip': specify array compression
-%                         method; currently only support 'gzip' or 'zlib'.
-%        opt.CompressArraySize [100|int]: only compress arrays with a total 
-%                         element count larger than this number.
+%                         method; currently only support 'gzip' or 'zlib'. The
+%                         data compression only applies to numerical arrays when 
+%                         ArrayToStruct is 1. The compressed array use two extra
+%                         fields "_ArrayCompressionSize_" and "_ArrayCompressedData_"
+%                         where the former is a 1D interger array to store the 
+%                         pre-compressed (but post-processed) array dimensions, and
+%                         the latter stores the "base64" encoded compressed binary 
+%                         array data. In addition, an extra field 
+%                         "_ArrayCompressionMethod_" stores the opt.Compression value.
+%        opt.CompressArraySize [100|int]: only to compress an array if the total 
+%                         element count is larger than this number.
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
 % output:
