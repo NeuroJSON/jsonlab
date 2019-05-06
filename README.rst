@@ -15,6 +15,60 @@ Table of Contents
   :depth: 3
 
 ============
+What's New
+============
+
+JSONLab v1.9 is the alpha release of the next milestone - code named "Magnus".
+Notable changes are summarized below, key features marked by *:
+
+- 2019-05-06 [25ad795] unescape string in loadjson.m
+- 2019-05-04 [2e317c9] explain extra compression fields
+- 2019-05-02 [1b1be65] avoid side effect of removing singletarray
+- 2019-05-02*[8360fd1] support zmat based base64 encoding and decoding
+- 2019-05-01*[c797bb2] integrating zmat, for zlib/gzip data compression
+- 2019-04-29 [70551fe] remove warnings from matlab
+- 2019-04-28 [0d61c4b] complete data compression support, close #52
+- 2019-04-27 [804115b] avoid typecast error
+- 2019-04-27 [c166aa7] change default compressarraysize to 100
+- 2019-04-27*[3322f6f] major new feature: support array compression and decompression
+- 2019-03-13*[9c01046] support saving function handles, close #51
+- 2019-03-13 [a8fde38] add option to parse string array or convert to char, close #50
+- 2019-03-12 [ed2645e] treat string array as cell array in newer matlab
+- 2018-11-18 [c3eb021] allow saving uint64 integers in saveubjson, fix #49
+
+The biggest change in this release, compared to v1.8 released in July 2018,
+is the support of data compression via the 'Compression' option for both
+savejson and saveubjson. Two compression methods are currently supported - 
+"zlib" and "gzip". The compression interfaces, zlibencode/zlibdecode/gzipencode/
+gzipdecode are modified from the "Byte Encoding Utilities" by Kota Yamaguchi [1],
+which has built-in support for java-based compression in MATLAB (when jvm is 
+enabled). To support Octave, as well as MATLAB in "nojvm" mode, a mex-based
+data compression/encoding toolbox, ZMat [2], written by Qianqian Fang, takes priority
+over the java-based utilities, if installed. For savejson, a 'base64' encoding is
+applied to convert the compressed binary stream into a string; 'base64' encoding
+is not used in saveubjson. The encoding and restoration of the binary matlab arrays
+are automatically handled in save*json/load*json round-trip conversions.
+
+To save matlab data with compression, one simply append 'Compression', 'method' pair
+in the savejson/saveubjson call. For example
+
+.. code:: matlab
+
+  jsonstr=savejson('',mydata,'compression','zlib');
+  data=loadjson(jsonstr);
+
+In addition, the below features are added to JSONLab
+
+  * save function handles
+  * support saving "string" class in MATLAB
+  * fix two bugs in saveubjson
+  * unescape strings in loadjson
+
+
+- [1] https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
+- [2] http://github.com/fangq/zmat
+
+============
 Introduction
 ============
 
@@ -457,9 +511,11 @@ following command:
 
 or browsing the github site at
 
-.. code:: shell
-
       https://github.com/fangq/jsonlab
+
+Please report any bugs or issues to the below URL:
+
+      https://github.com/fangq/jsonlab/issues
 
 Sometimes, you may find it is necessary to modify JSONLab to achieve your 
 goals, or attempt to modify JSONLab functions to fix a bug that you have 
@@ -480,6 +536,44 @@ the upstream code.
 We appreciate any suggestions and feedbacks from you. Please use the following
 mailing list to report any questions you may have regarding JSONLab:
 
-`iso2mesh-users <https://groups.google.com/forum/#!forum/iso2mesh-users>`_
+      https://github.com/fangq/jsonlab/issues
 
 (Subscription to the mailing list is needed in order to post messages).
+
+
+==========================
+Acknowledgement
+==========================
+
+---------
+zlibdecode.m, zlibencode.m, gzipencode.m, gzipdecode.m, base64encode.m, base64decode.m
+---------
+
+* Author: Kota Yamaguchi
+* URL: https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
+* License: BSD License, see below
+
+```
+Copyright (c) 2012, Kota Yamaguchi
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
