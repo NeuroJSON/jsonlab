@@ -8,6 +8,7 @@ JSONlab ChangeLog (key features marked by *):
 
 == JSONlab 1.9 (codename: Magnus - alpha), FangQ <q.fang <at> neu.edu> ==
 
+ 2019-05-06 [25ad795] unescape string in loadjson.m
  2019-05-04 [2e317c9] explain extra compression fields
  2019-05-02 [1b1be65] avoid side effect of removing singletarray
  2019-05-02*[8360fd1] support zmat based base64 encoding and decoding
