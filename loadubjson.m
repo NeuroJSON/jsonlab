@@ -133,7 +133,7 @@ function object = parse_object(varargin)
         parse_char('}');
     end
     if(isstruct(object))
-        object=struct2jdata(object,'Base64',0);
+        object=struct2jdata(object,struct('Base64',0));
     end
 
 %%-------------------------------------------------------------------------
