@@ -3,9 +3,9 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-*Copyright (C) 2011-2018  Qianqian Fang <q.fang at neu.edu>
+*Copyright (C) 2011-2019  Qianqian Fang <q.fang at neu.edu>
 *License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 1.8 (Nominus)
+*Version: 1.9 (Magnus - alpha)
 
 -------------------------------------------------------------------------------
 
@@ -21,6 +21,13 @@ V.  Contribution and feedback
 
 I.  Introduction
 
+JSONLab is a free and open-source implementation of a JSON/UBJSON encoder 
+and a decoder in the native MATLAB language. It can be used to convert a MATLAB 
+data structure (array, struct, cell, struct array and cell array) into 
+JSON/UBJSON formatted strings, or to decode a JSON/UBJSON file into MATLAB 
+data structure. JSONLab supports both MATLAB and  
+[http://www.gnu.org/software/octave/ GNU Octave] (a free MATLAB clone).
+
 JSON ([http://www.json.org/ JavaScript Object Notation]) is a highly portable, 
 human-readable and "[http://en.wikipedia.org/wiki/JSON fat-free]" text format 
 to represent complex and hierarchical data. It is as powerful as 
@@ -29,7 +36,7 @@ used for data-exchange in applications, and is essential for the wild success
 of [http://en.wikipedia.org/wiki/Ajax_(programming) Ajax] and 
 [http://en.wikipedia.org/wiki/Web_2.0 Web2.0]. 
 
-UBJSON (Universal Binary JSON) is a binary JSON format, specifically 
+UBJSON ([<http://ubjson.org/ Universal Binary JSON]) is a binary JSON format, specifically 
 optimized for compact file size and better performance while keeping
 the semantics as simple as the text-based JSON format. Using the UBJSON
 format allows to wrap complex binary data in a flexible and extensible
@@ -43,13 +50,6 @@ general-purpose file specifications, such as
 [http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5], with significantly 
 reduced complexity and enhanced performance.
 
-JSONLab is a free and open-source implementation of a JSON/UBJSON encoder 
-and a decoder in the native MATLAB language. It can be used to convert a MATLAB 
-data structure (array, struct, cell, struct array and cell array) into 
-JSON/UBJSON formatted strings, or to decode a JSON/UBJSON file into MATLAB 
-data structure. JSONLab supports both MATLAB and  
-[http://www.gnu.org/software/octave/ GNU Octave] (a free MATLAB clone).
-
 -------------------------------------------------------------------------------
 
 II. Installation
@@ -62,9 +62,19 @@ by using the following command:
     addpath('/path/to/jsonlab');
 
 If you want to add this path permanently, you need to type "pathtool", 
-browse to the jsonlab root folder and add to the list, then click "Save".
-Then, run "rehash" in MATLAB, and type "which loadjson", if you see an 
+browse to the zmat root folder and add to the list, then click "Save".
+Then, run "rehash" in MATLAB, and type "which savejson", if you see an 
 output, that means JSONLab is installed for MATLAB/Octave.
+
+If you use MATLAB in a shared environment such as a Linux server, the
+best way to add path is to type 
+
+   mkdir ~/matlab/
+   nano ~/matlab/startup.m
+
+and type addpath('/path/to/jsonlab') in this file, save and quit the editor.
+MATLAB will execute this file every time it starts. For Octave, the file
+you need to edit is ~/.octaverc , where "~" is your home directory.
 
 -------------------------------------------------------------------------------
 
@@ -122,6 +132,7 @@ JSON. The detailed help info for the four functions can be found below:
                           array of 1D vectors; setting to 4 will return a
                           3D cell array.
             opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
+            opt.ParseStringArray [0|1]: if set to 1, loadjson displays a progress bar.
  
   output:
        dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -134,7 +145,7 @@ JSON. The detailed help info for the four functions can be found below:
  
   license:
       BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
- </pre>
+  </pre>
 
 === savejson.m ===
 
@@ -206,7 +217,22 @@ JSON. The detailed help info for the four functions can be found below:
                           back to the string form
          opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
          opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
- 
+         opt.Compression  'zlib' or 'gzip': specify array compression
+                          method; currently only supports 'gzip' or 'zlib'. The
+                          data compression only applicable to numerical arrays 
+                          in 3D or higher dimensions, or when ArrayToStruct
+                          is 1 for 1D or 2D arrays. If one wants to
+                          compress a long string, one must convert
+                          it to uint8 or int8 array first. The compressed
+                          array uses three extra fields
+                          "_ArrayCompressionMethod_": the opt.Compression value. 
+                          "_ArrayCompressionSize_": a 1D interger array to
+                             store the pre-compressed (but post-processed)
+                             array dimensions, and 
+                          "_ArrayCompressedData_": the "base64" encoded
+                              compressed binary array data. 
+         opt.CompressArraySize [100|int]: only to compress an array if the total 
+                          element count is larger than this number.
          opt can be replaced by a list of ('param',value) pairs. The param 
          string is equivallent to a field in opt and is case sensitive.
   output:
@@ -334,6 +360,23 @@ JSON. The detailed help info for the four functions can be found below:
                           wrapped inside a function call as 'foo(...);'
          opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
                           back to the string form
+         opt.Compression  'zlib' or 'gzip': specify array compression
+                          method; currently only supports 'gzip' or 'zlib'. The
+                          data compression only applicable to numerical arrays 
+                          in 3D or higher dimensions, or when ArrayToStruct
+                          is 1 for 1D or 2D arrays. If one wants to
+                          compress a long string, one must convert
+                          it to uint8 or int8 array first. The compressed
+                          array uses three extra fields
+                          "_ArrayCompressionMethod_": the opt.Compression value. 
+                          "_ArrayCompressionSize_": a 1D interger array to
+                             store the pre-compressed (but post-processed)
+                             array dimensions, and 
+                          "_ArrayCompressedData_": the binary stream of
+                             the compressed binary array data WITHOUT
+                             'base64' encoding
+         opt.CompressArraySize [100|int]: only to compress an array if the total 
+                          element count is larger than this number.
  
          opt can be replaced by a list of ('param',value) pairs. The param 
          string is equivallent to a field in opt and is case sensitive.
@@ -399,33 +442,31 @@ that everyone else can enjoy the improvement. For anyone who want to contribute,
 please download JSONLab source code from its source code repositories by using the
 following command:
 
- git clone https://github.com/fangq/jsonlab.git jsonlab
+      git clone https://github.com/fangq/jsonlab.git jsonlab
 
 or browsing the github site at
 
- https://github.com/fangq/jsonlab
+      https://github.com/fangq/jsonlab
 
-alternatively, if you prefer svn, you can checkout the latest code by using
+Sometimes, you may find it is necessary to modify JSONLab to achieve your 
+goals, or attempt to modify JSONLab functions to fix a bug that you have 
+encountered. If you are happy with your changes and willing to share those
+changes to the upstream author, you are recommended to create a pull-request
+on github. 
 
- svn checkout svn://svn.code.sf.net/p/iso2mesh/code/trunk/jsonlab jsonlab
-
-You can make changes to the files as needed. Once you are satisfied with your
-changes, and ready to share it with others, please cd the root directory of 
-JSONLab, and type
-
- git diff --no-prefix > yourname_featurename.patch
-
-or
-
- svn diff > yourname_featurename.patch
-
-You then email the .patch file to JSONLab's maintainer, Qianqian Fang, at
-the email address shown in the beginning of this file. Qianqian will review 
-the changes and commit it to the subversion if they are satisfactory.
+To create a pull-request, you first need to "fork" jsonlab on Github by 
+clicking on the "fork" button on top-right of jsonlab's github page. Once you forked
+jsonlab to your own directory, you should then implement the changes in your
+own fork. After thoroughly testing it and you are confident the modification 
+is complete and effective, you can then click on the "New pull request" 
+button, and on the left, select fangq/jsonlab as the "base". Then type
+in the description of the changes. You are responsible to format the code
+updates using the same convention (tab-width: 8, indentation: 4 spaces) as
+the upstream code.
 
 We appreciate any suggestions and feedbacks from you. Please use the following
 mailing list to report any questions you may have regarding JSONLab:
 
-https://groups.google.com/forum/?hl=en#!forum/jsonlab-users
+https://groups.google.com/forum/?hl=en#!forum/iso2mesh-users
 
 (Subscription to the mailing list is needed in order to post messages).

@@ -68,15 +68,19 @@ function json=savejson(rootname,obj,varargin)
 %        opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
 %        opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
 %        opt.Compression  'zlib' or 'gzip': specify array compression
-%                         method; currently only support 'gzip' or 'zlib'. The
-%                         data compression only applies to numerical arrays when 
-%                         ArrayToStruct is 1. The compressed array use two extra
-%                         fields "_ArrayCompressionSize_" and "_ArrayCompressedData_"
-%                         where the former is a 1D interger array to store the 
-%                         pre-compressed (but post-processed) array dimensions, and
-%                         the latter stores the "base64" encoded compressed binary 
-%                         array data. In addition, an extra field 
-%                         "_ArrayCompressionMethod_" stores the opt.Compression value.
+%                         method; currently only supports 'gzip' or 'zlib'. The
+%                         data compression only applicable to numerical arrays 
+%                         in 3D or higher dimensions, or when ArrayToStruct
+%                         is 1 for 1D or 2D arrays. If one wants to
+%                         compress a long string, one must convert
+%                         it to uint8 or int8 array first. The compressed
+%                         array uses three extra fields
+%                         "_ArrayCompressionMethod_": the opt.Compression value. 
+%                         "_ArrayCompressionSize_": a 1D interger array to
+%                            store the pre-compressed (but post-processed)
+%                            array dimensions, and 
+%                         "_ArrayCompressedData_": the "base64" encoded
+%                             compressed binary array data. 
 %        opt.CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
 %        opt can be replaced by a list of ('param',value) pairs. The param 
@@ -118,20 +122,22 @@ end
 opt.IsOctave=exist('OCTAVE_VERSION','builtin');
 
 dozip=jsonopt('Compression','',opt);
-if(~opt.IsOctave && ~isempty(dozip))
+if(~isempty(dozip))
     if(~(strcmpi(dozip,'gzip') || strcmpi(dozip,'zlib')))
         error('compression method "%s" is not supported',dozip);
     end
-    try
-        error(javachk('jvm'));
+    if(exist('zmat')~=3)
         try
-           base64decode('test');
+            error(javachk('jvm'));
+            try
+               base64decode('test');
+            catch
+               matlab.net.base64decode('test');
+            end
         catch
-           matlab.net.base64decode('test');
+            error('java-based compression is not supported');
         end
-    catch
-        error('java-based compression is not supported');
-    end
+    end    
     opt.Compression=dozip;
 end
 
@@ -202,7 +208,7 @@ elseif(isstruct(item))
 elseif(ischar(item))
     txt=str2json(name,item,level,varargin{:});
 elseif(isobject(item))
-    if(~exist('OCTAVE_VERSION','builtin') && istable(item))
+    if(~exist('OCTAVE_VERSION','builtin') && exist('istable','builtin') && istable(item))
         txt=matlabtable2json(name,item,level,varargin{:});
     else
         txt=matlabobject2json(name,item,level,varargin{:});
@@ -403,10 +409,6 @@ sep=ws.sep;
 dozip=jsonopt('Compression','',varargin{:});
 zipsize=jsonopt('CompressArraySize',100,varargin{:});
 
-if(islogical(item))
-    item=uint8(item);
-end
-
 if(length(size(item))>2 || issparse(item) || ~isreal(item) || ...
    (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
     if(isempty(name))
@@ -487,6 +489,9 @@ else
     if(~isempty(dozip) && numel(item)>zipsize)
         if(isreal(item))
             fulldata=item(:)';
+            if(islogical(fulldata))
+                fulldata=uint8(fulldata);
+            end
         else
             txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','1', sep);
             fulldata=[real(item(:)) imag(item(:))];

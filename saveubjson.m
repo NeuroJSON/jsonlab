@@ -56,9 +56,22 @@ function json=saveubjson(rootname,obj,varargin)
 %        opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
 %        opt.Compression  'zlib' or 'gzip': specify array compression
-%                         method; currently only support 'gzip' or 'zlib'.
-%        opt.CompressArraySize [100|int]: only compress arrays with a total 
-%                         element count larger than this number.
+%                         method; currently only supports 'gzip' or 'zlib'. The
+%                         data compression only applicable to numerical arrays 
+%                         in 3D or higher dimensions, or when ArrayToStruct
+%                         is 1 for 1D or 2D arrays. If one wants to
+%                         compress a long string, one must convert
+%                         it to uint8 or int8 array first. The compressed
+%                         array uses three extra fields
+%                         "_ArrayCompressionMethod_": the opt.Compression value. 
+%                         "_ArrayCompressionSize_": a 1D interger array to
+%                            store the pre-compressed (but post-processed)
+%                            array dimensions, and 
+%                         "_ArrayCompressedData_": the binary stream of
+%                            the compressed binary array data WITHOUT
+%                            'base64' encoding
+%        opt.CompressArraySize [100|int]: only to compress an array if the total 
+%                         element count is larger than this number.
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
@@ -99,15 +112,22 @@ end
 opt.IsOctave=exist('OCTAVE_VERSION','builtin');
 
 dozip=jsonopt('Compression','',opt);
-if(~opt.IsOctave && ~isempty(dozip))
+if(~isempty(dozip))
     if(~(strcmpi(dozip,'gzip') || strcmpi(dozip,'zlib')))
         error('compression method "%s" is not supported',dozip);
     end
-    try
-        error(javachk('jvm'));
-    catch
-        error('java-based compression is not supported');
-    end
+    if(exist('zmat')~=3)
+        try
+            error(javachk('jvm'));
+            try
+               base64decode('test');
+            catch
+               matlab.net.base64decode('test');
+            end
+        catch
+            error('java-based compression is not supported');
+        end
+    end    
     opt.Compression=dozip;
 end
 
@@ -380,7 +400,7 @@ else
         if(isreal(item))
             fulldata=item(:)';
             if(islogical(fulldata))
-                fulldata=int32(fulldata);
+                fulldata=uint8(fulldata);
             end
         else
             txt=[txt,N_('_ArrayIsComplex_'),'T'];

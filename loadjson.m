@@ -345,6 +345,7 @@ function str = parseStr(inStr, esc, varargin)
                 pos = pos + 1;
         end
     end
+    str=unescapejsonstring(str);
     error_pos('End of file while expecting end of inStr',inStr);
 
 %%-------------------------------------------------------------------------
@@ -506,3 +507,11 @@ end
 if(endpos==0) 
     error('unmatched "]"');
 end
+
+function newstr=unescapejsonstring(str)
+newstr=str;
+escapechars={'\\','\"','\/','\a','\b','\f','\n','\r','\t','\v'};
+for i=1:length(escapechars);
+    newstr=regexprep(newstr,regexprep(escapechars{i},'\\','\\\\'), escapechars{i});
+end
+newstr=regexprep(newstr,'\\\\(u[0-9a-fA-F]{4}[^0-9a-fA-F]*)','\\$1');

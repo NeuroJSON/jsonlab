@@ -6,6 +6,39 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 1.9 (codename: Magnus - alpha), FangQ <q.fang <at> neu.edu> ==
+
+ 2019-05-04 [2e317c9] explain extra compression fields
+ 2019-05-02 [1b1be65] avoid side effect of removing singletarray
+ 2019-05-02*[8360fd1] support zmat based base64 encoding and decoding
+ 2019-05-01*[c797bb2] integrating zmat, for zlib/gzip data compression
+ 2019-04-29 [70551fe] remove warnings from matlab
+ 2019-04-28 [0d61c4b] complete data compression support, close #52
+ 2019-04-27 [804115b] avoid typecast error
+ 2019-04-27 [c166aa7] change default compressarraysize to 100
+ 2019-04-27*[3322f6f] major new feature: support array compression and decompression
+ 2019-03-13*[9c01046] support saving function handles, close #51
+ 2019-03-13 [a8fde38] add option to parse string array or convert to char, close #50
+ 2019-03-12 [ed2645e] treat string array as cell array in newer matlab
+ 2018-11-18 [c3eb021] allow saving uint64 integers in saveubjson, fix #49
+
+== JSONlab 1.8 (codename: Nominus), FangQ <q.fang <at> neu.edu> ==
+
+ 2018-07-12 [03a6c25] update documentation, bump version to 1.8, tag Nominus
+ 2018-07-12*[1597106] add patch provided by pjkoprowski to support MATLAB table, add RowNames support, fix #29
+ 2018-07-12 [f16cc57] fix #31, throw an error when : array construct is used
+ 2018-07-12 [956e000] drop octave 3.x support, fix ubjson error in octave
+ 2018-07-12 [e090f0a] fix octave warning for saveubjson
+ 2018-07-12*[34284c7] fix issues #34 #39 #44 and #45, support double-quoted strings
+ 2017-09-06 [474d8c8] Merge pull request #41 from dasantonym/master
+ 2017-08-07*[38b24fb] added package.json to be able to intall via npm package manager, converted readme to utf-8, added basic .gitignore file
+ 2017-07-19 [ae7a5d9] Merge pull request #40 from astorfi/master
+ 2017-07-17 [154ef61] Rename README.txt to README.rst
+ 2017-03-27 [31b5bdc] simplify condition flow in matching_bracket
+ 2017-03-27 [86ef12a] avoid error in matlab 2017a, close #34
+ 2017-02-18 [4a09ac3] Merge pull request #32 from vrichter/master
+ 2017-02-14 [e67d3a3] respect integer types
+
 == JSONlab 1.5 (codename: Nominus - alpha), FangQ <q.fang <at> neu.edu> ==
 
  2017/01/02 *use Big-endian format to store floating points (d/D) in saveubjson (Issue #25)
@@ -18,7 +51,7 @@ JSONlab ChangeLog (key features marked by *):
 
 == JSONlab 1.2 (codename: Optimus - Update 2), FangQ <q.fang <at> neu.edu> ==
 
- 2015/12/16  replacing string concatenation by str cells to gain 2x speed in savejson (Issue#17)
+ 2015/12/16 *replacing string concatenation by str cells to gain 2x speed in savejson (Issue#17)
  2015/12/11  fix FileName option case bug (SVN rev#495)
  2015/12/11  add SingletCell option, add SingletArray to replace NoRowBracket (Issue#15,#8)
  2015/11/10  fix bug for inerpreting file names as JSON string - by Mykhailo Bratukha (Pull#14)
