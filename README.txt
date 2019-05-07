@@ -186,8 +186,10 @@ JSON. The detailed help info for the four functions can be found below:
                           array of 1D vectors; setting to 4 will return a
                           3D cell array.
             opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
-            opt.ParseStringArray [0|1]: if set to 1, loadjson displays a progress bar.
- 
+            opt.ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
+                          (introduced in MATLAB R2016b) to char arrays; if set to 1,
+                          loadjson skips this conversion. 
+
   output:
        dat: a cell array, where {...} blocks are converted into cell arrays,
             and [...] are converted to arrays
