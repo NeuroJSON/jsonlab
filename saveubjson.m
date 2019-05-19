@@ -179,6 +179,10 @@ elseif(isstruct(item))
     txt=struct2ubjson(name,item,level,varargin{:});
 elseif(ischar(item))
     txt=str2ubjson(name,item,level,varargin{:});
+elseif(isa(item,'function_handle'))
+    txt=struct2ubjson(name,functions(item),level,varargin{:});
+elseif(isa(item,'containers.Map'))
+    txt=map2ubjson(name,item,level,varargin{:});
 elseif(isobject(item)) 
     txt=matlabobject2ubjson(name,item,level,varargin{:});
 else
@@ -275,6 +279,38 @@ for j=1:dim(2)
 end
 if(forcearray)
     txt=[txt ']'];
+end
+
+%%-------------------------------------------------------------------------
+function txt=map2ubjson(name,item,level,varargin)
+txt='';
+if(~isa(item,'containers.Map'))
+	error('input is not a struct');
+end
+dim=size(item);
+names = keys(item);
+val= values(item);
+
+len=prod(dim);
+forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
+
+if(~isempty(name)) 
+    if(forcearray)
+        txt=[N_(checkname(name,varargin{:})) '{'];
+    end
+else
+    if(forcearray)
+        txt='{';
+    end
+end
+for i=1:dim(1)
+    if(~isempty(names{i}))
+	    txt=[txt obj2ubjson(names{i},val{i},...
+             level+(dim(1)>1),varargin{:})];
+    end
+end
+if(forcearray)
+    txt=[txt '}'];
 end
 
 %%-------------------------------------------------------------------------

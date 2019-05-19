@@ -207,14 +207,16 @@ elseif(isstruct(item))
     txt=struct2json(name,item,level,varargin{:});
 elseif(ischar(item))
     txt=str2json(name,item,level,varargin{:});
+elseif(isa(item,'function_handle'))
+    txt=struct2json(name,functions(item),level,varargin{:});
+elseif(isa(item,'containers.Map'))
+    txt=map2json(name,item,level,varargin{:});
 elseif(isobject(item))
     if(~exist('OCTAVE_VERSION','builtin') && exist('istable','builtin') && istable(item))
         txt=matlabtable2json(name,item,level,varargin{:});
     else
         txt=matlabobject2json(name,item,level,varargin{:});
     end
-elseif(isa(item,'function_handle'))
-    txt=struct2json(name,functions(item),level,varargin{:});
 else
     txt=mat2json(name,item,level,varargin{:});
 end
@@ -302,7 +304,7 @@ if(isempty(item))
     txt = sprintf('%s',txt{:});
     return;
 end
-if(~isempty(name)) 
+if(~isempty(name))
     if(forcearray)
         txt={padding0, '"', checkname(name,varargin{:}),'": [', nl};
     end
@@ -346,6 +348,59 @@ for j=1:dim(2)
 end
 if(forcearray)
     txt(end+1:end+3)={nl,padding0,']'};
+end
+txt = sprintf('%s',txt{:});
+
+%%-------------------------------------------------------------------------
+function txt=map2json(name,item,level,varargin)
+txt={};
+if(~isa(item,'containers.Map'))
+	error('input is not a containers.Map class');
+end
+dim=size(item);
+names = keys(item);
+val= values(item);
+
+len=prod(dim);
+forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
+ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'));
+ws=jsonopt('whitespaces_',ws,varargin{:});
+padding0=repmat(ws.tab,1,level);
+nl=ws.newline;
+
+if(isempty(item)) 
+    if(~isempty(name)) 
+        txt={padding0, '"', checkname(name,varargin{:}),'": []'};
+    else
+        txt={padding0, '[]'};
+    end
+    txt = sprintf('%s',txt{:});
+    return;
+end
+if(~isempty(name)) 
+    if(forcearray)
+        txt={padding0, '"', checkname(name,varargin{:}),'": {', nl};
+    end
+else
+    if(forcearray)
+        txt={padding0, '{', nl};
+    end
+end
+
+for i=1:dim(1)
+    if(~isempty(names{i}))
+	    txt{end+1}=obj2json(names{i},val{i},...
+             level+(dim(1)>1),varargin{:});
+        if(i<length(names))
+            txt{end+1}=',';
+        end
+        if(i<dim(1))
+            txt{end+1}=nl;
+        end
+    end
+end
+if(forcearray)
+    txt(end+1:end+3)={nl,padding0,'}'};
 end
 txt = sprintf('%s',txt{:});
 
