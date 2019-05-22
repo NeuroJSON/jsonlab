@@ -140,9 +140,9 @@ function object = parse_object(inStr, esc, varargin)
         end
     end
     parse_char(inStr, '}');
-    if(isstruct(object))
-        object=struct2jdata(object);
-    end
+%     if(isstruct(object))
+%         object=struct2jdata(object);
+%     end
 
 %%-------------------------------------------------------------------------
 

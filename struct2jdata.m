@@ -76,6 +76,9 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
             error('compression method is not supported');
         end
     else
+        if(iscell(data(j).x0x5F_ArrayData_))
+            data(j).x0x5F_ArrayData_=cell2mat(data(j).x0x5F_ArrayData_);
+        end
         ndata=cast(data(j).x0x5F_ArrayData_,data(j).x0x5F_ArrayType_);
     end
     iscpx=0;
@@ -112,8 +115,8 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
             end
         end
     elseif(~isempty(strmatch('x0x5F_ArraySize_',fn)))
-        if(iscpx && size(ndata,2)==2)
-             ndata=complex(ndata(:,1),ndata(:,2));
+        if(iscpx)
+            ndata=complex(ndata(:,1),ndata(:,2));
         end
         ndata=reshape(ndata(:),data(j).x0x5F_ArraySize_);
     end
