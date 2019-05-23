@@ -722,11 +722,12 @@ end
 if(Imarker(1)~='U')
     if(num>=0 && num<127)
        val=uint8(num);
+       return;
     end
     if(num<0 && num>=-31)
        val=typecast(int8(num), 'uint8');
+       return;
     end
-    return;
 end
 if(Imarker(1)~='U' && num<0 && num<127)
    val=[data2byte((swapbytes(cast(num,'uint8')) & 127),'uint8')];
