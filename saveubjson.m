@@ -182,7 +182,7 @@ end
 json=obj2ubjson(rootname,obj,rootlevel,opt);
 if(~rootisarray)
     if(ismsgpack)
-        json=[129 json opt.OM_{2}];
+        json=[char(129) json opt.OM_{2}];
     else
         json=[opt.OM_{1} json opt.OM_{2}];
     end
@@ -678,8 +678,8 @@ end
 function val=S_(str)
 global ismsgpack
 if(ismsgpack)
-    Smarker=[161,219];
-    Imarker=[204,208:211];
+    Smarker=char([161,219]);
+    Imarker=char([204,208:211]);
 else
     Smarker='CS';
     Imarker='UiIlL';
@@ -697,18 +697,18 @@ end
 %%-------------------------------------------------------------------------
 function val=Imsgpk_(num,markers,base1,base0)
 if(num<16)
-    val=uint8(num)+uint8(base0);
+    val=char(uint8(num)+uint8(base0));
     return;
 end
 val=I_(uint32(num),markers);
-if(val(1)>210)
+if(val(1)>char(210))
     num=uint32(num);
-    val=[210 data2byte(swapbytes(cast(num,'uint32')),'uint8')];
-elseif(val(1)<209)
+    val=[char(210) data2byte(swapbytes(cast(num,'uint32')),'uint8')];
+elseif(val(1)<char(209))
     num=uint16(num);
-    val=[209 data2byte(swapbytes(cast(num,'uint16')),'uint8')];
+    val=[char(209) data2byte(swapbytes(cast(num,'uint16')),'uint8')];
 end
-val(1)=val(1)-209+base1;
+val(1)=char(val(1)-209+base1);
 
 %%-------------------------------------------------------------------------
 function val=I_(num, markers)
@@ -769,7 +769,7 @@ if(nargin>=3)
     Imarker=markers;
 end
 if(Imarker(1)~='U' && type<=127)
-    type=204;
+    type=char(204);
 end
 id=find(ismember(Imarker,type));
 
@@ -854,7 +854,7 @@ else
   am0=Amarker{1};
   if(Fmarker(1)~='d')
       Amarker={char(hex2dec('dd')),''};
-      am0=Imsgpk_(numel(num),[204,208:211],220,144);
+      am0=Imsgpk_(numel(num),char([204,208:211]),220,144);
   end
   data=reshape(data,(id*4),length(data)/(id*4));
   data(2:(id*4+1),:)=data;
