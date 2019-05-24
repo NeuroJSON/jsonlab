@@ -39,8 +39,11 @@ function newdata=struct2jdata(data,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-fn=fieldnames(data);
 newdata=data;
+if(~isstruct(data))
+    return;
+end
+fn=fieldnames(data);
 len=length(data);
 needbase64=jsonopt('Base64',1,varargin{:});
 if(jsonopt('Recursive',0,varargin{:})==1)
