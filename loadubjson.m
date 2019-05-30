@@ -91,12 +91,6 @@ if(jsoncount==1 && iscell(data))
     data=data{1};
 end
 
-if(iscell(data))
-    data=cellfun(@(x) struct2jdata(x,struct('Base64',0)),data,'UniformOutput',false);
-elseif(isstruct(data))
-    data=struct2jdata(data,struct('Base64',0));
-end
-
 %%-------------------------------------------------------------------------
 function object = parse_object(inputstr, varargin)
     parse_char(inputstr,'{');
@@ -132,6 +126,9 @@ function object = parse_object(inputstr, varargin)
     end
     if(count==-1)
         parse_char(inputstr, '}');
+    end
+    if(isstruct(object))
+        object=struct2jdata(object,struct('Recursive',0));
     end
 
 %%-------------------------------------------------------------------------

@@ -114,12 +114,21 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
                     ndata=sparse(dim(1),prod(dim(2:end)));
                 elseif dim(1)==1
                     % Sparse row vector
+                    if(size(ndata,2)~=2 && size(ndata,1)==2) 
+                        ndata=ndata';
+                    end
                     ndata=sparse(1,ndata(:,1),ndata(:,2),dim(1),prod(dim(2:end)));
                 elseif dim(2)==1
                     % Sparse column vector
+                    if(size(ndata,2)~=2 && size(ndata,1)==2) 
+                        ndata=ndata';
+                    end
                     ndata=sparse(ndata(:,1),1,ndata(:,2),dim(1),prod(dim(2:end)));
                 else
                     % Generic sparse array.
+                    if(size(ndata,2)~=3 && size(ndata,1)==3) 
+                        ndata=ndata';
+                    end
                     ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3),dim(1),prod(dim(2:end)));
                 end
             else
@@ -133,6 +142,9 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
             ndata=ndata';
         end
         if(iscpx)
+            if(size(ndata,2)~=2 && size(ndata,1)==2)
+                ndata=ndata';
+            end
             ndata=complex(ndata(:,1),ndata(:,2));
         end
         ndata=reshape(ndata(:),data(j).x0x5F_ArraySize_);

@@ -115,11 +115,6 @@ jsoncount=length(data);
 if(jsoncount==1 && iscell(data))
     data=data{1};
 end
-if(iscell(data))
-    data=cellfun(@(x) struct2jdata(x),data,'UniformOutput',false);
-elseif(isstruct(data))
-    data=struct2jdata(data);
-end
 
 if(isfield(opt,'progressbar_'))
     close(opt.progressbar_);
@@ -145,6 +140,9 @@ function object = parse_object(inputstr, esc, varargin)
         end
     end
     parse_char(inputstr, '}');
+    if(isstruct(object))
+        object=struct2jdata(object,struct('Recursive',0));
+    end
 
 %%-------------------------------------------------------------------------
 
