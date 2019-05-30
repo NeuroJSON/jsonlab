@@ -159,78 +159,80 @@ function object = parse_array(inputstr, esc, varargin) % JSON array is written i
     end
 
     if next_char(inputstr) ~= ']'
-        if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
+        try
+            if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
                 [endpos, maxlevel]=match_bracket(inputstr,pos);
-                arraystr=['[' inputstr(pos:endpos)];
-                arraystr=sscanf_prep(arraystr);
-                if(isempty(find(arraystr=='"', 1)))
-                    % handle 1D array first
-                    if(maxlevel==1)
-                        astr=arraystr(2:end-1);
-                        astr(astr==' ')='';
-                        [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',[1,inf]);
-                        if(nextidx>=length(astr)-1)
-                                object=obj;
-                                pos=endpos;
-                                parse_char(inputstr, ']');
-                                return;
-                        end
-                    end
-
-                    % next handle 2D array, these are most common ones
-                    if(maxlevel==2 && ~isempty(regexp(arraystr(2:end),'^\s*\[','once')))
-                        rowstart=find(arraystr(2:end)=='[',1)+1;
-                        if(rowstart)
-                            [obj, nextidx]=parse2darray(inputstr,pos+rowstart,arraystr);
-                            if(nextidx>=length(arraystr)-1)
-                                object=obj;
-                                pos=endpos;
-                                parse_char(inputstr, ']');
-                                if(pbar>0)
-                                    waitbar(pos/length(inStr),pbar,'loading ...');
-                                end
-                                return;
+                if(~isempty(endpos))
+                    arraystr=['[' inputstr(pos:endpos)];
+                    arraystr=sscanf_prep(arraystr);
+                    if(isempty(find(arraystr=='"', 1)))
+                        % handle 1D array first
+                        if(maxlevel==1)
+                            astr=arraystr(2:end-1);
+                            astr(astr==' ')='';
+                            [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',[1,inf]);
+                            if(nextidx>=length(astr)-1)
+                                    object=obj;
+                                    pos=endpos;
+                                    parse_char(inputstr, ']');
+                                    return;
                             end
                         end
-                    end
 
-                    % for N-D packed array in a nested array construct, 
-                    % in the future can replace 1d and 2d cases
-                    if(maxlevel>2 && ~isempty(regexp(arraystr(2:end),'^\s*\[\s*\[','once')))
-                        astr=arraystr;
-                        dims=nestbracket2dim(astr);
-                        if(any(dims==0) || all(mod(dims(:),1) == 0)) % all dimensions are integers - this can be problematic
-                            astr=arraystr;
-                            astr(astr=='[')='';
-                            astr(astr==']')='';
-                            [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
-                            if(nextidx>=length(astr)-1)
-                                    object=reshape(obj,dims);
+                        % next handle 2D array, these are most common ones
+                        if(maxlevel==2 && ~isempty(regexp(arraystr(2:end),'^\s*\[','once')))
+                            rowstart=find(arraystr(2:end)=='[',1)+1;
+                            if(rowstart)
+                                [obj, nextidx]=parse2darray(inputstr,pos+rowstart,arraystr);
+                                if(nextidx>=length(arraystr)-1)
+                                    object=obj;
                                     pos=endpos;
                                     parse_char(inputstr, ']');
                                     if(pbar>0)
                                         waitbar(pos/length(inStr),pbar,'loading ...');
                                     end
                                     return;
+                                end
+                            end
+                        end
+
+                        % for N-D packed array in a nested array construct, 
+                        % in the future can replace 1d and 2d cases
+                        if(maxlevel>2 && ~isempty(regexp(arraystr(2:end),'^\s*\[\s*\[','once')))
+                            astr=arraystr;
+                            dims=nestbracket2dim(astr);
+                            if(any(dims==0) || all(mod(dims(:),1) == 0)) % all dimensions are integers - this can be problematic
+                                astr=arraystr;
+                                astr(astr=='[')='';
+                                astr(astr==']')='';
+                                [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
+                                if(nextidx>=length(astr)-1)
+                                        object=reshape(obj,dims);
+                                        pos=endpos;
+                                        parse_char(inputstr, ']');
+                                        if(pbar>0)
+                                            waitbar(pos/length(inStr),pbar,'loading ...');
+                                        end
+                                        return;
+                                end
                             end
                         end
                     end
                 end
-        end
-        try
-               arraystr=regexprep(arraystr,'^\s*\[','{','once');
-               arraystr=regexprep(arraystr,'\]\s*$','}','once');
-               if(regexp(arraystr,':','once'))
-                   error('One can not use ":" construct inside a JSON array');
-               end
-               if(jsonopt('ParseStringArray',0,varargin{:})==0)
-                   arraystr=regexprep(arraystr,'\"','''');
-               end
-               object=eval(arraystr);
-               if(iscell(object))
-                   object=cellfun(@unescapejsonstring,object,'UniformOutput',false);
-               end
-               pos=endpos;
+            end
+            if(regexp(arraystr,':','once'))
+            	error('One can not use ":" construct inside a JSON array');
+            end
+            arraystr=regexprep(arraystr,'\[','{');
+            arraystr=regexprep(arraystr,'\]','}');
+            if(jsonopt('ParseStringArray',0,varargin{:})==0)
+            	arraystr=regexprep(arraystr,'\"','''');
+            end
+            object=eval(arraystr);
+            if(iscell(object))
+            	object=cellfun(@unescapejsonstring,object,'UniformOutput',false);
+            end
+            pos=endpos;
         catch
              while 1
                 newopt=varargin2struct(varargin{:},'JSONLAB_ArrayDepth_',arraydepth+1);

@@ -41,6 +41,9 @@ function newdata=struct2jdata(data,varargin)
 
 newdata=data;
 if(~isstruct(data))
+    if(iscell(data))
+        newdata=cellfun(@(x) struct2jdata(x),data,'UniformOutput',false);
+    end
     return;
 end
 fn=fieldnames(data);
@@ -85,13 +88,20 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
         ndata=cast(data(j).x0x5F_ArrayData_,data(j).x0x5F_ArrayType_);
     end
     iscpx=0;
+    needtranspose=0;
     if(~isempty(strmatch('x0x5F_ArrayIsComplex_',fn)))
         if(data(j).x0x5F_ArrayIsComplex_)
            iscpx=1;
+           needtranspose=islogical(data(j).x0x5F_ArrayIsComplex_);
         end
     end
-    if(~isempty(strmatch('x0x5F_ArrayIsSparse_',fn)))
-        if(data(j).x0x5F_ArrayIsSparse_)
+    if(~isempty(strmatch('x0x5F_ArrayIsSparse_',fn)) && data(j).x0x5F_ArrayIsSparse_)
+            if(islogical(data(j).x0x5F_ArrayIsSparse_))
+                needtranspose=1;
+            end
+            if(needtranspose)
+                ndata=ndata';
+            end
             if(~isempty(strmatch('x0x5F_ArraySize_',fn)))
                 dim=double(data(j).x0x5F_ArraySize_);
                 if(iscpx && size(ndata,2)==4-any(dim==1))
@@ -116,8 +126,10 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
                 end
                 ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3));
             end
-        end
     elseif(~isempty(strmatch('x0x5F_ArraySize_',fn)))
+        if(needtranspose)
+            ndata=ndata';
+        end
         if(iscpx)
             ndata=complex(ndata(:,1),ndata(:,2));
         end

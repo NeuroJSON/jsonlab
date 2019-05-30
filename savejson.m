@@ -502,9 +502,9 @@ if(issparse(item))
            % (Necessary for complex row vector handling below.)
            data=data';
        end
-       txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','1', sep);
+       txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','true', sep);
     end
-    txt=sprintf(dataformat,txt,padding0,'"_ArrayIsSparse_": ','1', sep);
+    txt=sprintf(dataformat,txt,padding0,'"_ArrayIsSparse_": ','true', sep);
     if(~isempty(dozip) && numel(data*2)>zipsize)
         if(size(item,1)==1)
             % Row vector, store only column indices.
@@ -528,17 +528,16 @@ if(issparse(item))
     else
         if(size(item,1)==1)
             % Row vector, store only column indices.
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
-               matdata2json([iy(:),data'],level+2,varargin{:}), nl);
+            fulldata=[iy(:),data'];
         elseif(size(item,2)==1)
             % Column vector, store only row indices.
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
-               matdata2json([ix,data],level+2,varargin{:}), nl);
+            fulldata=[ix,data];
         else
             % General case, store row and column indices.
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
-               matdata2json([ix,iy,data],level+2,varargin{:}), nl);
+            fulldata=[ix,iy,data];
         end
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
+               matdata2json(fulldata',level+2,varargin{:}), nl);    
     end
 else
     if(~isempty(dozip) && numel(item)>zipsize)
@@ -548,8 +547,8 @@ else
                 fulldata=uint8(fulldata);
             end
         else
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','1', sep);
-            fulldata=[real(item(:)) imag(item(:))];
+            txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','true', sep);
+            fulldata=[real(item(:)) imag(item(:))]';
         end
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionMethod_": "',dozip, ['"' sep]);
@@ -565,9 +564,9 @@ else
             txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
             matdata2json(item(:)',level+2,varargin{:}), nl);
         else
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','1', sep);
+            txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','true', sep);
             txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
-            matdata2json([real(item(:)) imag(item(:))],level+2,varargin{:}), nl);
+            matdata2json([real(item(:)) imag(item(:))]',level+2,varargin{:}), nl);
         end
     end
 end
