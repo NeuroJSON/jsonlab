@@ -41,7 +41,7 @@ data2json =
 >> 
 ans =
 
-{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$i#U}
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$i#[$U#U}
 
 >> 
 json2data =
@@ -66,8 +66,8 @@ data2json =
 >> 
 ans =
 
-{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$i#[$U#U# 	$!"
-}
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$i#[$U#U# 	
+$!"}
 
 >> 
 json2data =
@@ -122,7 +122,7 @@ ans =
 
 {Usparse{U_ArrayType_SUdoubleU_ArraySize_[$U#U
 
-U_ArrayIsSparse_TU_ArrayData_[$D#[$U#U	?ð      @"      @      @$      @$      @      @       @      @$      @       @       @      @      @       @"      @$      @$      @$      ?äûÓë12?è?h:öl;?ë,8Ù±?çÇ½½æ'#?Ù?[`o?å¸2ÉNé?¢HÍpà?íãEÎ¹¶P?äù¬Ä²	¶}}
+U_ArrayIsSparse_TU_ArrayData_[$D#[$U#U	?ð      @       ?äûÓë12@"      @       ?è?h:öl;@      @      ?ë,8Ù±@$      @      ?çÇ½½æ'#@$      @       ?Ù?[`o@      @"      ?å¸2ÉNé@       @$      ?¢HÍpà@      @$      ?íãEÎ¹¶P@$      @$      ?äù¬Ä²	¶}}
 
 >> 
 json2data = 
@@ -152,7 +152,7 @@ ans =
 
 {Ucomplex_sparse{U_ArrayType_SUdoubleU_ArraySize_[$U#U
 
-U_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$D#[$U#U	?ð      @"      @      @$      @$      @      @       @      @$      @       @       @      @      @       @"      @$      @$      @$      ?äûÓë12?è?h:öl;?ë,8Ù±?çÇ½½æ'#?Ù?[`o?å¸2ÉNé?¢HÍpà?íãEÎ¹¶P?äù¬Ä²	¶¿äûÓë12¿è?h:öl;¿ë,8Ù±¿çÇ½½æ'#¿Ù?[`o¿å¸2ÉNé¿¢HÍpà¿íãEÎ¹¶P¿äù¬Ä²	¶}}
+U_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$D#[$U#U	?ð      @       ?äûÓë12¿äûÓë12@"      @       ?è?h:öl;¿è?h:öl;@      @      ?ë,8Ù±¿ë,8Ù±@$      @      ?çÇ½½æ'#¿çÇ½½æ'#@$      @       ?Ù?[`o¿Ù?[`o@      @"      ?å¸2ÉNé¿å¸2ÉNé@       @$      ?¢HÍpà¿¢HÍpà@      @$      ?íãEÎ¹¶P¿íãEÎ¹¶P@$      @$      ?äù¬Ä²	¶¿äù¬Ä²	¶}}
 
 >> 
 json2data = 
@@ -227,7 +227,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Usparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[$i#[$U#U}}
+{Usparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[$i#[$U#U}}
 
 >> 
 json2data = 
@@ -242,7 +242,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Ucomplex_sparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$i#[$U#Uýÿü}}
+{Ucomplex_sparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$i#[$U#Uýÿü}}
 
 >> 
 json2data = 
@@ -257,7 +257,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Usparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[$i#[$U#U}}
+{Usparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[$i#[$U#U}}
 
 >> 
 json2data = 
@@ -272,7 +272,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Ucomplex_sparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$i#[$U#Uýÿü}}
+{Ucomplex_sparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$i#[$U#Uýÿü}}
 
 >> 
 json2data = 

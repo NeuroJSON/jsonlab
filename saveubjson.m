@@ -509,7 +509,7 @@ if(issparse(item))
             fulldata=[ix,iy,data];
         end
         txt=[txt,N_('_ArrayData_'),...
-               matdata2ubjson(fulldata,level+2,varargin{:})];
+               matdata2ubjson(fulldata',level+2,varargin{:})];
         childcount=childcount+1;
     end
 else
@@ -538,12 +538,12 @@ else
     else
         if(isreal(item))
             txt=[txt,N_('_ArrayData_'),...
-                matdata2ubjson(item(:),level+2,varargin{:})];
+                matdata2ubjson(item(:)',level+2,varargin{:})];
             childcount=childcount+1;
         else
             txt=[txt,N_('_ArrayIsComplex_'),FTmarker(2)];
             txt=[txt,N_('_ArrayData_'),...
-                matdata2ubjson([real(item(:)) imag(item(:))],level+2,varargin{:})];
+                matdata2ubjson([real(item(:)) imag(item(:))]',level+2,varargin{:})];
             childcount=childcount+2;
         end
     end

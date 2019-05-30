@@ -49,11 +49,13 @@ end
 fn=fieldnames(data);
 len=length(data);
 needbase64=jsonopt('Base64',1,varargin{:});
-if(jsonopt('Recursive',0,varargin{:})==1)
+if(jsonopt('Recursive',1,varargin{:})==1)
   for i=1:length(fn) % depth-first
     for j=1:len
-        if(isstruct(getfield(data(j),fn{i})))
-            newdata(j)=setfield(newdata(j),fn{i},jstruct2array(getfield(data(j),fn{i})));
+        if(isstruct(data(j).(fn{i})))
+            newdata(j).(fn{i})=struct2jdata(data(j).(fn{i}));
+        elseif(iscell(data(j).(fn{i})))
+            newdata(j).(fn{i})=cellfun(@(x) struct2jdata(x),newdata(j).(fn{i}),'UniformOutput',false);
         end
     end
   end

@@ -93,6 +93,8 @@ end
 
 if(iscell(data))
     data=cellfun(@(x) struct2jdata(x,struct('Base64',0)),data,'UniformOutput',false);
+elseif(isstruct(data))
+    data=struct2jdata(data,struct('Base64',0));
 end
 
 %%-------------------------------------------------------------------------
