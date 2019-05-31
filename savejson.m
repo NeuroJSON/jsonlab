@@ -211,6 +211,8 @@ elseif(isa(item,'function_handle'))
     txt=struct2json(name,functions(item),level,varargin{:});
 elseif(isa(item,'containers.Map'))
     txt=map2json(name,item,level,varargin{:});
+elseif(isa(item,'categorical'))
+    txt=cell2json(name,cellstr(item),level,varargin{:});
 elseif(isobject(item))
     if(~exist('OCTAVE_VERSION','builtin') && exist('istable','builtin') && istable(item))
         txt=matlabtable2json(name,item,level,varargin{:});

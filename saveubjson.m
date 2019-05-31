@@ -214,6 +214,8 @@ elseif(isa(item,'function_handle'))
     txt=struct2ubjson(name,functions(item),level,varargin{:});
 elseif(isa(item,'containers.Map'))
     txt=map2ubjson(name,item,level,varargin{:});
+elseif(isa(item,'categorical'))
+    txt=cell2ubjson(name,cellstr(item),level,varargin{:});
 elseif(isobject(item)) 
     txt=matlabobject2ubjson(name,item,level,varargin{:});
 else
