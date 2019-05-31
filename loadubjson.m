@@ -334,7 +334,7 @@ end
             parse_char(inputstr, '}');
         end
         if(isstruct(object))
-            object=struct2jdata(object,struct('Recursive',0));
+            object=struct2jdata(object,struct('Recursive',0, 'Base64',0));
         end
     end
 
