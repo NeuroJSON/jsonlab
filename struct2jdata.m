@@ -68,17 +68,12 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
         if(~isempty(strmatch('x0x5F_ArrayCompressionMethod_',fn)))
             zipmethod=data(j).x0x5F_ArrayCompressionMethod_;
         end
-        if(strcmpi(zipmethod,'gzip'))
+        if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip'})))
+            decompfun=str2func([zipmethod 'decode']);
             if(needbase64)
-                ndata=reshape(typecast(gzipdecode(base64decode(data(j).x0x5F_ArrayCompressedData_)),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
+                ndata=reshape(typecast(decompfun(base64decode(data(j).x0x5F_ArrayCompressedData_)),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
             else
-                ndata=reshape(typecast(gzipdecode(data(j).x0x5F_ArrayCompressedData_),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
-            end
-        elseif(strcmpi(zipmethod,'zlib'))
-            if(needbase64)
-                ndata=reshape(typecast(zlibdecode(base64decode(data(j).x0x5F_ArrayCompressedData_)),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
-            else
-                ndata=reshape(typecast(zlibdecode(data(j).x0x5F_ArrayCompressedData_),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
+                ndata=reshape(typecast(decompfun(data(j).x0x5F_ArrayCompressedData_),data(j).x0x5F_ArrayType_),data(j).x0x5F_ArrayCompressionSize_);
             end
         else
             error('compression method is not supported');

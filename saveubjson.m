@@ -61,8 +61,8 @@ function json=saveubjson(rootname,obj,varargin)
 %                         wrapped inside a function call as 'foo(...);'
 %        opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
-%        opt.Compression  'zlib' or 'gzip': specify array compression
-%                         method; currently only supports 'gzip' or 'zlib'. The
+%        opt.Compression  'zlib', 'gzip', 'lzma' or 'lzip': specify array compression
+%                         method; currently only supports 4 methods. The
 %                         data compression only applicable to numerical arrays 
 %                         in 3D or higher dimensions, or when ArrayToStruct
 %                         is 1 for 1D or 2D arrays. If one wants to
@@ -123,7 +123,7 @@ opt.IsOctave=exist('OCTAVE_VERSION','builtin');
 
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
-    if(~(strcmpi(dozip,'gzip') || strcmpi(dozip,'zlib')))
+    if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip'})))
         error('compression method "%s" is not supported',dozip);
     end
     if(exist('zmat')~=3)
@@ -491,13 +491,8 @@ if(issparse(item))
         cid=I_(uint32(max(size(fulldata))));
         txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker)];
         txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
-        if(strcmpi(dozip,'gzip'))
-            txt=[txt,N_('_ArrayCompressedData_'), I_a(gzipencode(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
-        elseif(strcmpi(dozip,'zlib'))
-            txt=[txt,N_('_ArrayCompressedData_'), I_a(zlibencode(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
-        else
-            error('compression method not supported');
-        end
+	compfun=str2func([dozip 'encode']);
+	txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
         childcount=childcount+3;
     else
         if(size(item,1)==1)
@@ -529,13 +524,8 @@ else
         cid=I_(uint32(max(size(fulldata))));
         txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker)];
         txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
-        if(strcmpi(dozip,'gzip'))
-            txt=[txt,N_('_ArrayCompressedData_'), I_a(gzipencode(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
-        elseif(strcmpi(dozip,'zlib'))
-            txt=[txt,N_('_ArrayCompressedData_'), I_a(zlibencode(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
-        else
-            error('compression method not supported');
-        end
+	compfun=str2func([dozip 'encode']);
+	txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
         childcount=childcount+3;
     else
         if(isreal(item))

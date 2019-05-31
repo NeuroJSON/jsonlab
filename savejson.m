@@ -67,8 +67,8 @@ function json=savejson(rootname,obj,varargin)
 %                         back to the string form
 %        opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
 %        opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
-%        opt.Compression  'zlib' or 'gzip': specify array compression
-%                         method; currently only supports 'gzip' or 'zlib'. The
+%        opt.Compression  'zlib', 'gzip', 'lzma' or 'lzip': specify array compression
+%                         method; currently only supports 4 methods. The
 %                         data compression only applicable to numerical arrays 
 %                         in 3D or higher dimensions, or when ArrayToStruct
 %                         is 1 for 1D or 2D arrays. If one wants to
@@ -123,7 +123,7 @@ opt.IsOctave=exist('OCTAVE_VERSION','builtin');
 
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
-    if(~(strcmpi(dozip,'gzip') || strcmpi(dozip,'zlib')))
+    if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip'})))
         error('compression method "%s" is not supported',dozip);
     end
     if(exist('zmat')~=3)
@@ -520,13 +520,8 @@ if(issparse(item))
         end
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionMethod_": "',dozip, ['"' sep]);
-        if(strcmpi(dozip,'gzip'))
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(gzipencode(typecast(fulldata(:),'uint8'))),['"' nl]);
-        elseif(strcmpi(dozip,'zlib'))
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(zlibencode(typecast(fulldata(:),'uint8'))),['"' nl]);
-        else
-            error('compression method not supported');
-        end
+	compfun=str2func([dozip 'encode']);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
     else
         if(size(item,1)==1)
             % Row vector, store only column indices.
@@ -554,13 +549,8 @@ else
         end
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionMethod_": "',dozip, ['"' sep]);
-        if(strcmpi(dozip,'gzip'))
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(gzipencode(typecast(fulldata(:),'uint8'))),['"' nl]);
-        elseif(strcmpi(dozip,'zlib'))
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(zlibencode(typecast(fulldata(:),'uint8'))),['"' nl]);
-        else
-            error('compression method not supported');
-        end
+	compfun=str2func([dozip 'encode']);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
     else
         if(isreal(item))
             txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
