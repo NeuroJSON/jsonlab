@@ -627,7 +627,12 @@ ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
 ws=jsonopt('whitespaces_',ws,varargin{:});
 tab=ws.tab;
 nl=ws.newline;
+isnest=jsonopt('NestArray',0,varargin{:});
 
+if(~isvector(mat) && isnest==1)
+   txt=cell2json('',squeeze(num2cell(mat,1)),level-1,varargin{:});
+   return;
+end
 if(size(mat,1)==1)
     pre='';
     post='';
