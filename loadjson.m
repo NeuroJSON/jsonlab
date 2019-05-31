@@ -83,10 +83,8 @@ else
 end
 
 pos = 1; len = length(string); inputstr = string;
-arraytoken=find(inputstr=='[' | inputstr==']' | inputstr=='"');
-jstr=regexprep(inputstr,'\\\\','  ');
-escquote=regexp(jstr,'\\"');
-arraytoken=sort([arraytoken escquote]);
+arraytokenidx=find(inputstr=='[' | inputstr==']');
+arraytoken=inputstr(arraytokenidx);
 
 % String delimiters and escape chars identified to improve speed:
 esc = find(inputstr=='"' | inputstr=='\' ); % comparable to: regexp(inputstr, '["\\]');
@@ -94,6 +92,7 @@ index_esc = 1;
 
 opt=varargin2struct(varargin{:});
 opt.arraytoken_=arraytoken;
+opt.arraytokenidx_=arraytokenidx;
 
 if(jsonopt('ShowProgress',0,opt)==1)
     opt.progressbar_=waitbar(0,'loading ...');
@@ -159,7 +158,7 @@ function object = parse_array(inputstr, esc, varargin) % JSON array is written i
     if next_char(inputstr) ~= ']'
         try
             if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
-                [endpos, maxlevel]=match_bracket(inputstr,pos);
+                [endpos, maxlevel]=fast_match_bracket(varargin{1}.arraytoken_,varargin{1}.arraytokenidx_,pos);
                 if(~isempty(endpos))
                     arraystr=['[' inputstr(pos:endpos)];
                     arraystr=sscanf_prep(arraystr);
@@ -218,21 +217,22 @@ function object = parse_array(inputstr, esc, varargin) % JSON array is written i
                     end
                 end
             end
-            if(regexp(arraystr,':','once'))
-            	error('One can not use ":" construct inside a JSON array');
+            if(isempty(regexp(arraystr,':','once')))
+                arraystr=regexprep(arraystr,'\[','{');
+                arraystr=regexprep(arraystr,'\]','}');
+                if(jsonopt('ParseStringArray',0,varargin{:})==0)
+                    arraystr=regexprep(arraystr,'\"','''');
+                end
+                object=eval(arraystr);
+                if(iscell(object))
+                    object=cellfun(@unescapejsonstring,object,'UniformOutput',false);
+                end
+                pos=endpos;
             end
-            arraystr=regexprep(arraystr,'\[','{');
-            arraystr=regexprep(arraystr,'\]','}');
-            if(jsonopt('ParseStringArray',0,varargin{:})==0)
-            	arraystr=regexprep(arraystr,'\"','''');
-            end
-            object=eval(arraystr);
-            if(iscell(object))
-            	object=cellfun(@unescapejsonstring,object,'UniformOutput',false);
-            end
-            pos=endpos;
         catch
-             while 1
+        end
+        if(pos~=endpos)
+            while 1
                 newopt=varargin2struct(varargin{:},'JSONLAB_ArrayDepth_',arraydepth+1);
                 val = parse_value(inputstr, esc, newopt);
                 object{end+1} = val;
@@ -240,7 +240,7 @@ function object = parse_array(inputstr, esc, varargin) % JSON array is written i
                     break;
                 end
                 parse_char(inputstr, ',');
-             end
+            end
         end
     end
 
@@ -436,15 +436,14 @@ function str = valid_field(str,varargin)
 % Invalid characters will be converted to underscores, and the prefix
 % "x0x[Hex code]_" will be added if the first character is not a letter.
     isoct=exist('OCTAVE_VERSION','builtin');
-    pos=regexp(str,'^[^A-Za-z]','once');
-    if(~isempty(pos))
+    if(~isvarname(str))
         if(~isoct && str(1)+0 > 255)
             str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
         else
             str=sprintf('x0x%X_%s',char(str(1)),str(2:end));
         end
     end
-    if(isempty(regexp(str,'[^0-9A-Za-z_]', 'once' )))
+    if(isvarname(str))
         return;
     end
     if(~isoct)
