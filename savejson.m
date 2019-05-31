@@ -214,7 +214,7 @@ elseif(isa(item,'containers.Map'))
 elseif(isa(item,'categorical'))
     txt=cell2json(name,cellstr(item),level,varargin{:});
 elseif(isobject(item))
-    if(~exist('OCTAVE_VERSION','builtin') && exist('istable','builtin') && istable(item))
+    if(~exist('OCTAVE_VERSION','builtin') && exist('istable') && istable(item))
         txt=matlabtable2json(name,item,level,varargin{:});
     else
         txt=matlabobject2json(name,item,level,varargin{:});
@@ -573,9 +573,6 @@ elseif numel(item) == 1 %
     txt = str2json(name, char(item), level, varargin(:));
     return
 else
-    % "st = struct(item);" would produce an inmutable warning, because it
-    % make the protected and private properties visible. Instead we get the
-    % visible properties
     propertynames = properties(item);
     for p = 1:numel(propertynames)
         for o = numel(item):-1:1 % aray of objects
@@ -590,11 +587,8 @@ function txt=matlabtable2json(name,item,level,varargin)
 if numel(item) == 0 %empty object
     st = struct();
 else
-    % "st = struct(item);" would produce an inmutable warning, because it
-    % make the protected and private properties visible. Instead we get the
-    % visible properties
     st = struct();
-    propertynames = properties(item);
+    propertynames = item.Properties.VariableNames;
     if(isfield(item.Properties,'RowNames') && ~isempty(item.Properties.RowNames))
         rownames=item.Properties.RowNames;
         for p = 1:(numel(propertynames)-1)
@@ -603,7 +597,7 @@ else
             end
         end
     else
-        for p = 1:(numel(propertynames)-1)
+        for p = 1:numel(propertynames)
             for j = 1:size(item(:,p),1)
                 st(j).(propertynames{p}) = item{j,p};
             end
@@ -635,7 +629,7 @@ else
 end
 
 if(isempty(mat))
-    txt='null';
+    txt='[]';
     return;
 end
 if(isinteger(mat))

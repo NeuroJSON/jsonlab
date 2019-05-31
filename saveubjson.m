@@ -217,7 +217,11 @@ elseif(isa(item,'containers.Map'))
 elseif(isa(item,'categorical'))
     txt=cell2ubjson(name,cellstr(item),level,varargin{:});
 elseif(isobject(item)) 
-    txt=matlabobject2ubjson(name,item,level,varargin{:});
+    if(~exist('OCTAVE_VERSION','builtin') && exist('istable') && istable(item))
+        txt=matlabtable2ubjson(name,item,level,varargin{:});
+    else
+        txt=matlabobject2ubjson(name,item,level,varargin{:});
+    end
 else
     txt=mat2ubjson(name,item,level,varargin{:});
 end
@@ -547,6 +551,30 @@ if(Omarker{1}~='{')
     end
 end
 txt=[txt,Omarker{2}];
+
+%%-------------------------------------------------------------------------
+function txt=matlabtable2ubjson(name,item,level,varargin)
+if numel(item) == 0 %empty object
+    st = struct();
+else
+    st = struct();
+    propertynames = item.Properties.VariableNames;
+    if(isfield(item.Properties,'RowNames') && ~isempty(item.Properties.RowNames))
+        rownames=item.Properties.RowNames;
+        for p = 1:(numel(propertynames)-1)
+            for j = 1:size(item(:,p),1)
+                st.(rownames{j}).(propertynames{p}) = item{j,p};
+            end
+        end
+    else
+        for p = 1:numel(propertynames)
+            for j = 1:size(item(:,p),1)
+                st(j).(propertynames{p}) = item{j,p};
+            end
+        end
+    end
+end
+txt=struct2ubjson(name,st,level,varargin{:});
 
 %%-------------------------------------------------------------------------
 function txt=matlabobject2ubjson(name,item,level,varargin)

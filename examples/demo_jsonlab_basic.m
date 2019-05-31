@@ -15,11 +15,66 @@ savejson('',data2json)
 json2data=loadjson(ans)
 
 fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  an empty array \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=[]
+savejson('',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  an ampty string \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=''
+savejson('emptystr',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a simple row vector \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=1:3
+savejson('',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a simple column vector \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=(1:3)'
+savejson('',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a string array \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=['AC';'EG']
+savejson('',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a string with escape symbols \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=sprintf('AB\tCD\none"two')
+savejson('str',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a mix-typed cell \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json={'a',true,[2;3]}
+savejson('',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a complex number\n')
 fprintf(1,'%%=================================================\n\n')
 
-clear i;
-data2json=1+2*i
+data2json=1+2i
 savejson('',data2json)
 json2data=loadjson(ans) 
 
@@ -159,6 +214,14 @@ fprintf(1,'%%=================================================\n\n')
 json2data=loadjson('{"ValidName":1, "_InvalidName":2, ":Field:":3, "项目":"绝密"}')
 
 fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a function handle\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=@(x) x+1
+savejson('handle',data2json)
+json2data=loadjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a 2D cell array\n')
 fprintf(1,'%%=================================================\n\n')
 
@@ -176,6 +239,39 @@ for i=1:6
 end
 savejson('data2json',data2json)
 json2data=loadjson(ans)
+
+
+if(exist('datetime'))
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  datetime object \n')
+    fprintf(1,'%%=================================================\n\n')
+
+    data2json=datetime({'8 April 2015','9 May 2015'}, 'InputFormat','d MMMM yyyy')
+    savejson('',data2json)
+    json2data=loadjson(ans)
+end
+
+if(exist('containers.Map'))
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  a container.Maps object \n')
+    fprintf(1,'%%=================================================\n\n')
+
+    data2json=containers.Map({'Andy','William','Om'},[21,21,22])
+    savejson('',data2json)
+    json2data=loadjson(ans)
+end
+
+if(exist('istable'))
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  a table object \n')
+    fprintf(1,'%%=================================================\n\n')
+
+    Names={'Andy','William','Om'}';
+    Age=[21,21,22]';
+    data2json=table(Names,Age)
+    savejson('table',table(Names,Age))
+    json2data=loadjson(ans)
+end
 
 rand ('state',rngstate);
 

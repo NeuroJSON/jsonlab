@@ -1,13 +1,16 @@
 
                             < M A T L A B (R) >
-                  Copyright 1984-2010 The MathWorks, Inc.
-                Version 7.11.0.584 (R2010b) 64-bit (glnxa64)
-                              August 16, 2010
+                  Copyright 1984-2016 The MathWorks, Inc.
+                   R2016a (9.0.0.341360) 64-bit (glnxa64)
+                             February 11, 2016
 
  
-  To get started, type one of these: helpwin, helpdesk, or demo.
-  For product information, visit www.mathworks.com.
+For online documentation, see http://www.mathworks.com/support
+For product information, visit www.mathworks.com.
  
+
+	Academic License
+
 >> >> >> >> >> >> >> >> >> 
 %=================================================
 >> %  a simple scalar value 
@@ -30,10 +33,158 @@ json2data =
 
 >> >> 
 %=================================================
+>> %  an empty array 
+>> %=================================================
+
+>> >> 
+data2json =
+
+     []
+
+>> 
+ans =
+
+{UemptyZ}
+
+>> 
+json2data = 
+
+    empty: []
+
+>> >> 
+%=================================================
+>> %  an ampty string 
+>> %=================================================
+
+>> >> 
+data2json =
+
+     ''
+
+
+>> 
+ans =
+
+{UemptystrSU }
+
+>> 
+json2data = 
+
+    emptystr: [1x0 char]
+
+>> >> 
+%=================================================
+>> %  a simple row vector 
+>> %=================================================
+
+>> >> 
+data2json =
+
+     1     2     3
+
+>> 
+ans =
+
+[$i#U
+
+>> 
+json2data =
+
+    1    2    3
+
+>> >> 
+%=================================================
+>> %  a simple column vector 
+>> %=================================================
+
+>> >> 
+data2json =
+
+     1
+     2
+     3
+
+>> 
+ans =
+
+[$i#[$U#U
+
+>> 
+json2data =
+
+    1
+    2
+    3
+
+>> >> 
+%=================================================
+>> %  a string array 
+>> %=================================================
+
+>> >> 
+data2json =
+
+AC
+EG
+
+>> 
+ans =
+
+[SUACSUEG]
+
+>> 
+json2data = 
+
+    'AC'    'EG'
+
+>> >> 
+%=================================================
+>> %  a string with escape symbols 
+>> %=================================================
+
+>> >> 
+data2json =
+
+AB	CD
+one"two
+
+>> 
+ans =
+
+{UstrSUAB	CD
+one"two}
+
+>> 
+json2data = 
+
+    str: 'AB	CD...'
+
+>> >> 
+%=================================================
+>> %  a mix-typed cell 
+>> %=================================================
+
+>> >> 
+data2json = 
+
+    'a'    [1]    [2x1 double]
+
+>> 
+ans =
+
+[CaT[$i#[$U#U]
+
+>> 
+json2data = 
+
+    'a'    [1]    [2x1 int8]
+
+>> >> 
+%=================================================
 >> %  a complex number
 >> %=================================================
 
->> >> >> 
+>> >> 
 data2json =
 
    1.0000 + 2.0000i
@@ -303,6 +454,11 @@ json2data =
 
     astruct: [1x1 struct]
 
+>> 
+ans =
+
+logical
+
 >> >> 
 %=================================================
 >> %  a structure array
@@ -355,6 +511,26 @@ json2data =
 
 >> >> 
 %=================================================
+>> %  a function handle
+>> %=================================================
+
+>> >> 
+data2json = 
+
+    @(x)x+1
+
+>> 
+ans =
+
+{Uhandle{UfunctionSU@(x)x+1UtypeSU	anonymousUfileSU U	workspace[{}]Uwithin_file_pathSU__base_function}}
+
+>> 
+json2data = 
+
+    handle: [1x1 struct]
+
+>> >> 
+%=================================================
 >> %  a 2D cell array
 >> %=================================================
 
@@ -378,6 +554,7 @@ json2data =
 data2json = 
 
 2x3 struct array with fields:
+
     idx
     data
 
@@ -390,5 +567,76 @@ ans =
 json2data = 
 
     data2json: {{1x2 cell}  {1x2 cell}  {1x2 cell}}
+
+>> >> >> 
+%=================================================
+%  datetime object 
+%=================================================
+
+
+data2json = 
+
+   08-Apr-2015   09-May-2015
+
+
+ans =
+
+[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayiUHouri UMinutei USecondi USystemTimeZoneSUAmerica/New_York}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayi	UHouri UMinutei USecondi USystemTimeZoneSUAmerica/New_York}]
+
+
+json2data = 
+
+    [1x1 struct]    [1x1 struct]
+
+>> >> 
+%=================================================
+%  a container.Maps object 
+%=================================================
+
+
+data2json = 
+
+  Map with properties:
+
+        Count: 3
+      KeyType: char
+    ValueType: double
+
+
+ans =
+
+{UAndyiUOmiUWilliami}
+
+
+json2data = 
+
+       Andy: 21
+         Om: 22
+    William: 21
+
+>> >> 
+%=================================================
+%  a table object 
+%=================================================
+
+
+data2json = 
+
+      Names      Age
+    _________    ___
+
+    'Andy'       21 
+    'William'    21 
+    'Om'         22 
+
+
+ans =
+
+{Utable[{UNames[SUAndy]UAgei}{UNames[SUWilliam]UAgei}{UNames[SUOm]UAgei}]}
+
+
+json2data = 
+
+    table: {[1x1 struct]  [1x1 struct]  [1x1 struct]}
 
 >> >> >> >> 

@@ -15,11 +15,66 @@ saveubjson('',data2json)
 json2data=loadubjson(ans)
 
 fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  an empty array \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=[]
+saveubjson('empty',data2json)
+json2data=loadubjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  an ampty string \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=''
+saveubjson('emptystr',data2json)
+json2data=loadubjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a simple row vector \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=1:3
+saveubjson('',data2json)
+json2data=loadubjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a simple column vector \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=(1:3)'
+saveubjson('',data2json)
+json2data=loadubjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a string array \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=['AC';'EG']
+saveubjson('',data2json)
+json2data=loadubjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a string with escape symbols \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=sprintf('AB\tCD\none"two')
+saveubjson('str',data2json)
+json2data=loadubjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a mix-typed cell \n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json={'a',true,[2;3]}
+saveubjson('',data2json)
+json2data=loadubjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a complex number\n')
 fprintf(1,'%%=================================================\n\n')
 
-clear i;
-data2json=1+2*i
+data2json=1+2i
 saveubjson('',data2json)
 json2data=loadubjson(ans) 
 
@@ -128,6 +183,7 @@ data2json=struct('name','Think Different','year',1997,'magic',magic(3),...
                  'misfits',[Inf,NaN],'embedded',struct('left',true,'right',false))
 saveubjson('astruct',data2json,struct('ParseLogical',1))
 json2data=loadubjson(ans)
+class(json2data.astruct.embedded.left)
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a structure array\n')
@@ -158,12 +214,20 @@ fprintf(1,'%%=================================================\n\n')
 json2data=loadubjson(saveubjson('',loadjson('{"ValidName":1, "_InvalidName":2, ":Field:":3, "项目":"绝密"}')))
 
 fprintf(1,'\n%%=================================================\n')
+fprintf(1,'%%  a function handle\n')
+fprintf(1,'%%=================================================\n\n')
+
+data2json=@(x) x+1
+saveubjson('handle',data2json)
+json2data=loadubjson(ans)
+
+fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a 2D cell array\n')
 fprintf(1,'%%=================================================\n\n')
 
 data2json={{1,{2,3}},{4,5},{6};{7},{8,9},{10}};
 saveubjson('data2json',data2json)
-json2data=loadubjson(ans)  % only savejson works for cell arrays, loadjson has issues
+json2data=loadubjson(ans)  % only saveubjson works for cell arrays, loadubjson has issues
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a 2D struct array\n')
@@ -175,6 +239,39 @@ for i=1:6
 end
 saveubjson('data2json',data2json)
 json2data=loadubjson(ans)
+
+
+if(exist('datetime'))
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  datetime object \n')
+    fprintf(1,'%%=================================================\n\n')
+
+    data2json=datetime({'8 April 2015','9 May 2015'}, 'InputFormat','d MMMM yyyy')
+    saveubjson('',data2json)
+    json2data=loadubjson(ans)
+end
+
+if(exist('containers.Map'))
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  a container.Maps object \n')
+    fprintf(1,'%%=================================================\n\n')
+
+    data2json=containers.Map({'Andy','William','Om'},[21,21,22])
+    saveubjson('',data2json)
+    json2data=loadubjson(ans)
+end
+
+if(exist('istable'))
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  a table object \n')
+    fprintf(1,'%%=================================================\n\n')
+
+    Names={'Andy','William','Om'}';
+    Age=[21,21,22]';
+    data2json=table(Names,Age)
+    saveubjson('table',table(Names,Age))
+    json2data=loadubjson(ans)
+end
 
 rand ('state',rngstate);
 

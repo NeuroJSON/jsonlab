@@ -1,13 +1,16 @@
 
                             < M A T L A B (R) >
-                  Copyright 1984-2010 The MathWorks, Inc.
-                Version 7.11.0.584 (R2010b) 64-bit (glnxa64)
-                              August 16, 2010
+                  Copyright 1984-2016 The MathWorks, Inc.
+                   R2016a (9.0.0.341360) 64-bit (glnxa64)
+                             February 11, 2016
 
  
-  To get started, type one of these: helpwin, helpdesk, or demo.
-  For product information, visit www.mathworks.com.
+For online documentation, see http://www.mathworks.com/support
+For product information, visit www.mathworks.com.
  
+
+	Academic License
+
 >> >> >> >> >> >> >> >> >> 
 %=================================================
 >> %  a simple scalar value 
@@ -31,10 +34,182 @@ json2data =
 
 >> >> 
 %=================================================
+>> %  an empty array 
+>> %=================================================
+
+>> >> 
+data2json =
+
+     []
+
+>> 
+ans =
+
+[]
+
+
+>> 
+json2data = 
+
+   Empty cell array: 0-by-1
+
+>> >> 
+%=================================================
+>> %  an ampty string 
+>> %=================================================
+
+>> >> 
+data2json =
+
+     ''
+
+
+>> 
+ans =
+
+{
+	"emptystr": ""
+}
+
+
+>> 
+json2data = 
+
+    emptystr: [1x0 char]
+
+>> >> 
+%=================================================
+>> %  a simple row vector 
+>> %=================================================
+
+>> >> 
+data2json =
+
+     1     2     3
+
+>> 
+ans =
+
+[1,2,3]
+
+
+>> 
+json2data =
+
+     1     2     3
+
+>> >> 
+%=================================================
+>> %  a simple column vector 
+>> %=================================================
+
+>> >> 
+data2json =
+
+     1
+     2
+     3
+
+>> 
+ans =
+
+[
+	[1],
+	[2],
+	[3]
+]
+
+
+>> 
+json2data =
+
+     1
+     2
+     3
+
+>> >> 
+%=================================================
+>> %  a string array 
+>> %=================================================
+
+>> >> 
+data2json =
+
+AC
+EG
+
+>> 
+ans =
+
+[
+	"AC",
+	"EG"
+]
+
+
+>> 
+json2data = 
+
+    'AC'    'EG'
+
+>> >> 
+%=================================================
+>> %  a string with escape symbols 
+>> %=================================================
+
+>> >> 
+data2json =
+
+AB	CD
+one"two
+
+>> 
+ans =
+
+{
+	"str": "AB\tCD\none\"two"
+}
+
+
+>> 
+json2data = 
+
+    str: 'AB	CD...'
+
+>> >> 
+%=================================================
+>> %  a mix-typed cell 
+>> %=================================================
+
+>> >> 
+data2json = 
+
+    'a'    [1]    [2x1 double]
+
+>> 
+ans =
+
+[
+	"a",
+	1,
+	[
+		[2],
+		[3]
+	]
+]
+
+
+>> 
+json2data = 
+
+    'a'    [1]    {1x2 cell}
+
+>> >> 
+%=================================================
 >> %  a complex number
 >> %=================================================
 
->> >> >> 
+>> >> 
 data2json =
 
    1.0000 + 2.0000i
@@ -215,7 +390,7 @@ ans =
 		"_ArrayType_": "double",
 		"_ArraySize_": [2,3],
 		"_ArrayIsSparse_": true,
-		"_ArrayData_": null
+		"_ArrayData_": []
 	}
 }
 
@@ -238,7 +413,7 @@ ans =
 		"_ArrayType_": "double",
 		"_ArraySize_": [0,0],
 		"_ArrayIsSparse_": true,
-		"_ArrayData_": null
+		"_ArrayData_": []
 	}
 }
 
@@ -257,14 +432,14 @@ json2data =
 ans =
 
 {
-	"empty_0by0_real": null
+	"empty_0by0_real": []
 }
 
 
 >> 
 json2data = 
 
-    empty_0by0_real: []
+    empty_0by0_real: {0x1 cell}
 
 >> >> 
 %=================================================
@@ -278,7 +453,7 @@ ans =
 	"empty_0by3_real": {
 		"_ArrayType_": "double",
 		"_ArraySize_": [0,3],
-		"_ArrayData_": null
+		"_ArrayData_": []
 	}
 }
 
@@ -541,6 +716,38 @@ json2data =
 
 >> >> 
 %=================================================
+>> %  a function handle
+>> %=================================================
+
+>> >> 
+data2json = 
+
+    @(x)x+1
+
+>> 
+ans =
+
+{
+	"handle": {
+		"function": "@(x)x+1",
+		"type": "anonymous",
+		"file": "",
+		"workspace": [
+			{
+			}
+		],
+		"within_file_path": "__base_function"
+	}
+}
+
+
+>> 
+json2data = 
+
+    handle: [1x1 struct]
+
+>> >> 
+%=================================================
 >> %  a 2D cell array
 >> %=================================================
 
@@ -595,6 +802,7 @@ json2data =
 data2json = 
 
 2x3 struct array with fields:
+
     idx
     data
 
@@ -641,5 +849,127 @@ ans =
 json2data = 
 
     data2json: {{1x2 cell}  {1x2 cell}  {1x2 cell}}
+
+>> >> >> 
+%=================================================
+%  datetime object 
+%=================================================
+
+
+data2json = 
+
+   08-Apr-2015   09-May-2015
+
+
+ans =
+
+[
+	{
+		"Format": "dd-MMM-uuuu",
+		"TimeZone": "",
+		"Year": 2015,
+		"Month": 4,
+		"Day": 8,
+		"Hour": 0,
+		"Minute": 0,
+		"Second": 0,
+		"SystemTimeZone": "America\/New_York"
+	},
+	{
+		"Format": "dd-MMM-uuuu",
+		"TimeZone": "",
+		"Year": 2015,
+		"Month": 5,
+		"Day": 9,
+		"Hour": 0,
+		"Minute": 0,
+		"Second": 0,
+		"SystemTimeZone": "America\/New_York"
+	}
+]
+
+
+
+json2data = 
+
+    [1x1 struct]    [1x1 struct]
+
+>> >> 
+%=================================================
+%  a container.Maps object 
+%=================================================
+
+
+data2json = 
+
+  Map with properties:
+
+        Count: 3
+      KeyType: char
+    ValueType: double
+
+
+ans =
+
+{
+	"Andy": 21,
+	"Om": 22,
+	"William": 21
+}
+
+
+
+json2data = 
+
+       Andy: 21
+         Om: 22
+    William: 21
+
+>> >> 
+%=================================================
+%  a table object 
+%=================================================
+
+
+data2json = 
+
+      Names      Age
+    _________    ___
+
+    'Andy'       21 
+    'William'    21 
+    'Om'         22 
+
+
+ans =
+
+{
+	"table": [
+		{
+			"Names": [
+				"Andy"
+			],
+			"Age": 21
+		},
+		{
+			"Names": [
+				"William"
+			],
+			"Age": 21
+		},
+		{
+			"Names": [
+				"Om"
+			],
+			"Age": 22
+		}
+	]
+}
+
+
+
+json2data = 
+
+    table: {[1x1 struct]  [1x1 struct]  [1x1 struct]}
 
 >> >> >> >> 
