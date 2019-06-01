@@ -21,7 +21,7 @@ function msgpk=savemsgpack(rootname,obj,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(length(varargin)==1)
+if(length(varargin)==1 && ischar(varargin{1}))
     msgpk=saveubjson(rootname,obj,'FileName',varargin{1},'MessagePack',1);
 else
     msgpk=saveubjson(rootname,obj,varargin{:},'MessagePack',1);
