@@ -296,7 +296,11 @@ Imarker=jsonopt('IM_','UiIlL',varargin{:});
 Amarker=jsonopt('AM_',{'[',']'},varargin{:});
 Omarker=jsonopt('OM_',{'{','}'},varargin{:});
 
-am0=Amarker{1};
+if(~strcmp(Amarker{1},'['))
+    am0=Imsgpk_(dim(2),Imarker,220,144);
+else
+    am0=Amarker{1};
+end
 
 if(~isempty(name)) 
     if(forcearray)
@@ -627,7 +631,7 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
 	    type=key(id~=0);
     end
     if(~isvector(mat) && isnest==1)
-        txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
+        txt=cell2ubjson('',num2cell(permute(mat,ndims(mat):-1:1),1),level,varargin{:});
     else
         txt=I_a(mat(:),type,Imarker,size(mat));
     end
