@@ -631,7 +631,7 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
 	    type=key(id~=0);
     end
     if(~isvector(mat) && isnest==1)
-        txt=cell2ubjson('',num2cell(permute(mat,ndims(mat):-1:1),1),level,varargin{:});
+        txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
     else
         txt=I_a(mat(:),type,Imarker,size(mat));
     end

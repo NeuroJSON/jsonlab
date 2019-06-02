@@ -616,7 +616,7 @@ nl=ws.newline;
 isnest=jsonopt('NestArray',0,varargin{:});
 
 if(~isvector(mat) && isnest==1)
-   txt=cell2json('',squeeze(num2cell(permute(mat,ndims(mat):-1:1),1)),level-1,varargin{:});
+   txt=cell2json('',squeeze(num2cell(mat,1)),level-1,varargin{:});
    return;
 end
 if(size(mat,1)==1)

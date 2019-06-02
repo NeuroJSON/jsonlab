@@ -180,6 +180,8 @@ end
                                     astr=arraystr;
                                     astr(astr=='[')='';
                                     astr(astr==']')='';
+                                    astr=regexprep(astr,'\s*,',',');
+                                    astr=regexprep(astr,'\s*$','');
                                     [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
                                     if(nextidx>=length(astr)-1)
                                             object=reshape(obj,dims);
