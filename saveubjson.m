@@ -633,7 +633,7 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
     if(~isvector(mat) && isnest==1)
         txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
     else
-        txt=I_a(mat(:),type,Imarker,size(mat));
+        txt=I_a(mat(:),type,Imarker,size(mat),isnest);
     end
 elseif(islogical(mat))
     logicalval=FTmarker;
@@ -643,7 +643,7 @@ elseif(islogical(mat))
         if(~isvector(mat) && isnest==1)
             txt=cell2ubjson('',num2cell(uint8(mat,1),level,varargin{:}));
         else
-            txt=I_a(uint8(mat(:)),Imarker(1),Imarker,size(mat));
+            txt=I_a(uint8(mat(:)),Imarker(1),Imarker,size(mat),isnest);
         end
     end
 else
@@ -657,7 +657,7 @@ else
         if(~isvector(mat) && isnest==1)
             txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
         else
-            txt=D_a(mat(:),Fmarker(2),Fmarker,size(mat));
+            txt=D_a(mat(:),Fmarker(2),Fmarker,size(mat),isnest);
         end
     end
 end
@@ -786,7 +786,7 @@ else
   val=[Fmarker(2) data2byte(swapbytes(num),'uint8')];
 end
 %%-------------------------------------------------------------------------
-function data=I_a(num,type,markers,dim,format)
+function data=I_a(num,type,markers,dim,isnest)
 Imarker='UiIlL';
 Amarker={'[',']'};
 if(nargin>=3)
@@ -820,10 +820,11 @@ elseif(id==5)
   blen=8;
 end
 
-if(nargin>=4 && length(dim)>=2 && prod(dim)~=dim(2))
-  format='opt';
+if(nargin<5)
+  isnest=0;
 end
-if((nargin<5 || strcmp(format,'opt')) && numel(num)>1 && Imarker(1)=='U')
+
+if(isnest==0 && numel(num)>1 && Imarker(1)=='U')
   if(nargin>=4 && (length(dim)==1 || (length(dim)>=2 && prod(dim)~=dim(2))))
       cid=I_(uint32(max(dim)));
       data=['$' type '#' I_a(dim,cid(1),Imarker) data(:)'];
@@ -840,11 +841,10 @@ else
   data=reshape(data,blen,numel(data)/blen);
   data(2:blen+1,:)=data;
   data(1,:)=type;
-  data=data(:)';
   data=[am0 data(:)' Amarker{2}];
 end
 %%-------------------------------------------------------------------------
-function data=D_a(num,type,markers,dim,format)
+function data=D_a(num,type,markers,dim,isnest)
 Fmarker='dD';
 Amarker={'[',']'};
 if(nargin>=3)
@@ -862,11 +862,11 @@ elseif(id==2)
   data=data2byte(swapbytes(double(num)),'uint8');
 end
 
-if(nargin>=4 && length(dim)>=2 && prod(dim)~=dim(2))
-  format='opt';
+if(nargin<5)
+  isnest=0;
 end
 
-if((nargin<5 || strcmp(format,'opt')) && numel(num)>1 && Fmarker(1)=='d')
+if(isnest==0 && numel(num)>1 && Fmarker(1)=='d')
   if(nargin>=4 && (length(dim)==1 || (length(dim)>=2 && prod(dim)~=dim(2))))
       cid=I_(uint32(max(dim)));
       data=['$' type '#' I_a(dim,cid(1)) data(:)'];
@@ -883,7 +883,6 @@ else
   data=reshape(data,(id*4),length(data)/(id*4));
   data(2:(id*4+1),:)=data;
   data(1,:)=type;
-  data=data(:)';
   data=[am0 data(:)' Amarker{2}];
 end
 %%-------------------------------------------------------------------------
