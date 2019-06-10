@@ -71,53 +71,6 @@ savejson('',data2json)
 json2data=loadjson(ans)
 
 fprintf(1,'\n%%=================================================\n')
-fprintf(1,'%%  a 3-D array in nested array form\n')
-fprintf(1,'%%=================================================\n\n')
-
-data2json=reshape(1:(2*4*6),[2,4,6]);
-savejson('',data2json,'NestArray',1)
-json2data=loadjson(ans)
-if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
-    warning('conversion does not preserve original data');
-end
-
-fprintf(1,'\n%%=================================================\n')
-fprintf(1,'%%  a 3-D array in annotated array form\n')
-fprintf(1,'%%=================================================\n\n')
-
-data2json=reshape(1:(2*4*6),[2,4,6]);
-savejson('',data2json,'NestArray',0)
-json2data=loadjson(ans)
-if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
-    warning('conversion does not preserve original data');
-end
-
-fprintf(1,'\n%%=================================================\n')
-fprintf(1,'%%  a 4-D array in annotated array form\n')
-fprintf(1,'%%=================================================\n\n')
-
-data2json=reshape(1:(2*4*3*2),[2,4,3,2]);
-savejson('',data2json,'NestArray',0)  % nestarray for 4-D or above is not working
-json2data=loadjson(ans)
-if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
-    warning('conversion does not preserve original data');
-end
-
-fprintf(1,'\n%%=================================================\n')
-fprintf(1,'%%  a 3-D array in nested array form (JSONLab 1.9)\n')
-fprintf(1,'%%=================================================\n\n')
-
-data2json=reshape(1:(2*4*6),[2,4,6]);
-savejson('',data2json,'NestArray',1,'FormatVersion',1.8)
-
-fprintf(1,'\n%%=================================================\n')
-fprintf(1,'%%  a 3-D array in annotated array form (JSONLab 1.9 or earlier)\n')
-fprintf(1,'%%=================================================\n\n')
-
-data2json=reshape(1:(2*4*6),[2,4,6]);
-savejson('',data2json,'NestArray',0,'FormatVersion',1.8)
-
-fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a complex number\n')
 fprintf(1,'%%=================================================\n\n')
 

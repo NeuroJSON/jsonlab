@@ -132,7 +132,6 @@ end
         if(isfield(varargin{1},'progressbar_'))
             pbar=varargin{1}.progressbar_;
         end
-        format=jsonopt('FormatVersion',2,varargin{:});
 
         if next_char(inputstr) ~= ']'
             try
@@ -162,9 +161,6 @@ end
                                     [obj, nextidx]=parse2darray(inputstr,pos+rowstart,arraystr);
                                     if(nextidx>=length(arraystr)-1)
                                         object=obj;
-                                        if(format>1.9)
-                                            object=object.';
-                                        end
                                         pos=endpos;
                                         parse_char(inputstr, ']');
                                         if(pbar>0)
@@ -189,9 +185,6 @@ end
                                     [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
                                     if(nextidx>=length(astr)-1)
                                             object=reshape(obj,dims);
-                                            if(format>1.9)
-                                                object=permute(object,ndims(object):-1:1);
-                                            end
                                             pos=endpos;
                                             parse_char(inputstr, ']');
                                             if(pbar>0)

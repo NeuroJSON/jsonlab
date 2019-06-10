@@ -230,11 +230,6 @@ if(~iscell(item) && ~isa(item,'string'))
         error('input is not a cell or string array');
 end
 
-format=jsonopt('FormatVersion',2,varargin{:});
-if(format>1.9)
-    item=permute(item,ndims(item):-1:1);
-end
-
 dim=size(item);
 if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     item=reshape(item,dim(1),numel(item)/dim(1));
@@ -244,8 +239,6 @@ len=numel(item);
 ws=jsonopt('whitespaces_',struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n')),varargin{:});
 padding0=repmat(ws.tab,1,level);
 padding2=repmat(ws.tab,1,level+1);
-
-
 nl=ws.newline;
 bracketlevel=~jsonopt('singletcell',1,varargin{:});
 if(len>bracketlevel)
@@ -262,7 +255,7 @@ elseif(len==0)
     end
 end
 for i=1:dim(1)
-    if(dim(2)>1)
+    if(dim(1)>1)
         txt(end+1:end+3)={padding2,'[',nl};
     end
     for j=1:dim(2)
@@ -271,7 +264,7 @@ for i=1:dim(1)
            txt(end+1:end+2)={',' nl};
        end
     end
-    if(dim(2)>1)
+    if(dim(1)>1)
         txt(end+1:end+3)={nl,padding2,']'};
     end
     if(i<dim(1))
@@ -290,12 +283,6 @@ txt={};
 if(~isstruct(item))
 	error('input is not a struct');
 end
-
-format=jsonopt('FormatVersion',2,varargin{:});
-if(format>1.9)
-    item=permute(item,ndims(item):-1:1);
-end
-
 dim=size(item);
 if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     item=reshape(item,dim(1),numel(item)/dim(1));
@@ -478,7 +465,6 @@ sep=ws.sep;
 
 dozip=jsonopt('Compression','',varargin{:});
 zipsize=jsonopt('CompressArraySize',100,varargin{:});
-format=jsonopt('FormatVersion',2,varargin{:});
 
 if(((jsonopt('NestArray',0,varargin{:})==0) && length(size(item))>2) || issparse(item) || ~isreal(item) || ...
    (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
@@ -511,9 +497,6 @@ dataformat='%s%s%s%s%s';
 if(issparse(item))
     [ix,iy]=find(item);
     data=full(item(find(item)));
-    if(format>1.9)
-        data=permute(data,ndims(data):-1:1);
-    end
     if(~isreal(item))
        data=[real(data(:)),imag(data(:))];
        if(size(item,1)==1)
@@ -537,7 +520,7 @@ if(issparse(item))
         end
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionMethod_": "',dozip, ['"' sep]);
-	    compfun=str2func([dozip 'encode']);
+	compfun=str2func([dozip 'encode']);
         txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
     else
         if(size(item,1)==1)
@@ -554,9 +537,6 @@ if(issparse(item))
                matdata2json(fulldata',level+2,varargin{:}), nl);    
     end
 else
-    if(format>1.9)
-        item=permute(item,ndims(item):-1:1);
-    end
     if(~isempty(dozip) && numel(item)>zipsize)
         if(isreal(item))
             fulldata=item(:)';
@@ -634,21 +614,10 @@ ws=jsonopt('whitespaces_',ws,varargin{:});
 tab=ws.tab;
 nl=ws.newline;
 isnest=jsonopt('NestArray',0,varargin{:});
-format=jsonopt('FormatVersion',2,varargin{:});
 
 if(~isvector(mat) && isnest==1)
-   if(format>1.9)
-        mat=permute(mat,ndims(mat):-1:1);
-   end
-   varargin{:}.num2cell_=1;
-   txt=cell2json('',num2cell(mat,1),level-1,varargin{:});
+   txt=cell2json('',squeeze(num2cell(mat,1)),level-1,varargin{:});
    return;
-else
-    if(isnest)
-        if(jsonopt('num2cell_',0,varargin{:}))
-             mat=mat(:).';
-        end
-    end
 end
 if(size(mat,1)==1)
     pre='';
@@ -668,8 +637,11 @@ if(isinteger(mat))
 else
   floatformat=jsonopt('FloatFormat','%.10g',varargin{:});
 end
-
-formatstr=['[' repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf('],%s',nl)]];
+%if(numel(mat)>1)
+    formatstr=['[' repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf('],%s',nl)]];
+%else
+%    formatstr=[repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf(',\n')]];
+%end
 
 if(nargin>=2 && size(mat,1)>1 && jsonopt('ArrayIndent',1,varargin{:})==1)
     formatstr=[repmat(tab,1,level) formatstr];
@@ -681,7 +653,11 @@ if(islogical(mat) && jsonopt('ParseLogical',0,varargin{:})==1)
    txt=regexprep(txt,'1','true');
    txt=regexprep(txt,'0','false');
 end
-
+%txt=regexprep(mat2str(mat),'\s+',',');
+%txt=regexprep(txt,';',sprintf('],\n['));
+% if(nargin>=2 && size(mat,1)>1)
+%     txt=regexprep(txt,'\[',[repmat(sprintf('\t'),1,level) '[']);
+% end
 txt=[pre txt post];
 if(any(isinf(mat(:))))
     txt=regexprep(txt,'([-+]*)Inf',jsonopt('Inf','"$1_Inf_"',varargin{:}));
