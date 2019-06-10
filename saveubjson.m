@@ -232,6 +232,15 @@ txt='';
 if(~iscell(item))
         error('input is not a cell');
 end
+isnum2cell=jsonopt('num2cell_',0,varargin{:});
+if(isnum2cell)
+    item=squeeze(item);
+else
+    format=jsonopt('FormatVersion',2,varargin{:});
+    if(format>1.9 && ~isvector(item))
+        item=permute(item,ndims(item):-1:1);
+    end
+end
 
 dim=size(item);
 if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
@@ -433,6 +442,7 @@ end
 
 dozip=jsonopt('Compression','',varargin{:});
 zipsize=jsonopt('CompressArraySize',100,varargin{:});
+format=jsonopt('FormatVersion',2,varargin{:});
 
 Zmarker=jsonopt('ZM_','Z',varargin{:});
 FTmarker=jsonopt('FTM_','FT',varargin{:});
@@ -499,8 +509,8 @@ if(issparse(item))
         cid=I_(uint32(max(size(fulldata))));
         txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker)];
         txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
-	compfun=str2func([dozip 'encode']);
-	txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
+	    compfun=str2func([dozip 'encode']);
+	    txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
         childcount=childcount+3;
     else
         if(size(item,1)==1)
@@ -514,10 +524,13 @@ if(issparse(item))
             fulldata=[ix,iy,data];
         end
         txt=[txt,N_('_ArrayData_'),...
-               matdata2ubjson(fulldata',level+2,varargin{:})];
+               cell2ubjson('',num2cell(fulldata',2)',level+2,varargin{:})];
         childcount=childcount+1;
     end
 else
+    if(format>1.9)
+        item=permute(item,ndims(item):-1:1);
+    end
     if(~isempty(dozip) && numel(item)>zipsize)
         if(isreal(item))
             fulldata=item(:)';
@@ -532,8 +545,8 @@ else
         cid=I_(uint32(max(size(fulldata))));
         txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker)];
         txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
-	compfun=str2func([dozip 'encode']);
-	txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
+	    compfun=str2func([dozip 'encode']);
+	    txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
         childcount=childcount+3;
     else
         if(isreal(item))
@@ -609,12 +622,24 @@ Fmarker=jsonopt('FM_','dD',varargin{:});
 Amarker=jsonopt('AM_',{'[',']'},varargin{:});
 isnest=jsonopt('NestArray',0,varargin{:});
 ismsgpack=jsonopt('MessagePack',0,varargin{:});
+format=jsonopt('FormatVersion',2,varargin{:});
+isnum2cell=jsonopt('num2cell_',0,varargin{:});
+
 if(ismsgpack)
     isnest=1;
 end
 
+if(~isvector(mat) && isnest==1)
+   if(format>1.9 && isnum2cell==0)
+        mat=permute(mat,ndims(mat):-1:1);
+   end
+   varargin{:}.num2cell_=1;
+end
+
 type='';
 hasnegtive=(mat<0);
+
+varargin{:}.num2cell_=1;
 if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) == 0)))
     if(isempty(hasnegtive))
        if(max(mat(:))<=2^8)

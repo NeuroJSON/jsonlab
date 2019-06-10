@@ -49,6 +49,8 @@ end
 fn=fieldnames(data);
 len=length(data);
 needbase64=jsonopt('Base64',1,varargin{:});
+format=jsonopt('FormatVersion',2,varargin{:});
+
 if(jsonopt('Recursive',1,varargin{:})==1)
   for i=1:length(fn) % depth-first
     for j=1:len
@@ -80,7 +82,7 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
         end
     else
         if(iscell(data(j).x0x5F_ArrayData_))
-            data(j).x0x5F_ArrayData_=cell2mat(data(j).x0x5F_ArrayData_);
+            data(j).x0x5F_ArrayData_=cell2mat(cellfun(@(x) double(x(:)),data(j).x0x5F_ArrayData_,'uniformoutput',0));
         end
         ndata=cast(data(j).x0x5F_ArrayData_,data(j).x0x5F_ArrayType_);
     end
@@ -95,9 +97,6 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
     if(~isempty(strmatch('x0x5F_ArrayIsSparse_',fn)) && data(j).x0x5F_ArrayIsSparse_)
             if(islogical(data(j).x0x5F_ArrayIsSparse_))
                 needtranspose=1;
-            end
-            if(needtranspose)
-                ndata=ndata';
             end
             if(~isempty(strmatch('x0x5F_ArraySize_',fn)))
                 dim=double(data(j).x0x5F_ArraySize_);
@@ -142,7 +141,13 @@ if(~isempty(strmatch('x0x5F_ArrayType_',fn)) && (~isempty(strmatch('x0x5F_ArrayD
             end
             ndata=complex(ndata(:,1),ndata(:,2));
         end
+        if(format>1.9)
+            data(j).x0x5F_ArraySize_=data(j).x0x5F_ArraySize_(end:-1:1);
+        end
         ndata=reshape(ndata(:),data(j).x0x5F_ArraySize_);
+        if(format>1.9)
+            ndata=permute(ndata,ndims(ndata):-1:1);
+        end
     end
     newdata{j}=ndata;
   end

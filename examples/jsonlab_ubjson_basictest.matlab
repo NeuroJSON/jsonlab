@@ -181,6 +181,138 @@ json2data =
 
 >> >> 
 %=================================================
+>> %  a 3-D array in nested array form
+>> %=================================================
+
+>> >> >> 
+ans =
+
+[[[ii	iii!i)][iiiii#i+][iiiii%i-][iiiii'i/]][[ii
+iii"i*][iiiii$i,][iiiii&i.][iiii i(i0]]]
+
+>> 
+json2data = 
+
+    {1x4 cell}    {1x4 cell}
+
+>> >> >> >> >> 
+%=================================================
+>> %  a 3-D array in annotated array form
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$i#U0	!)#+%-'/
+"*$,&. (0}
+
+>> 
+json2data(:,:,1) =
+
+     1     3     5     7
+     2     4     6     8
+
+
+json2data(:,:,2) =
+
+     9    11    13    15
+    10    12    14    16
+
+
+json2data(:,:,3) =
+
+    17    19    21    23
+    18    20    22    24
+
+
+json2data(:,:,4) =
+
+    25    27    29    31
+    26    28    30    32
+
+
+json2data(:,:,5) =
+
+    33    35    37    39
+    34    36    38    40
+
+
+json2data(:,:,6) =
+
+    41    43    45    47
+    42    44    46    48
+
+>> >> >> 
+%=================================================
+>> %  a 4-D array in annotated array form
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$i#U0	!)#+%-'/
+"*$,&. (0}
+
+>> 
+json2data(:,:,1,1) =
+
+     1     3     5     7
+     2     4     6     8
+
+
+json2data(:,:,2,1) =
+
+     9    11    13    15
+    10    12    14    16
+
+
+json2data(:,:,3,1) =
+
+    17    19    21    23
+    18    20    22    24
+
+
+json2data(:,:,1,2) =
+
+    25    27    29    31
+    26    28    30    32
+
+
+json2data(:,:,2,2) =
+
+    33    35    37    39
+    34    36    38    40
+
+
+json2data(:,:,3,2) =
+
+    41    43    45    47
+    42    44    46    48
+
+>> >> >> 
+%=================================================
+>> %  a 3-D array in nested array form (JSONLab 1.9)
+>> %=================================================
+
+>> >> >> 
+ans =
+
+[[[ii][ii][ii][ii]][[i	i
+][ii][ii][ii]][[ii][ii][ii][ii]][[ii][ii][ii][ii ]][[i!i"][i#i$][i%i&][i'i(]][[i)i*][i+i,][i-i.][i/i0]]]
+
+>> >> 
+%=================================================
+>> %  a 3-D array in annotated array form (JSONLab 1.9 or earlier)
+>> %=================================================
+
+>> >> >> 
+ans =
+
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$i#U0	
+ !"#$%&'()*+,-./0}
+
+>> >> 
+%=================================================
 >> %  a complex number
 >> %=================================================
 
@@ -217,8 +349,8 @@ data2json =
 >> 
 ans =
 
-{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$i#[$U#U# 	
-$!"}
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$i#[$U#U# 	
+!"$}
 
 >> 
 json2data =
@@ -273,7 +405,13 @@ ans =
 
 {Usparse{U_ArrayType_SUdoubleU_ArraySize_[$U#U
 
-U_ArrayIsSparse_TU_ArrayData_[$D#[$U#U	?ð      @       ?äûÓë12@"      @       ?è?h:öl;@      @      ?ë,8Ù±@$      @      ?çÇ½½æ'#@$      @       ?Ù?[`o@      @"      ?å¸2ÉNé@       @$      ?¢HÍpà@      @$      ?íãEÎ¹¶P@$      @$      ?äù¬Ä²	¶}}
+U_ArrayIsSparse_TU_ArrayData_[[$i#U		
+
+
+[$i#U		
+
+
+[$D#U	?äûÓë12?è?h:öl;?ë,8Ù±?çÇ½½æ'#?Ù?[`o?å¸2ÉNé?¢HÍpà?íãEÎ¹¶P?äù¬Ä²	¶]}}
 
 >> 
 json2data = 
@@ -303,7 +441,13 @@ ans =
 
 {Ucomplex_sparse{U_ArrayType_SUdoubleU_ArraySize_[$U#U
 
-U_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$D#[$U#U	?ð      @       ?äûÓë12¿äûÓë12@"      @       ?è?h:öl;¿è?h:öl;@      @      ?ë,8Ù±¿ë,8Ù±@$      @      ?çÇ½½æ'#¿çÇ½½æ'#@$      @       ?Ù?[`o¿Ù?[`o@      @"      ?å¸2ÉNé¿å¸2ÉNé@       @$      ?¢HÍpà¿¢HÍpà@      @$      ?íãEÎ¹¶P¿íãEÎ¹¶P@$      @$      ?äù¬Ä²	¶¿äù¬Ä²	¶}}
+U_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[[$i#U		
+
+
+[$i#U		
+
+
+[$D#U	?äûÓë12?è?h:öl;?ë,8Ù±?çÇ½½æ'#?Ù?[`o?å¸2ÉNé?¢HÍpà?íãEÎ¹¶P?äù¬Ä²	¶[$D#U	¿äûÓë12¿è?h:öl;¿ë,8Ù±¿çÇ½½æ'#¿Ù?[`o¿å¸2ÉNé¿¢HÍpà¿íãEÎ¹¶P¿äù¬Ä²	¶]}}
 
 >> 
 json2data = 
@@ -318,7 +462,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Uall_zero_sparse{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_Z}}
+{Uall_zero_sparse{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[{U_ArrayType_SUdoubleU_ArraySize_[$U#U U_ArrayData_Z}{U_ArrayType_SUdoubleU_ArraySize_[$U#U U_ArrayData_Z}{U_ArrayType_SUdoubleU_ArraySize_[$U#U U_ArrayData_Z}]}}
 
 >> 
 json2data = 
@@ -378,7 +522,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Usparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[$i#[$U#U}}
+{Usparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[[$i#U[$i#U]}}
 
 >> 
 json2data = 
@@ -393,7 +537,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Ucomplex_sparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$i#[$U#Uýÿü}}
+{Ucomplex_sparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[[$i#U[$i#U[$i#Uýÿü]}}
 
 >> 
 json2data = 
@@ -408,7 +552,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Usparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[$i#[$U#U}}
+{Usparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[[$i#U[$i#U]}}
 
 >> 
 json2data = 
@@ -423,7 +567,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Ucomplex_sparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$i#[$U#Uýÿü}}
+{Ucomplex_sparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[[$i#U[$i#U[$i#Uýÿü]}}
 
 >> 
 json2data = 
@@ -537,13 +681,13 @@ json2data =
 >> >> >> 
 ans =
 
-{U	data2json[[[[i][[i][i]]][[i]]][[[i][i]][[i][i	]]][[[i]][[i
+{U	data2json[[[[i][[i][i]]][[i][i]][[i]]][[[i]][[i][i	]][[i
 ]]]]}
 
 >> 
 json2data = 
 
-    data2json: {{1x2 cell}  {1x2 cell}  {1x2 cell}}
+    data2json: {{1x3 cell}  {1x3 cell}}
 
 >> >> 
 %=================================================
