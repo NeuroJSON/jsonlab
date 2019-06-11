@@ -455,15 +455,15 @@ if(ismsgpack)
 end
 if((length(size(item))>2 && isnest==0)  || issparse(item) || ~isreal(item) || ...
    jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
-      cid=I_(uint32(max(size(item))),Imarker);
+      cid=I_(uint32(max(size(item))),Imarker,varargin{:});
       if(isempty(name))
-    	txt=[Omarker{1} N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker) ];
+    	txt=[Omarker{1} N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker,varargin{:}) ];
       else
           if(isempty(item))
               txt=[N_(checkname(name,varargin{:})),Zmarker];
               return;
           else
-    	      txt=[N_(checkname(name,varargin{:})),Omarker{1},N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker)];
+    	      txt=[N_(checkname(name,varargin{:})),Omarker{1},N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker,varargin{:})];
           end
       end
       childcount=2;
@@ -506,11 +506,11 @@ if(issparse(item))
             % General case, store row and column indices.
             fulldata=[ix,iy,data];
         end
-        cid=I_(uint32(max(size(fulldata))));
-        txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker)];
+        cid=I_(uint32(max(size(fulldata))),Imarker,varargin{:});
+        txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker,varargin{:})];
         txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
 	    compfun=str2func([dozip 'encode']);
-	    txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
+	    txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker,varargin{:})];
         childcount=childcount+3;
     else
         if(size(item,1)==1)
@@ -543,11 +543,11 @@ else
             childcount=childcount+1;
             fulldata=[real(item(:)) imag(item(:))];
         end
-        cid=I_(uint32(max(size(fulldata))));
-        txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker)];
+        cid=I_(uint32(max(size(fulldata))),Imarker,varargin{:});
+        txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker,varargin{:})];
         txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
 	    compfun=str2func([dozip 'encode']);
-	    txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker)];
+	    txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker,varargin{:})];
         childcount=childcount+3;
     else
         if(isreal(item))
@@ -659,7 +659,7 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
     if(~isvector(mat) && isnest==1)
         txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
     else
-        txt=I_a(mat(:),type,Imarker,size(mat),isnest);
+        txt=I_a(mat(:),type,Imarker,size(mat),varargin{:});
     end
 elseif(islogical(mat))
     logicalval=FTmarker;
@@ -669,7 +669,7 @@ elseif(islogical(mat))
         if(~isvector(mat) && isnest==1)
             txt=cell2ubjson('',num2cell(uint8(mat,1),level,varargin{:}));
         else
-            txt=I_a(uint8(mat(:)),Imarker(1),Imarker,size(mat),isnest);
+            txt=I_a(uint8(mat(:)),Imarker(1),Imarker,size(mat),varargin{:});
         end
     end
 else
@@ -678,12 +678,12 @@ else
         am0=char(145);
     end
     if(numel(mat)==1)
-        txt=[am0 D_(mat,Fmarker) Amarker{2}];
+        txt=[am0 D_(mat,Fmarker,varargin{:}) Amarker{2}];
     else
         if(~isvector(mat) && isnest==1)
             txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
         else
-            txt=D_a(mat(:),Fmarker(2),Fmarker,size(mat),isnest);
+            txt=D_a(mat(:),Fmarker(2),Fmarker,size(mat),varargin{:});
         end
     end
 end
@@ -761,7 +761,7 @@ end
 val(1)=char(val(1)-209+base1);
 
 %%-------------------------------------------------------------------------
-function val=I_(num, markers)
+function val=I_(num, markers, varargin)
 if(~isinteger(num))
     error('input is not an integer');
 end
@@ -769,6 +769,8 @@ Imarker='UiIlL';
 if(nargin>=2)
     Imarker=markers;
 end
+isdebug=jsonopt('Debug',0,varargin{:});
+
 if(Imarker(1)~='U')
     if(num>=0 && num<127)
        val=uint8(num);
@@ -784,35 +786,49 @@ if(Imarker(1)~='U' && num<0 && num<127)
    return;
 end
 if(num>=0 && num<255)
-   val=[Imarker(1) data2byte(swapbytes(cast(num,'uint8')),'uint8')];
+   if(isdebug)
+       val=[Imarker(1) sprintf('<%d>',num)];
+   else
+       val=[Imarker(1) data2byte(swapbytes(cast(num,'uint8')),'uint8')];
+   end
    return;
 end
 key=Imarker(2:end);
 cid={'int8','int16','int32','int64'};
 for i=1:4
   if((num>0 && num<2^(i*8-1)) || (num<0 && num>=-2^(i*8-1)))
-    val=[key(i) data2byte(swapbytes(cast(num,cid{i})),'uint8')];
+    if(isdebug)
+        val=[key(i) sprintf('<%d>',num)];
+    else
+        val=[key(i) data2byte(swapbytes(cast(num,cid{i})),'uint8')];
+    end
     return;
   end
 end
 error('unsupported integer');
 
 %%-------------------------------------------------------------------------
-function val=D_(num, markers)
+function val=D_(num, markers, varargin)
 if(~isfloat(num))
     error('input is not a float');
+end
+isdebug=jsonopt('Debug',0,varargin{:});
+if(isdebug)
+    output=sprintf('<%g>',num);
+else
+    output=data2byte(swapbytes(num),'uint8');
 end
 Fmarker='dD';
 if(nargin>=2)
     Fmarker=markers;
 end
 if(isa(num,'single'))
-  val=[Fmarker(1) data2byte(swapbytes(num),'uint8')];
+  val=[Fmarker(1) output(:)'];
 else
-  val=[Fmarker(2) data2byte(swapbytes(num),'uint8')];
+  val=[Fmarker(2) output(:)'];
 end
 %%-------------------------------------------------------------------------
-function data=I_a(num,type,markers,dim,isnest)
+function data=I_a(num,type,markers,dim,varargin)
 Imarker='UiIlL';
 Amarker={'[',']'};
 if(nargin>=3)
@@ -845,17 +861,24 @@ elseif(id==5)
   data=data2byte(swapbytes(int64(num)),'uint8');
   blen=8;
 end
+if(isstruct(dim))
+    varargin={dim};
+end
 
-if(nargin<5)
-  isnest=0;
+isnest=jsonopt('NestArray',0,varargin{:});
+isdebug=jsonopt('Debug',0,varargin{:});
+if(isdebug)
+    output=sprintf('<%g>',num);
+else
+    output=data(:);
 end
 
 if(isnest==0 && numel(num)>1 && Imarker(1)=='U')
-  if(nargin>=4 && (length(dim)==1 || (length(dim)>=2 && prod(dim)~=dim(2))))
+  if(nargin>=4 && ~isstruct(dim) && (length(dim)==1 || (length(dim)>=2 && prod(dim)~=dim(2))))
       cid=I_(uint32(max(dim)));
-      data=['$' type '#' I_a(dim,cid(1),Imarker) data(:)'];
+      data=['$' type '#' I_a(dim,cid(1),Imarker,varargin{:}) output(:)'];
   else
-      data=['$' type '#' I_(int32(numel(data)/blen)) data(:)'];
+      data=['$' type '#' I_(int32(numel(data)/blen),Imarker,varargin{:}) output(:)'];
   end
   data=['[' data(:)'];
 else
@@ -864,13 +887,17 @@ else
       Amarker={char(hex2dec('dd')),''};
       am0=Imsgpk_(numel(num),Imarker,220,144);
   end  
-  data=reshape(data,blen,numel(data)/blen);
-  data(2:blen+1,:)=data;
-  data(1,:)=type;
+  if(isdebug)
+      data=sprintf([type '<%g>'],num);
+  else
+      data=reshape(data,blen,numel(data)/blen);
+      data(2:blen+1,:)=data;
+      data(1,:)=type;
+  end
   data=[am0 data(:)' Amarker{2}];
 end
 %%-------------------------------------------------------------------------
-function data=D_a(num,type,markers,dim,isnest)
+function data=D_a(num,type,markers,dim,varargin)
 Fmarker='dD';
 Amarker={'[',']'};
 if(nargin>=3)
@@ -888,16 +915,20 @@ elseif(id==2)
   data=data2byte(swapbytes(double(num)),'uint8');
 end
 
-if(nargin<5)
-  isnest=0;
+isnest=jsonopt('NestArray',0,varargin{:});
+isdebug=jsonopt('Debug',0,varargin{:});
+if(isdebug)
+    output=sprintf('<%g>',num);
+else
+    output=data(:);
 end
 
 if(isnest==0 && numel(num)>1 && Fmarker(1)=='d')
   if(nargin>=4 && (length(dim)==1 || (length(dim)>=2 && prod(dim)~=dim(2))))
       cid=I_(uint32(max(dim)));
-      data=['$' type '#' I_a(dim,cid(1)) data(:)'];
+      data=['$' type '#' I_a(dim,cid(1),markers,varargin{:}) output(:)'];
   else
-      data=['$' type '#' I_(int32(numel(data)/(id*4))) data(:)'];
+      data=['$' type '#' I_(int32(numel(data)/(id*4)),varargin{:}.IM_,varargin{:}) output(:)'];
   end
   data=['[' data];
 else
@@ -906,9 +937,13 @@ else
       Amarker={char(hex2dec('dd')),''};
       am0=Imsgpk_(numel(num),char([204,208:211]),220,144);
   end
-  data=reshape(data,(id*4),length(data)/(id*4));
-  data(2:(id*4+1),:)=data;
-  data(1,:)=type;
+  if(isdebug)
+      data=sprintf([type '<%g>'],num);
+  else
+      data=reshape(data,(id*4),length(data)/(id*4));
+      data(2:(id*4+1),:)=data;
+      data(1,:)=type;
+  end
   data=[am0 data(:)' Amarker{2}];
 end
 %%-------------------------------------------------------------------------
