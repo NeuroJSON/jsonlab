@@ -413,8 +413,8 @@ end
             end
         end
         parse_char(inputstr, '}');
-        if(isstruct(object))
-            object=struct2jdata(object,struct('Recursive',0));
+        if(isstruct(object) && jsonopt('JDataDecode',1,opt)==1)
+            object=jdatadecode(object,struct('Recursive',0));
         end
     end
 

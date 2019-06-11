@@ -1,6 +1,6 @@
-function newdata=struct2jdata(data,varargin)
+function newdata=jdatadecode(data,varargin)
 %
-% newdata=struct2jdata(data,opt,...)
+% newdata=jdatadecode(data,opt,...)
 %
 % convert a JData object (in the form of a struct array) into an array
 %
@@ -31,7 +31,7 @@ function newdata=struct2jdata(data,varargin)
 % examples:
 %      obj=struct('_ArrayType_','double','_ArraySize_',[2 3],
 %                 '_ArrayIsSparse_',1 ,'_ArrayData_',null);
-%      ubjdata=struct2jdata(obj);
+%      ubjdata=jdatadecode(obj);
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -42,7 +42,7 @@ function newdata=struct2jdata(data,varargin)
 newdata=data;
 if(~isstruct(data))
     if(iscell(data))
-        newdata=cellfun(@(x) struct2jdata(x),data,'UniformOutput',false);
+        newdata=cellfun(@(x) jdatadecode(x),data,'UniformOutput',false);
     end
     return;
 end
@@ -55,9 +55,9 @@ if(jsonopt('Recursive',1,varargin{:})==1)
   for i=1:length(fn) % depth-first
     for j=1:len
         if(isstruct(data(j).(fn{i})))
-            newdata(j).(fn{i})=struct2jdata(data(j).(fn{i}));
+            newdata(j).(fn{i})=jdatadecode(data(j).(fn{i}));
         elseif(iscell(data(j).(fn{i})))
-            newdata(j).(fn{i})=cellfun(@(x) struct2jdata(x),newdata(j).(fn{i}),'UniformOutput',false);
+            newdata(j).(fn{i})=cellfun(@(x) jdatadecode(x),newdata(j).(fn{i}),'UniformOutput',false);
         end
     end
   end

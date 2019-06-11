@@ -33,9 +33,9 @@ function data = loadmsgpack(fname,varargin)
         data=data{1};
     end
     if(iscell(data))
-        data=cellfun(@(x) struct2jdata(x),data,'UniformOutput',false);
+        data=cellfun(@(x) jdatadecode(x),data,'UniformOutput',false);
     elseif(isstruct(data))
-        data=struct2jdata(data);
+        data=jdatadecode(data);
     end
 end
 
