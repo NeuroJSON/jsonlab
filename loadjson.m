@@ -408,7 +408,8 @@ function [object, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, 
     end
     pos=parse_char(inputstr, pos, '}');
     if(isstruct(object) && jsonopt('JDataDecode',1,varargin{:})==1)
-        object=jdatadecode(object,struct('Recursive',0));
+        varargin{:}.Recursive=0;
+        object=jdatadecode(object,varargin{:});
     end
 end
 
