@@ -83,7 +83,7 @@ fprintf(1,'%%  a complex matrix\n')
 fprintf(1,'%%=================================================\n\n')
 
 data2json=magic(6);
-data2json=data2json(:,1:3)+data2json(:,4:6)*i
+data2json=data2json(:,1:3)+data2json(:,4:6)*1i
 savemsgpack('',data2json)
 json2data=loadmsgpack(ans)
 
@@ -107,7 +107,7 @@ fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a complex sparse matrix\n')
 fprintf(1,'%%=================================================\n\n')
 
-data2json=data2json-data2json*i
+data2json=data2json-data2json*1i
 savemsgpack('complex_sparse',data2json)
 json2data=loadmsgpack(ans)
 

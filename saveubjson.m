@@ -454,7 +454,7 @@ if(ismsgpack)
     isnest=1;
 end
 if((length(size(item))>2 && isnest==0)  || issparse(item) || ~isreal(item) || ...
-   (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
+   jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
       cid=I_(uint32(max(size(item))),Imarker);
       if(isempty(name))
     	txt=[Omarker{1} N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker) ];
@@ -523,6 +523,7 @@ if(issparse(item))
             % General case, store row and column indices.
             fulldata=[ix,iy,data];
         end
+        varargin{:}.ArrayToStruct=0;
         txt=[txt,N_('_ArrayData_'),...
                cell2ubjson('',num2cell(fulldata',2)',level+2,varargin{:})];
         childcount=childcount+1;
