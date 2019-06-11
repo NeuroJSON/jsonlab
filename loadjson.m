@@ -48,6 +48,11 @@ function data = loadjson(fname,varargin)
 %           opt.ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
 %                         (introduced in MATLAB R2016b) to char arrays; if set to 1,
 %                         loadjson skips this conversion.
+%           opt.FormatVersion [2|float]: set the JSONLab format version; since
+%                         v2.0, JSONLab uses JData specification Draft 1
+%                         for output format, it is incompatible with all
+%                         previous releases; if old output is desired,
+%                         please set FormatVersion to 1.9 or earlier.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,

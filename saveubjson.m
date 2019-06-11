@@ -80,6 +80,12 @@ function json=saveubjson(rootname,obj,varargin)
 %                         element count is larger than this number.
 %        opt.MessagePack [0|1]: output MessagePack (https://msgpack.org/)
 %                         binary stream instead of UBJSON
+%        opt.FormatVersion [2|float]: set the JSONLab output version; since
+%                         v2.0, JSONLab uses JData specification Draft 1
+%                         for output format, it is incompatible with all
+%                         previous releases; if old output is desired,
+%                         please set FormatVersion to 1.9 or earlier.
+%        opt.Debug [0|1]: output binary numbers in <%g> format for debugging
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.

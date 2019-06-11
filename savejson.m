@@ -83,6 +83,12 @@ function json=savejson(rootname,obj,varargin)
 %                             compressed binary array data. 
 %        opt.CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
+%        opt.FormatVersion [2|float]: set the JSONLab output version; since
+%                         v2.0, JSONLab uses JData specification Draft 1
+%                         for output format, it is incompatible with all
+%                         previous releases; if old output is desired,
+%                         please set FormatVersion to 1.9 or earlier.
+%
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
 % output:
@@ -214,7 +220,7 @@ elseif(isa(item,'containers.Map'))
 elseif(isa(item,'categorical'))
     txt=cell2json(name,cellstr(item),level,varargin{:});
 elseif(isobject(item))
-    if(~exist('OCTAVE_VERSION','builtin') && exist('istable') && istable(item))
+    if(~jsonopt('IsOctave',0,varargin{:}) && exist('istable') && istable(item))
         txt=matlabtable2json(name,item,level,varargin{:});
     else
         txt=matlabobject2json(name,item,level,varargin{:});

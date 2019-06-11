@@ -31,6 +31,11 @@ function data = loadubjson(fname,varargin)
 %                         the "name" tag is treated as a string. To load 
 %                         these UBJSON data, you need to manually set this 
 %                         flag to 1.
+%           opt.FormatVersion [2|float]: set the JSONLab format version; since
+%                         v2.0, JSONLab uses JData specification Draft 1
+%                         for output format, it is incompatible with all
+%                         previous releases; if old output is desired,
+%                         please set FormatVersion to 1.9 or earlier.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
