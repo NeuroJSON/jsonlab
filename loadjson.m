@@ -435,7 +435,7 @@ function str = valid_field(str,varargin)
         if(~isoctave && str(1)+0 > 255)
             str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
         else
-            str=sprintf('x0x%X_%s',char(str(1)),str(2:end));
+            str=sprintf('x0x%X_%s',char(str(1))+0,str(2:end));
         end
     end
     if(isvarname(str))
@@ -452,7 +452,7 @@ function str = valid_field(str,varargin)
         pos0=[0 cpos(:)' length(str)];
         str='';
         for i=1:length(cpos)
-            str=[str str0(pos0(i)+1:cpos(i)-1) sprintf('_0x%X_',str0(cpos(i)))];
+            str=[str str0(pos0(i)+1:cpos(i)-1) sprintf('_0x%X_',str0(cpos(i))+0)];
         end
         if(cpos(end)~=length(str))
             str=[str str0(pos0(end-1)+1:pos0(end))];

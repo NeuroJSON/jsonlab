@@ -50,7 +50,7 @@ function newdata=jdatadecode(data,varargin)
     len=length(data);
     needbase64=jsonopt('Base64',1,varargin{:});
     format=jsonopt('FormatVersion',2,varargin{:});
-    prefix=jsonopt('Prefix',sprintf('x0x%X','_'),varargin{:});
+    prefix=jsonopt('Prefix',sprintf('x0x%X','_'+0),varargin{:});
 
     if(jsonopt('Recursive',1,varargin{:})==1)
       for i=1:length(fn) % depth-first

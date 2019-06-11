@@ -119,7 +119,7 @@ if(length(varargin)==1 && ischar(varargin{1}))
 else
    opt=varargin2struct(varargin{:});
 end
-opt.IsOctave=exist('OCTAVE_VERSION','builtin');
+opt.IsOctave=isoctave;
 
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
