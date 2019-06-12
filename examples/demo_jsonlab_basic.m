@@ -328,5 +328,21 @@ if(exist('istable'))
     json2data=loadjson(ans)
 end
 
+try
+    val=zlibencode('test');
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  a 2-D array in compressed array format\n')
+    fprintf(1,'%%=================================================\n\n')
+
+    data2json=eye(10);
+    data2json(20,1)=1;
+    savejson('',data2json,'Compression','zlib','CompressionSize',0)  % nestarray for 4-D or above is not working
+    json2data=loadjson(ans)
+    if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
+        warning('conversion does not preserve original data');
+    end
+catch
+end
+
 rand ('state',rngstate);
 

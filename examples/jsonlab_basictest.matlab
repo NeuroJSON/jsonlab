@@ -1265,4 +1265,46 @@ json2data =
 
     table: {[1x1 struct]  [1x1 struct]  [1x1 struct]}
 
+>> >> 
+%=================================================
+%  a 2-D array in compressed array format
+%=================================================
+
+
+ans =
+
+{
+	"_ArrayType_": "double",
+	"_ArraySize_": [20,10],
+	"_ArrayCompressionSize_": [1,200],
+	"_ArrayCompressionMethod_": "zlib",
+	"_ArrayCompressedData_": "eJxjYACBD/YMNAGj5o6aO2ruKBgFgwtQL10DAMHODQY=
+"
+}
+
+
+
+json2data =
+
+     1     0     0     0     0     0     0     0     0     0
+     0     1     0     0     0     0     0     0     0     0
+     0     0     1     0     0     0     0     0     0     0
+     0     0     0     1     0     0     0     0     0     0
+     0     0     0     0     1     0     0     0     0     0
+     0     0     0     0     0     1     0     0     0     0
+     0     0     0     0     0     0     1     0     0     0
+     0     0     0     0     0     0     0     1     0     0
+     0     0     0     0     0     0     0     0     1     0
+     0     0     0     0     0     0     0     0     0     1
+     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0
+     0     0     0     0     0     0     0     0     0     0
+     1     0     0     0     0     0     0     0     0     0
+
 >> >> >> >> 

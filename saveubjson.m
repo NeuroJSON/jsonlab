@@ -146,8 +146,8 @@ if(~isempty(dozip))
     end    
     opt.Compression=dozip;
 end
-ismsgpack=jsonopt('MessagePack',0,opt);
-if(~ismsgpack)
+ismsgpack=jsonopt('MessagePack',0,opt) + bitshift(jsonopt('Debug',0,opt),1);
+if(~bitget(ismsgpack, 1))
     opt.IM_='UiIlL';
     opt.FM_='dD';
     opt.FTM_='FT';
@@ -187,7 +187,7 @@ if((isstruct(obj) || iscell(obj))&& isempty(rootname) && forceroot)
 end
 json=obj2ubjson(rootname,obj,rootlevel,opt);
 if(~rootisarray)
-    if(ismsgpack)
+    if(bitget(ismsgpack, 1))
         json=[char(129) json opt.OM_{2}];
     else
         json=[opt.OM_{1} json opt.OM_{2}];
@@ -725,15 +725,15 @@ end
 %%-------------------------------------------------------------------------
 function val=N_(str)
 global ismsgpack
-if(~ismsgpack)
-    val=[I_(int32(length(str))) str];
+if(~bitget(ismsgpack, 1))
+    val=[I_(int32(length(str)),'UiIlL',struct('Debug',bitget(ismsgpack,2))) str];
 else
     val=S_(str);
 end
 %%-------------------------------------------------------------------------
 function val=S_(str)
 global ismsgpack
-if(ismsgpack)
+if(bitget(ismsgpack, 1))
     Smarker=char([161,219]);
     Imarker=char([204,208:211]);
 else
@@ -743,10 +743,10 @@ end
 if(length(str)==1)
   val=[Smarker(1) str];
 else
-    if(ismsgpack)
+    if(bitget(ismsgpack, 1))
         val=[Imsgpk_(length(str),Imarker,218,160) str];
     else
-        val=['S' I_(int32(length(str))) str];
+        val=['S' I_(int32(length(str)),Imarker,struct('Debug',bitget(ismsgpack,2))) str];
     end
 end
 
