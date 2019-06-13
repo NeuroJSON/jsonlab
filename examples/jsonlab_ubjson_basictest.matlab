@@ -725,7 +725,7 @@ data2json =
 
 ans =
 
-[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayiUHouri UMinutei USecondi USystemTimeZoneSUAmerica/New_York}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayi	UHouri UMinutei USecondi USystemTimeZoneSUAmerica/New_York}]
+[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayiUHouri UMinutei USecondi USystemTimeZoneSUAmerica/Los_Angeles}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayi	UHouri UMinutei USecondi USystemTimeZoneSUAmerica/Los_Angeles}]
 
 
 json2data = 
@@ -792,7 +792,7 @@ json2data =
 ans =
 
 {U_ArrayType_SUdoubleU_ArraySize_[$U#U
-U_ArrayZipSize_[$U#UÈU_ArrayZipType_SUzlibU_ArrayZipData_[$U#U xc` ö4£æ;jî(P/] ÁÎ}
+U_ArrayZipSize_[$U#UÈU_ArrayZipType_SUzlibU_ArrayZipData_[$U#U xc` ö4£æ;jî(P/] ÁÎ}
 
 
 json2data =

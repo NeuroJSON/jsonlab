@@ -1166,7 +1166,7 @@ ans =
 		"Hour": 0,
 		"Minute": 0,
 		"Second": 0,
-		"SystemTimeZone": "America\/New_York"
+		"SystemTimeZone": "America\/Los_Angeles"
 	},
 	{
 		"Format": "dd-MMM-uuuu",
@@ -1177,7 +1177,7 @@ ans =
 		"Hour": 0,
 		"Minute": 0,
 		"Second": 0,
-		"SystemTimeZone": "America\/New_York"
+		"SystemTimeZone": "America\/Los_Angeles"
 	}
 ]
 
