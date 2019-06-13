@@ -13,13 +13,13 @@ function newdata=jdatadecode(data,varargin)
 %            specification. The JData keywords are
 %               "_ArrayType_", "_ArraySize_", "_ArrayData_"
 %               "_ArrayIsSparse_", "_ArrayIsComplex_", 
-%               "_ArrayCompressionMethod_", "_ArrayCompressionSize",
-%               "_ArrayCompressedData_"
+%               "_ArrayZipType_", "_ArrayZipSize",
+%               "_ArrayZipData_"
 %      opt: (optional) a list of 'Param',value pairs for additional options 
 %           The supported options include
 %               'Recursive', if set to 1, will apply the conversion to 
 %                            every child; 0 to disable
-%               'Base64'. if set to 1, _ArrayCompressedData_ is assumed to
+%               'Base64'. if set to 1, _ArrayZipData_ is assumed to
 %                         be encoded with base64 format and need to be
 %                         decoded first. This is needed for JSON but not
 %                         UBJSON data
@@ -64,20 +64,20 @@ function newdata=jdatadecode(data,varargin)
       end
     end
 
-    if(~isempty(strmatch(N_('_ArrayType_'),fn)) && (~isempty(strmatch(N_('_ArrayData_'),fn)) || ~isempty(strmatch(N_('_ArrayCompressedData_'),fn))))
+    if(~isempty(strmatch(N_('_ArrayType_'),fn)) && (~isempty(strmatch(N_('_ArrayData_'),fn)) || ~isempty(strmatch(N_('_ArrayZipData_'),fn))))
       newdata=cell(len,1);
       for j=1:len
-        if(~isempty(strmatch(N_('_ArrayCompressionSize_'),fn)) && ~isempty(strmatch(N_('_ArrayCompressedData_'),fn)))
+        if(~isempty(strmatch(N_('_ArrayZipSize_'),fn)) && ~isempty(strmatch(N_('_ArrayZipData_'),fn)))
             zipmethod='zip';
-            if(~isempty(strmatch(N_('_ArrayCompressionMethod_'),fn)))
-                zipmethod=data(j).(N_('_ArrayCompressionMethod_'));
+            if(~isempty(strmatch(N_('_ArrayZipType_'),fn)))
+                zipmethod=data(j).(N_('_ArrayZipType_'));
             end
             if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip'})))
                 decompfun=str2func([zipmethod 'decode']);
                 if(needbase64)
-                    ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayCompressedData_')))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayCompressionSize_')));
+                    ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_')));
                 else
-                    ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayCompressedData_'))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayCompressionSize_')));
+                    ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayZipData_'))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_')));
                 end
             else
                 error('compression method is not supported');

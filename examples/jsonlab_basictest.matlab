@@ -1276,9 +1276,9 @@ ans =
 {
 	"_ArrayType_": "double",
 	"_ArraySize_": [20,10],
-	"_ArrayCompressionSize_": [1,200],
-	"_ArrayCompressionMethod_": "zlib",
-	"_ArrayCompressedData_": "eJxjYACBD/YMNAGj5o6aO2ruKBgFgwtQL10DAMHODQY=
+	"_ArrayZipSize_": [1,200],
+	"_ArrayZipType_": "zlib",
+	"_ArrayZipData_": "eJxjYACBD/YMNAGj5o6aO2ruKBgFgwtQL10DAMHODQY=
 "
 }
 

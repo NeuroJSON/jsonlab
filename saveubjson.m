@@ -69,11 +69,11 @@ function json=saveubjson(rootname,obj,varargin)
 %                         compress a long string, one must convert
 %                         it to uint8 or int8 array first. The compressed
 %                         array uses three extra fields
-%                         "_ArrayCompressionMethod_": the opt.Compression value. 
-%                         "_ArrayCompressionSize_": a 1D interger array to
+%                         "_ArrayZipType_": the opt.Compression value. 
+%                         "_ArrayZipSize_": a 1D interger array to
 %                            store the pre-compressed (but post-processed)
 %                            array dimensions, and 
-%                         "_ArrayCompressedData_": the binary stream of
+%                         "_ArrayZipData_": the binary stream of
 %                            the compressed binary array data WITHOUT
 %                            'base64' encoding
 %        opt.CompressArraySize [100|int]: only to compress an array if the total 
@@ -513,10 +513,10 @@ if(issparse(item))
             fulldata=[ix,iy,data];
         end
         cid=I_(uint32(max(size(fulldata))),Imarker,varargin{:});
-        txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker,varargin{:})];
-        txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
+        txt=[txt, N_('_ArrayZipSize_'),I_a(size(fulldata),cid(1),Imarker,varargin{:})];
+        txt=[txt, N_('_ArrayZipType_'),S_(dozip)];
 	    compfun=str2func([dozip 'encode']);
-	    txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker,varargin{:})];
+	    txt=[txt,N_('_ArrayZipData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker,varargin{:})];
         childcount=childcount+3;
     else
         if(size(item,1)==1)
@@ -550,10 +550,10 @@ else
             fulldata=[real(item(:)) imag(item(:))];
         end
         cid=I_(uint32(max(size(fulldata))),Imarker,varargin{:});
-        txt=[txt, N_('_ArrayCompressionSize_'),I_a(size(fulldata),cid(1),Imarker,varargin{:})];
-        txt=[txt, N_('_ArrayCompressionMethod_'),S_(dozip)];
+        txt=[txt, N_('_ArrayZipSize_'),I_a(size(fulldata),cid(1),Imarker,varargin{:})];
+        txt=[txt, N_('_ArrayZipType_'),S_(dozip)];
 	    compfun=str2func([dozip 'encode']);
-	    txt=[txt,N_('_ArrayCompressedData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker,varargin{:})];
+	    txt=[txt,N_('_ArrayZipData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker,varargin{:})];
         childcount=childcount+3;
     else
         if(isreal(item))

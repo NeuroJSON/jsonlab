@@ -792,7 +792,7 @@ json2data =
 ans =
 
 {U_ArrayType_SUdoubleU_ArraySize_[$U#U
-U_ArrayCompressionSize_[$U#UÈU_ArrayCompressionMethod_SUzlibU_ArrayCompressedData_[$U#U xc` ö4£æ;jî(P/] ÁÎ}
+U_ArrayZipSize_[$U#UÈU_ArrayZipType_SUzlibU_ArrayZipData_[$U#U xc` ö4£æ;jî(P/] ÁÎ}
 
 
 json2data =

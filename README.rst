@@ -284,11 +284,11 @@ savejson.m
                           compress a long string, one must convert
                           it to uint8 or int8 array first. The compressed
                           array uses three extra fields
-                          "_ArrayCompressionMethod_": the opt.Compression value. 
-                          "_ArrayCompressionSize_": a 1D interger array to
+                          "_ArrayZipType_": the opt.Compression value. 
+                          "_ArrayZipSize_": a 1D interger array to
                              store the pre-compressed (but post-processed)
                              array dimensions, and 
-                          "_ArrayCompressedData_": the "base64" encoded
+                          "_ArrayZipData_": the "base64" encoded
                               compressed binary array data. 
          opt.CompressArraySize [100|int]: only to compress an array if the total 
                           element count is larger than this number.
@@ -432,11 +432,11 @@ saveubjson.m
                           compress a long string, one must convert
                           it to uint8 or int8 array first. The compressed
                           array uses three extra fields
-                          "_ArrayCompressionMethod_": the opt.Compression value. 
-                          "_ArrayCompressionSize_": a 1D interger array to
+                          "_ArrayZipType_": the opt.Compression value. 
+                          "_ArrayZipSize_": a 1D interger array to
                              store the pre-compressed (but post-processed)
                              array dimensions, and 
-                          "_ArrayCompressedData_": the binary stream of
+                          "_ArrayZipData_": the binary stream of
                              the compressed binary array data WITHOUT
                              'base64' encoding
          opt.CompressArraySize [100|int]: only to compress an array if the total 

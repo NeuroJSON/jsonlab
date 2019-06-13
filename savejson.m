@@ -75,11 +75,11 @@ function json=savejson(rootname,obj,varargin)
 %                         compress a long string, one must convert
 %                         it to uint8 or int8 array first. The compressed
 %                         array uses three extra fields
-%                         "_ArrayCompressionMethod_": the opt.Compression value. 
-%                         "_ArrayCompressionSize_": a 1D interger array to
+%                         "_ArrayZipType_": the opt.Compression value. 
+%                         "_ArrayZipSize_": a 1D interger array to
 %                            store the pre-compressed (but post-processed)
 %                            array dimensions, and 
-%                         "_ArrayCompressedData_": the "base64" encoded
+%                         "_ArrayZipData_": the "base64" encoded
 %                             compressed binary array data. 
 %        opt.CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
@@ -534,10 +534,10 @@ if(issparse(item))
             % General case, store row and column indices.
             fulldata=[ix,iy,data];
         end
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionMethod_": "',dozip, ['"' sep]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipType_": "',dozip, ['"' sep]);
 	    compfun=str2func([dozip 'encode']);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
     else
         if(size(item,1)==1)
             % Row vector, store only column indices.
@@ -566,10 +566,10 @@ else
             txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','true', sep);
             fulldata=[real(item(:)) imag(item(:))]';
         end
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressionMethod_": "',dozip, ['"' sep]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipType_": "',dozip, ['"' sep]);
 	    compfun=str2func([dozip 'encode']);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayCompressedData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
     else
         if(isreal(item))
             txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
