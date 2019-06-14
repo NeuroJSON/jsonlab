@@ -2,7 +2,9 @@ function newdata=jdatadecode(data,varargin)
 %
 % newdata=jdatadecode(data,opt,...)
 %
-% convert a JData object (in the form of a struct array) into an array
+% Convert all JData object (in the form of a struct array) into an array
+% (accepts JData objects loaded from either loadjson/loadubjson or 
+% jsondecode for MATLAB R2018a or later)
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 %
@@ -13,8 +15,7 @@ function newdata=jdatadecode(data,varargin)
 %            specification. The JData keywords are
 %               "_ArrayType_", "_ArraySize_", "_ArrayData_"
 %               "_ArrayIsSparse_", "_ArrayIsComplex_", 
-%               "_ArrayZipType_", "_ArrayZipSize",
-%               "_ArrayZipData_"
+%               "_ArrayZipType_", "_ArrayZipSize", "_ArrayZipData_"
 %      opt: (optional) a list of 'Param',value pairs for additional options 
 %           The supported options include
 %               'Recursive', if set to 1, will apply the conversion to 
@@ -23,6 +24,16 @@ function newdata=jdatadecode(data,varargin)
 %                         be encoded with base64 format and need to be
 %                         decoded first. This is needed for JSON but not
 %                         UBJSON data
+%               'Prefix', for JData files loaded via loadjson/loadubjson, the
+%                         default JData keyword prefix is 'x0x5F'; if the
+%                         json file is loaded using matlab2018's
+%                         jsondecode(), the prefix is 'x'; this function
+%                         attempts to automatically determine the prefix.
+%               'FormatVersion' [2|float]: set the JSONLab output version; 
+%                         since v2.0, JSONLab uses JData specification Draft 1
+%                         for output format, it is incompatible with all
+%                         previous releases; if old output is desired,
+%                         please set FormatVersion to 1
 %
 % output:
 %      newdata: the covnerted data if the input data does contain a JData 
@@ -31,7 +42,7 @@ function newdata=jdatadecode(data,varargin)
 % examples:
 %      obj=struct('_ArrayType_','double','_ArraySize_',[2 3],
 %                 '_ArrayIsSparse_',1 ,'_ArrayData_',null);
-%      ubjdata=jdatadecode(obj);
+%      jdata=jdatadecode(obj);
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -48,17 +59,22 @@ function newdata=jdatadecode(data,varargin)
     end
     fn=fieldnames(data);
     len=length(data);
-    needbase64=jsonopt('Base64',1,varargin{:});
-    format=jsonopt('FormatVersion',2,varargin{:});
-    prefix=jsonopt('Prefix',sprintf('x0x%X','_'+0),varargin{:});
+    opt=varargin2struct(varargin{:});
+    needbase64=jsonopt('Base64',1,opt);
+    format=jsonopt('FormatVersion',2,opt);
+    prefix=jsonopt('Prefix',sprintf('x0x%X','_'+0),opt);
+    if(isempty(strmatch(N_('_ArrayType_'),fn)) && ~isempty(strmatch('x_ArrayType_',fn)))
+        prefix='x';
+        opt.prefix='x';
+    end
 
-    if(jsonopt('Recursive',1,varargin{:})==1)
+    if(jsonopt('Recursive',1,opt)==1)
       for i=1:length(fn) % depth-first
         for j=1:len
             if(isstruct(data(j).(fn{i})))
-                newdata(j).(fn{i})=jdatadecode(data(j).(fn{i}));
+                newdata(j).(fn{i})=jdatadecode(data(j).(fn{i}),opt);
             elseif(iscell(data(j).(fn{i})))
-                newdata(j).(fn{i})=cellfun(@(x) jdatadecode(x),newdata(j).(fn{i}),'UniformOutput',false);
+                newdata(j).(fn{i})=cellfun(@(x) jdatadecode(x,opt),newdata(j).(fn{i}),'UniformOutput',false);
             end
         end
       end
@@ -146,7 +162,8 @@ function newdata=jdatadecode(data,varargin)
             if(format>1.9)
                 data(j).(N_('_ArraySize_'))=data(j).(N_('_ArraySize_'))(end:-1:1);
             end
-            ndata=reshape(ndata(:),data(j).(N_('_ArraySize_')));
+            dims=data(j).(N_('_ArraySize_'));
+            ndata=reshape(ndata(:),dims(:)');
             if(format>1.9)
                 ndata=permute(ndata,ndims(ndata):-1:1);
             end
