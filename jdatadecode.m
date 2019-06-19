@@ -174,7 +174,22 @@ function newdata=jdatadecode(data,varargin)
           newdata=newdata{1};
       end
     end
-
+    if(~isempty(strmatch(N_('_MapData_'),fn)))
+        newdata=cell(len,1);
+        for j=1:len
+            key={};
+            val={};
+            for k=1:length(data(j).(N_('_MapData_')))
+                key{k}=data(j).(N_('_MapData_')){k}{1};
+                val{k}=data(j).(N_('_MapData_')){k}{2};
+            end
+            ndata=containers.Map(key,val);
+            newdata{j}=ndata;
+        end
+        if(len==1)
+            newdata=newdata{1};
+        end
+    end
     %% subfunctions 
     function escaped=N_(str)
       escaped=[prefix str];

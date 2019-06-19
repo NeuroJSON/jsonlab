@@ -157,13 +157,16 @@ rootisarray=0;
 rootlevel=1;
 forceroot=jsonopt('ForceRootName',0,opt);
 if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || ...
-        iscell(obj) || isobject(obj)) && isempty(rootname) && forceroot==0)
+        iscell(obj) || isobject(obj) ) && isempty(rootname) && forceroot==0)
     rootisarray=1;
     rootlevel=0;
 else
     if(isempty(rootname))
         rootname=varname;
     end
+end
+if(isa(obj,'containers.Map') && ~strcmp(obj.KeyType,'char'))
+    rootisarray=0;
 end
 if((isstruct(obj) || iscell(obj))&& isempty(rootname) && forceroot)
     rootname='root';
@@ -377,6 +380,21 @@ end
 dim=size(item);
 names = keys(item);
 val= values(item);
+
+if(~strcmp(item.KeyType,'char'))
+    mm=cell(1,length(names));
+    for i=1:length(names)
+        mm{i}={names{i}, val{i}};
+    end
+    if(isempty(name))
+        txt=obj2json('_MapData_',mm,level+1,varargin{:});
+    else
+        temp=struct(name,struct());
+        temp.(name).('x0x5F_MapData_')=mm;
+        txt=obj2json(name,temp.(name),level,varargin{:});
+    end
+    return;
+end
 
 len=prod(dim);
 forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
