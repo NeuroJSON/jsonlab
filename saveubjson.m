@@ -905,6 +905,7 @@ end
 %%-------------------------------------------------------------------------
 function data=D_a(num,type,markers,dim,varargin)
 Fmarker='dD';
+Imarker='UiIlL';
 Amarker={'[',']'};
 if(nargin>=3)
     Fmarker=markers;
@@ -932,7 +933,7 @@ end
 if(isnest==0 && numel(num)>1 && Fmarker(1)=='d')
   if(nargin>=4 && (length(dim)==1 || (length(dim)>=2 && prod(dim)~=dim(2))))
       cid=I_(uint32(max(dim)));
-      data=['$' type '#' I_a(dim,cid(1),markers,varargin{:}) output(:)'];
+      data=['$' type '#' I_a(dim,cid(1),Imarker,varargin{:}) output(:)'];
   else
       data=['$' type '#' I_(int32(numel(data)/(id*4)),varargin{:}.IM_,varargin{:}) output(:)'];
   end
