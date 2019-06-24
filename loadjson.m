@@ -510,6 +510,7 @@ function [obj, nextidx,nextdim]=parse2darray(inputstr,startpos,arraystr)
     astr=arraystr;
     astr(astr=='[')='';
     astr(astr==']')='';
+    astr=regexprep(deblank(astr),'\s+,',',');
     [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
     if(nextidx>=length(astr)-1)
             obj=reshape(obj,nextdim,numel(obj)/nextdim)';

@@ -80,6 +80,7 @@ function newdata=jdatadecode(data,varargin)
       end
     end
 
+    %% handle array data
     if(~isempty(strmatch(N_('_ArrayType_'),fn)) && (~isempty(strmatch(N_('_ArrayData_'),fn)) || ~isempty(strmatch(N_('_ArrayZipData_'),fn))))
       newdata=cell(len,1);
       for j=1:len
@@ -174,6 +175,38 @@ function newdata=jdatadecode(data,varargin)
           newdata=newdata{1};
       end
     end
+
+    %% handle table data
+    if(~isempty(strmatch(N_('_TableRecords_'),fn)))
+        newdata=cell(len,1);
+        for j=1:len
+            ndata=data(j).(N_('_TableRecords_'));
+            if(iscell(ndata))
+                rownum=length(ndata);
+                colnum=length(ndata{1});
+                nd=cell(rownum, colnum);
+                for i1=1:rownum;
+                    for i2=1:colnum
+                        nd{i1,i2}=ndata{i1}{i2};
+                    end
+                end
+                newdata{j}=cell2table(nd);
+            else
+                newdata{j}=array2table(ndata');
+            end
+            if(isfield(data(j),N_('_TableRows_'))&& ~isempty(data(j).(N_('_TableRows_'))))
+                newdata{j}.Properties.RowNames=data(j).(N_('_TableRows_'))(:);
+            end
+            if(isfield(data(j),N_('_TableCols_')) && ~isempty(data(j).(N_('_TableCols_'))))
+                newdata{j}.Properties.VariableNames=data(j).(N_('_TableCols_'));
+            end
+        end
+        if(len==1)
+            newdata=newdata{1};
+        end
+    end
+
+    %% handle map data
     if(~isempty(strmatch(N_('_MapData_'),fn)))
         newdata=cell(len,1);
         for j=1:len

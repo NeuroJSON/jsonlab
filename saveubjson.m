@@ -578,27 +578,17 @@ txt=[txt,Omarker{2}];
 
 %%-------------------------------------------------------------------------
 function txt=matlabtable2ubjson(name,item,level,varargin)
-if numel(item) == 0 %empty object
-    st = struct();
+st=containers.Map();
+st('_TableRecords_')=table2cell(item);
+st('_TableRows_')=item.Properties.RowNames';
+st('_TableCols_')=item.Properties.VariableNames;
+if(isempty(name))
+    txt=map2ubjson(name,st,level,varargin{:});
 else
-    st = struct();
-    propertynames = item.Properties.VariableNames;
-    if(isfield(item.Properties,'RowNames') && ~isempty(item.Properties.RowNames))
-        rownames=item.Properties.RowNames;
-        for p = 1:(numel(propertynames)-1)
-            for j = 1:size(item(:,p),1)
-                st.(rownames{j}).(propertynames{p}) = item{j,p};
-            end
-        end
-    else
-        for p = 1:numel(propertynames)
-            for j = 1:size(item(:,p),1)
-                st(j).(propertynames{p}) = item{j,p};
-            end
-        end
-    end
+    temp=struct(name,struct());
+    temp.(name)=st;
+    txt=map2ubjson(name,temp.(name),level,varargin{:});
 end
-txt=struct2ubjson(name,st,level,varargin{:});
 
 %%-------------------------------------------------------------------------
 function txt=matlabobject2ubjson(name,item,level,varargin)
