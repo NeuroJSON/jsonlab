@@ -92,9 +92,9 @@ function newdata=jdatadecode(data,varargin)
             if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip'})))
                 decompfun=str2func([zipmethod 'decode']);
                 if(needbase64)
-                    ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_')));
+                    ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_'))(:)');
                 else
-                    ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayZipData_'))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_')));
+                    ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayZipData_'))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_'))(:)');
                 end
             else
                 error('compression method is not supported');
@@ -118,7 +118,7 @@ function newdata=jdatadecode(data,varargin)
                     needtranspose=1;
                 end
                 if(~isempty(strmatch(N_('_ArraySize_'),fn)))
-                    dim=double(data(j).(N_('_ArraySize_')));
+                    dim=double(data(j).(N_('_ArraySize_'))(:)');
                     if(iscpx && size(ndata,2)==4-any(dim==1))
                         ndata(:,end-1)=complex(ndata(:,end-1),ndata(:,end));
                     end
@@ -163,7 +163,7 @@ function newdata=jdatadecode(data,varargin)
             if(format>1.9)
                 data(j).(N_('_ArraySize_'))=data(j).(N_('_ArraySize_'))(end:-1:1);
             end
-            dims=data(j).(N_('_ArraySize_'));
+            dims=data(j).(N_('_ArraySize_'))(:)';
             ndata=reshape(ndata(:),dims(:)');
             if(format>1.9)
                 ndata=permute(ndata,ndims(ndata):-1:1);
