@@ -725,7 +725,7 @@ data2json =
 
 ans =
 
-[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayiUHouri UMinutei USecondi USystemTimeZoneSUAmerica/Los_Angeles}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayi	UHouri UMinutei USecondi USystemTimeZoneSUAmerica/Los_Angeles}]
+[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayiUHouri UMinutei USecondi USystemTimeZoneSUAmerica/New_York}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayi	UHouri UMinutei USecondi USystemTimeZoneSUAmerica/New_York}]
 
 
 json2data = 
@@ -776,12 +776,12 @@ data2json =
 
 ans =
 
-{Utable[{UNames[SUAndy]UAgei}{UNames[SUWilliam]UAgei}{UNames[SUOm]UAgei}]}
+{Utable{U_TableCols_[SUNamesSUAge]U_TableRecords_[[SUAndy[i]][SUWilliam[i]][SUOm[i]]]U_TableRows_Z}}
 
 
 json2data = 
 
-    table: {[1x1 struct]  [1x1 struct]  [1x1 struct]}
+    table: [3x2 table]
 
 >> >> 
 %=================================================

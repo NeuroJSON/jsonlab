@@ -1166,7 +1166,7 @@ ans =
 		"Hour": 0,
 		"Minute": 0,
 		"Second": 0,
-		"SystemTimeZone": "America\/Los_Angeles"
+		"SystemTimeZone": "America\/New_York"
 	},
 	{
 		"Format": "dd-MMM-uuuu",
@@ -1177,7 +1177,7 @@ ans =
 		"Hour": 0,
 		"Minute": 0,
 		"Second": 0,
-		"SystemTimeZone": "America\/Los_Angeles"
+		"SystemTimeZone": "America\/New_York"
 	}
 ]
 
@@ -1237,33 +1237,34 @@ data2json =
 ans =
 
 {
-	"table": [
-		{
-			"Names": [
-				"Andy"
+	"table": {
+		"_TableCols_": [
+			"Names",
+			"Age"
+		],
+		"_TableRecords_": [
+			[
+				"Andy",
+				21
 			],
-			"Age": 21
-		},
-		{
-			"Names": [
-				"William"
+			[
+				"William",
+				21
 			],
-			"Age": 21
-		},
-		{
-			"Names": [
-				"Om"
-			],
-			"Age": 22
-		}
-	]
+			[
+				"Om",
+				22
+			]
+		],
+		"_TableRows_": []
+	}
 }
 
 
 
 json2data = 
 
-    table: {[1x1 struct]  [1x1 struct]  [1x1 struct]}
+    table: [3x2 table]
 
 >> >> 
 %=================================================
