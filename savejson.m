@@ -216,6 +216,12 @@ elseif(isstruct(item))
     txt=struct2json(name,item,level,varargin{:});
 elseif(ischar(item))
     txt=str2json(name,item,level,varargin{:});
+elseif(isenum(item))
+    if(isempty(item))
+        txt=mat2json(name,item,level,varargin{:});
+    else
+        txt=str2json(name,char(item),level,varargin{:});
+    end
 elseif(isa(item,'function_handle'))
     txt=struct2json(name,functions(item),level,varargin{:});
 elseif(isa(item,'containers.Map'))
@@ -603,13 +609,15 @@ txt=sprintf('%s%s%s',txt,padding1,'}');
 
 %%-------------------------------------------------------------------------
 function txt=matlabobject2json(name,item,level,varargin)
-if numel(item) == 0 %empty object
-    st = struct();
-elseif numel(item) == 1 %
-    st = struct();
-    txt = str2json(name, char(item), level, varargin(:));
-    return
-else
+% if numel(item) == 0 %empty object
+%     st = struct();
+% elseif numel(item) == 1 %
+%     st = struct();
+%     txt = str2json(name, char(item), level, varargin(:));
+%     return
+% else
+st = struct();
+if(numel(item)>0) % non-empty array of objects
     propertynames = properties(item);
     for p = 1:numel(propertynames)
         for o = numel(item):-1:1 % aray of objects
