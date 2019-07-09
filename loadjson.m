@@ -165,7 +165,7 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
                                 [obj, nextidx]=parse2darray(inputstr,pos+rowstart,arraystr);
                                 if(nextidx>=length(arraystr)-1)
                                     object=obj;
-                                    if(format>1.9 && ~isvector(object))
+                                    if(format>1.9)
                                         object=object.';
                                     end
                                     pos=endpos;
@@ -513,7 +513,7 @@ function [obj, nextidx,nextdim]=parse2darray(inputstr,startpos,arraystr)
     astr=regexprep(deblank(astr),'\s+,',',');
     [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
     if(nextidx>=length(astr)-1)
-            obj=reshape(obj,nextdim,numel(obj)/nextdim)';
+            obj=reshape(obj,nextdim,numel(obj)/nextdim);
             nextidx=length(arraystr)+1;
     end
 end

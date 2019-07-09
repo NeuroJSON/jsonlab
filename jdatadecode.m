@@ -101,64 +101,46 @@ function newdata=jdatadecode(data,varargin)
             end
         else
             if(iscell(data(j).(N_('_ArrayData_'))))
-                data(j).(N_('_ArrayData_'))=cell2mat(cellfun(@(x) double(x(:)),data(j).(N_('_ArrayData_')),'uniformoutput',0));
+                data(j).(N_('_ArrayData_'))=cell2mat(cellfun(@(x) double(x(:)),data(j).(N_('_ArrayData_')),'uniformoutput',0)).';
             end
             ndata=cast(data(j).(N_('_ArrayData_')),data(j).(N_('_ArrayType_')));
         end
         iscpx=0;
-        needtranspose=0;
         if(~isempty(strmatch(N_('_ArrayIsComplex_'),fn)))
             if(data(j).(N_('_ArrayIsComplex_')))
                iscpx=1;
-               needtranspose=islogical(data(j).(N_('_ArrayIsComplex_')));
             end
         end
         if(~isempty(strmatch(N_('_ArrayIsSparse_'),fn)) && data(j).(N_('_ArrayIsSparse_')))
                 if(islogical(data(j).(N_('_ArrayIsSparse_'))))
-                    needtranspose=1;
                 end
                 if(~isempty(strmatch(N_('_ArraySize_'),fn)))
                     dim=double(data(j).(N_('_ArraySize_'))(:)');
-                    if(iscpx && size(ndata,2)==4-any(dim==1))
-                        ndata(:,end-1)=complex(ndata(:,end-1),ndata(:,end));
+                    if(iscpx)
+                        ndata(end-1,:)=complex(ndata(end-1,:),ndata(end,:));
                     end
                     if isempty(ndata)
                         % All-zeros sparse
                         ndata=sparse(dim(1),prod(dim(2:end)));
                     elseif dim(1)==1
                         % Sparse row vector
-                        if(size(ndata,2)~=2 && size(ndata,1)==2) 
-                            ndata=ndata';
-                        end
-                        ndata=sparse(1,ndata(:,1),ndata(:,2),dim(1),prod(dim(2:end)));
+                        ndata=sparse(1,ndata(1,:),ndata(2,:),dim(1),prod(dim(2:end)));
                     elseif dim(2)==1
                         % Sparse column vector
-                        if(size(ndata,2)~=2 && size(ndata,1)==2) 
-                            ndata=ndata';
-                        end
-                        ndata=sparse(ndata(:,1),1,ndata(:,2),dim(1),prod(dim(2:end)));
+                        ndata=sparse(ndata(1,:),1,ndata(2,:),dim(1),prod(dim(2:end)));
                     else
                         % Generic sparse array.
-                        if(size(ndata,2)~=3 && size(ndata,1)==3) 
-                            ndata=ndata';
-                        end
-                        ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3),dim(1),prod(dim(2:end)));
+                        ndata=sparse(ndata(1,:),ndata(2,:),ndata(3,:),dim(1),prod(dim(2:end)));
                     end
                 else
                     if(iscpx && size(ndata,2)==4)
-                        ndata(:,3)=complex(ndata(:,3),ndata(:,4));
+                        ndata(3,:)=complex(ndata(3,:),ndata(4,:));
                     end
-                    ndata=sparse(ndata(:,1),ndata(:,2),ndata(:,3));
+                    ndata=sparse(ndata(1,:),ndata(2,:),ndata(3,:));
                 end
         elseif(~isempty(strmatch(N_('_ArraySize_'),fn)))
-            if(needtranspose)
-                ndata=ndata';
-            end
             if(iscpx)
-                if(size(ndata,2)~=2 && size(ndata,1)==2)
-                    ndata=ndata';
-                end
-                ndata=complex(ndata(:,1),ndata(:,2));
+                ndata=complex(ndata(1,:),ndata(2,:));
             end
             if(format>1.9)
                 data(j).(N_('_ArraySize_'))=data(j).(N_('_ArraySize_'))(end:-1:1);
