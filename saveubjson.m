@@ -132,7 +132,7 @@ if(~isempty(dozip))
     if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip'})))
         error('compression method "%s" is not supported',dozip);
     end
-    if(exist('zmat')~=2 && exist('zmat')~=3)
+    if(exist('zmat','file')~=2 && exist('zmat','file')~=3)
         try
             error(javachk('jvm'));
             try
