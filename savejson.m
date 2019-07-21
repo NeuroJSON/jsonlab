@@ -200,16 +200,16 @@ end
 filename=jsonopt('FileName','',opt);
 if(~isempty(filename))
     if(jsonopt('SaveBinary',0,opt)==1)
-	    fid = fopen(filename, 'wb');
-	    fwrite(fid,json);
+        fid = fopen(filename, 'wb');
+        fwrite(fid,json);
     else
-	    encoding = jsonopt('Encoding','',opt);
+        encoding = jsonopt('Encoding','',opt);
         if(isempty(encoding))
             fid = fopen(filename,'wt');
         else
             fid = fopen(filename,'wt','n',encoding);
         end
-	    fwrite(fid,json,'char');
+        fwrite(fid,json,'char');
     end
     fclose(fid);
 end
