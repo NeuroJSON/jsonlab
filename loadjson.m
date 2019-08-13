@@ -53,6 +53,8 @@ function data = loadjson(fname,varargin)
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
+%           opt.Encoding ['']: json file encoding. Support all encodings of
+%                         fopen() function
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -69,11 +71,20 @@ function data = loadjson(fname,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
+    opt=varargin2struct(varargin{:});
+    
     if(regexp(fname,'^\s*(?:\[.*\])|(?:\{.*\})\s*$','once'))
        string=fname;
     elseif(exist(fname,'file'))
        try
-           string = fileread(fname);
+           encoding = jsonopt('Encoding','',opt);
+           if(isempty(encoding))
+               string = fileread(fname);
+           else
+               fid = fopen(fname,'r','n',encoding);
+               string = fread(fid,'*char')';
+               fclose(fid);
+           end
        catch
            try
                string = urlread(['file://',fname]);
@@ -93,7 +104,6 @@ function data = loadjson(fname,varargin)
     esc = find(inputstr=='"' | inputstr=='\' ); % comparable to: regexp(inputstr, '["\\]');
     index_esc = 1;
 
-    opt=varargin2struct(varargin{:});
     opt.arraytoken_=arraytoken;
     opt.arraytokenidx_=arraytokenidx;
 

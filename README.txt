@@ -188,7 +188,9 @@ JSON. The detailed help info for the four functions can be found below:
             opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
             opt.ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
                           (introduced in MATLAB R2016b) to char arrays; if set to 1,
-                          loadjson skips this conversion. 
+                          loadjson skips this conversion.
+            opt.Encoding ['']: json file encoding. Support all encodings of
+                          fopen() function
 
   output:
        dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -289,6 +291,9 @@ JSON. The detailed help info for the four functions can be found below:
                               compressed binary array data. 
          opt.CompressArraySize [100|int]: only to compress an array if the total 
                           element count is larger than this number.
+         opt.Encoding ['']: json file encoding. Support all encodings of
+                          fopen() function
+
          opt can be replaced by a list of ('param',value) pairs. The param 
          string is equivallent to a field in opt and is case sensitive.
   output:
