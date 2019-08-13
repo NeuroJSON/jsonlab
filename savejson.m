@@ -125,7 +125,7 @@ if(length(varargin)==1 && ischar(varargin{1}))
 else
    opt=varargin2struct(varargin{:});
 end
-opt.IsOctave=isoctave;
+opt.IsOctave=isoctavemesh;
 
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
@@ -730,7 +730,7 @@ end
 %%-------------------------------------------------------------------------
 function newstr=escapejsonstring(str)
 newstr=str;
-isoct=isoctave;
+isoct=isoctavemesh;
 if(isoct)
    vv=sscanf(OCTAVE_VERSION,'%f');
    if(vv(1)>=3.8)
