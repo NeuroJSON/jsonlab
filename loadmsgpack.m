@@ -208,7 +208,7 @@ function [out, idx] = parsearray(len, bytes, idx)
     if(true)
       try
         oldobj=out;
-        out=cell2mat(out');
+        out=cell2mat(out);
         if(iscell(oldobj) && isstruct(out) && numel(out)>1 && jsonopt('SimplifyCellArray',1,varargin{:})==0)
             out=oldobj;
         elseif(size(out,1)>1 && ismatrix(out))

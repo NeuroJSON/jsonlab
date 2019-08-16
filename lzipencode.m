@@ -15,9 +15,9 @@ function output = lzipencode(input)
 if(nargin==0)
     error('you must provide at least 1 input');
 end
-if(exist('zmat')==3)
+if(exist('zmat','file')==2 || exist('zmat','file')==3)
     output=zmat(uint8(input),1,'lzip');
     return;
 else
-    error('you must install ZMat toolbox to use this feature: http://github.com/fangq/zmat_mex')
+    error('you must install ZMat toolbox to use this feature: http://github.com/fangq/zmat')
 end

@@ -365,7 +365,7 @@ function str = valid_field(str,varargin)
 % Invalid characters will be converted to underscores, and the prefix
 % "x0x[Hex code]_" will be added if the first character is not a letter.
     if(~isempty(regexp(str,'^[^A-Za-z]','once')))
-        if(~isoctave && str(1)+0 > 255)
+        if(~isoctavemesh && str(1)+0 > 255)
             str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
         else
             str=sprintf('x0x%X_%s',char(str(1)),str(2:end));
@@ -374,7 +374,7 @@ function str = valid_field(str,varargin)
     if(isvarname(str))
         return;
     end
-    if(~isoctave)
+    if(~isoctavemesh)
         str=regexprep(str,'([^0-9A-Za-z_])','_0x${sprintf(''%X'',unicode2native($1))}_');
     else
         cpos=regexp(str,'[^0-9A-Za-z_]');

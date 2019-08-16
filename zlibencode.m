@@ -19,7 +19,7 @@ function output = zlibencode(input)
 if(nargin==0)
     error('you must provide at least 1 input');
 end
-if(exist('zmat')==3)
+if(exist('zmat','file')==2 || exist('zmat','file')==3)
     output=zmat(input,1,'zlib');
     return;
 end

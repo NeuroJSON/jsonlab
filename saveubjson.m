@@ -125,14 +125,14 @@ if(length(varargin)==1 && ischar(varargin{1}))
 else
    opt=varargin2struct(varargin{:});
 end
-opt.IsOctave=isoctave;
+opt.IsOctave=isoctavemesh;
 
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
     if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip'})))
         error('compression method "%s" is not supported',dozip);
     end
-    if(exist('zmat')~=3)
+    if(exist('zmat','file')~=2 && exist('zmat','file')~=3)
         try
             error(javachk('jvm'));
             try

@@ -88,6 +88,8 @@ function json=savejson(rootname,obj,varargin)
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
+%        opt.Encoding ['']: json file encoding. Support all encodings of
+%                         fopen() function
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
@@ -125,14 +127,14 @@ if(length(varargin)==1 && ischar(varargin{1}))
 else
    opt=varargin2struct(varargin{:});
 end
-opt.IsOctave=isoctave;
+opt.IsOctave=isoctavemesh;
 
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
     if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip'})))
         error('compression method "%s" is not supported',dozip);
     end
-    if(exist('zmat')~=3)
+    if(exist('zmat','file')~=2 && exist('zmat','file')~=3)
         try
             error(javachk('jvm'));
             try
@@ -198,11 +200,16 @@ end
 filename=jsonopt('FileName','',opt);
 if(~isempty(filename))
     if(jsonopt('SaveBinary',0,opt)==1)
-	    fid = fopen(filename, 'wb');
-	    fwrite(fid,json);
+        fid = fopen(filename, 'wb');
+        fwrite(fid,json);
     else
-	    fid = fopen(filename, 'wt');
-	    fwrite(fid,json,'char');
+        encoding = jsonopt('Encoding','',opt);
+        if(isempty(encoding))
+            fid = fopen(filename,'wt');
+        else
+            fid = fopen(filename,'wt','n',encoding);
+        end
+        fwrite(fid,json,'char');
     end
     fclose(fid);
 end
@@ -738,7 +745,7 @@ end
 %%-------------------------------------------------------------------------
 function newstr=escapejsonstring(str)
 newstr=str;
-isoct=isoctave;
+isoct=isoctavemesh;
 if(isoct)
    vv=sscanf(OCTAVE_VERSION,'%f');
    if(vv(1)>=3.8)

@@ -53,6 +53,8 @@ function data = loadjson(fname,varargin)
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
+%           opt.Encoding ['']: json file encoding. Support all encodings of
+%                         fopen() function
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -69,11 +71,20 @@ function data = loadjson(fname,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
+    opt=varargin2struct(varargin{:});
+    
     if(regexp(fname,'^\s*(?:\[.*\])|(?:\{.*\})\s*$','once'))
        string=fname;
     elseif(exist(fname,'file'))
        try
-           string = fileread(fname);
+           encoding = jsonopt('Encoding','',opt);
+           if(isempty(encoding))
+               string = fileread(fname);
+           else
+               fid = fopen(fname,'r','n',encoding);
+               string = fread(fid,'*char')';
+               fclose(fid);
+           end
        catch
            try
                string = urlread(['file://',fname]);
@@ -93,7 +104,6 @@ function data = loadjson(fname,varargin)
     esc = find(inputstr=='"' | inputstr=='\' ); % comparable to: regexp(inputstr, '["\\]');
     index_esc = 1;
 
-    opt=varargin2struct(varargin{:});
     opt.arraytoken_=arraytoken;
     opt.arraytokenidx_=arraytokenidx;
 
@@ -165,7 +175,7 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
                                 [obj, nextidx]=parse2darray(inputstr,pos+rowstart,arraystr);
                                 if(nextidx>=length(arraystr)-1)
                                     object=obj;
-                                    if(format>1.9 && ~isvector(object))
+                                    if(format>1.9)
                                         object=object.';
                                     end
                                     pos=endpos;
@@ -438,7 +448,7 @@ function str = valid_field(str,varargin)
 % Invalid characters will be converted to underscores, and the prefix
 % "x0x[Hex code]_" will be added if the first character is not a letter.
     if(~isempty(regexp(str,'^[^A-Za-z]','once')))
-        if(~isoctave && str(1)+0 > 255)
+        if(~isoctavemesh && str(1)+0 > 255)
             str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
         else
             str=sprintf('x0x%X_%s',char(str(1))+0,str(2:end));
@@ -447,7 +457,7 @@ function str = valid_field(str,varargin)
     if(isvarname(str))
         return;
     end
-    if(~isoctave)
+    if(~isoctavemesh)
         str=regexprep(str,'([^0-9A-Za-z_])','_0x${sprintf(''%X'',unicode2native($1))}_');
     else
         cpos=regexp(str,'[^0-9A-Za-z_]');
@@ -513,7 +523,7 @@ function [obj, nextidx,nextdim]=parse2darray(inputstr,startpos,arraystr)
     astr=regexprep(deblank(astr),'\s+,',',');
     [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
     if(nextidx>=length(astr)-1)
-            obj=reshape(obj,nextdim,numel(obj)/nextdim)';
+            obj=reshape(obj,nextdim,numel(obj)/nextdim);
             nextidx=length(arraystr)+1;
     end
 end
