@@ -174,7 +174,7 @@ function newdata=jdatadecode(data,varargin)
                 end
                 newdata{j}=cell2table(nd);
             else
-                newdata{j}=array2table(ndata');
+                newdata{j}=array2table(ndata);
             end
             if(isfield(data(j),N_('_TableRows_'))&& ~isempty(data(j).(N_('_TableRows_'))))
                 newdata{j}.Properties.RowNames=data(j).(N_('_TableRows_'))(:);
