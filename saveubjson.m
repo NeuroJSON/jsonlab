@@ -646,7 +646,7 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
     if(isempty(type))
         % todo - need to consider negative ones separately
         maxval=max(double(mat(:)));
-        if(max(double(mat(:)))>=0 && maxval<=255)
+        if(min(double(mat(:)))>=0 && maxval<=255)
                 type='U';
         else
                 id= histc(abs(maxval),[0 2^7 2^15 2^31 2^63]);
