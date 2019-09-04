@@ -645,12 +645,17 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
     end
     if(isempty(type))
         % todo - need to consider negative ones separately
-        id= histc(abs(max(double(mat(:)))),[0 2^7 2^15 2^31 2^63]);
-        if(isempty(id~=0))
-            error('high-precision data is not yet supported');
+        maxval=max(double(mat(:)));
+        if(max(double(mat(:)))>=0 && maxval<=255)
+                type='U';
+        else
+                id= histc(abs(maxval),[0 2^7 2^15 2^31 2^63]);
+                if(isempty(id~=0))
+                        error('high-precision data is not yet supported');
+                end
+                key=Imarker(2:end);
+                type=key(id~=0);
         end
-        key=Imarker(2:end);
-	    type=key(id~=0);
     end
     if(~isvector(mat) && isnest==1)
         txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
