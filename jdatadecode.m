@@ -89,7 +89,7 @@ function newdata=jdatadecode(data,varargin)
             if(~isempty(strmatch(N_('_ArrayZipType_'),fn)))
                 zipmethod=data(j).(N_('_ArrayZipType_'));
             end
-            if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip'})))
+            if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
                 decompfun=str2func([zipmethod 'decode']);
                 if(needbase64)
                     ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_'))(:)');

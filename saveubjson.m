@@ -61,8 +61,8 @@ function json=saveubjson(rootname,obj,varargin)
 %                         wrapped inside a function call as 'foo(...);'
 %        opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
-%        opt.Compression  'zlib', 'gzip', 'lzma' or 'lzip': specify array compression
-%                         method; currently only supports 4 methods. The
+%        opt.Compression  'zlib', 'gzip', 'lzma', 'lzip', 'lz4' or 'lz4hc': specify array 
+%                         compression method; currently only supports 6 methods. The
 %                         data compression only applicable to numerical arrays 
 %                         in 3D or higher dimensions, or when ArrayToStruct
 %                         is 1 for 1D or 2D arrays. If one wants to
@@ -129,7 +129,7 @@ opt.IsOctave=isoctavemesh;
 
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
-    if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip'})))
+    if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
         error('compression method "%s" is not supported',dozip);
     end
     if(exist('zmat','file')~=2 && exist('zmat','file')~=3)
