@@ -1,22 +1,38 @@
-function output = lzipencode(input)
-%LZIPENCODE Compress input bytes with lzip.
+function varargout = lzipencode(varargin)
 %
-%    output = lzipencode(input)
+% output = lzipencode(input)
+%    or
+% [output, info] = lzipencode(input)
 %
-% The function takes a char, int8, or uint8 array INPUT and returns
-% compressed bytes OUTPUT as a uint8 array. Note that the compression
-% doesn't preserve input dimensions.
+% Compress a string or a numerical array using LZip-compression
 %
-% See also lzipdecode
+% This function depends on the ZMat toolbox (http://github.com/fangq/zmat)
 %
-% License : BSD, see LICENSE_*.txt
+% authors:Qianqian Fang (q.fang <at> neu.edu)
+%
+% input:
+%      input: the original data, can be a string, a numerical vector or array
+%
+% output:
+%      output: the compressed byte stream stored in a uint8 vector
+%      info: (optional) a struct storing the metadata of the input, see "help zmat" for details
+%
+% examples:
+%      [bytes, info]=lzipencode(eye(10));
+%      orig=lzipdecode(bytes,info);
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+% -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
 if(nargin==0)
     error('you must provide at least 1 input');
 end
+
 if(exist('zmat','file')==2 || exist('zmat','file')==3)
-    output=zmat(uint8(input),1,'lzip');
+    [varargout{1:nargout}]=zmat(varargin{1}, 1,'lzip',varargin{2:end});
     return;
 else
     error('you must install ZMat toolbox to use this feature: http://github.com/fangq/zmat')

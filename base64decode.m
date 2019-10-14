@@ -1,38 +1,49 @@
-function output = base64decode(input)
-%BASE64DECODE Decode Base64 string to a byte array.
+function output = base64decode(varargin)
 %
-%    output = base64decode(input)
+% output = base64decode(input)
 %
-% The function takes a Base64 string INPUT and returns a uint8 array
-% OUTPUT. JAVA must be running to use this function. The result is always
-% given as a 1-by-N array, and doesn't retrieve the original dimensions.
-%
-% See also base64encode
+% Decoding a Base64-encoded byte-stream to recover the original data
+% This function depends on JVM in MATLAB or, can optionally use the ZMat 
+% toolbox (http://github.com/fangq/zmat)
 %
 % Copyright (c) 2012, Kota Yamaguchi
 % URL: https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
-% License : BSD, see LICENSE_*.txt
+%
+% Modified by: Qianqian Fang (q.fang <at> neu.edu)
+%
+% input:
+%      input: a base64-encoded string
+%
+% output:
+%      output: the decoded binary byte-stream as a uint8 vector
+%
+% examples:
+%      bytes=base64encode('Test JSONLab');
+%      orig=char(base64decode(bytes))
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+% -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
 if(nargin==0)
     error('you must provide at least 1 input');
 end
 if(exist('zmat','file')==2 || exist('zmat','file')==3)
-    output=zmat(uint8(input),0,'base64');
+    output=zmat(varargin{1},0,'base64');
     return;
+elseif(isoctavemesh)
+    error('You must install the ZMat toolbox (http://github.com/fangq/zmat) to use this function in Octave');
 end
-if(exist('OCTAVE_VERSION','builtin'))
-    len=rem(numel(input),8)
-    if(len)
-       input=[input(:)', repmat(sprintf('\0'),1,(8-len))];
-    end
-    output = base64_decode(input);
-    return;
-end
+
 error(javachk('jvm'));
-if ischar(input), input = uint8(input); end
+
+if(ischar(varargin{1}))
+    varargin{1}=uint8(varargin{1});
+end
+
+input=typecast(varargin{1}(:)','uint8');
 
 output = typecast(org.apache.commons.codec.binary.Base64.decodeBase64(input), 'uint8')';
-
-end
 
