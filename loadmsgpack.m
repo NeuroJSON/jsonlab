@@ -185,7 +185,11 @@ function value = bytes2scalar(bytes, type)
 end
 
 function [str, idx] = parsestring(len, bytes, idx)
-    str = native2unicode(bytes(idx:idx+len-1)', 'utf-8');
+    if(~isoctavemesh)
+         str = native2unicode(bytes(idx:idx+len-1)', 'utf-8');
+    else
+         str = bytes(idx:idx+len-1)';
+    end
     idx = idx + len;
 end
 
@@ -223,7 +227,7 @@ function [out, idx] = parsemap(len, bytes, idx)
     out = struct();
     for n=1:len
         [key, idx] = parse(bytes, idx);
-        [out.(valid_field(key)), idx] = parse(bytes, idx);
+        [out.(valid_field(char(key))), idx] = parse(bytes, idx);
     end
 end
 

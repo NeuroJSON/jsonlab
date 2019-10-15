@@ -10,7 +10,7 @@ function [dims, maxlevel, count] = nestbracket2dim(str,brackets)
 %
 % input:
 %      str: a string-formatted JSON array using square-brackets for enclosing
-%           elements and comma a separator between elements
+%           elements and comma as separators between elements
 %      brackets: (optional), a string of length 2, with the first character
 %               being the opening token and the 2nd being the closing token.
 %               if not given, brackets is set to '[]' to find matching square-brackets;

@@ -103,7 +103,7 @@ function newdata=jdatadecode(data,varargin)
             if(iscell(data(j).(N_('_ArrayData_'))))
                 data(j).(N_('_ArrayData_'))=cell2mat(cellfun(@(x) double(x(:)),data(j).(N_('_ArrayData_')),'uniformoutput',0)).';
             end
-            ndata=cast(data(j).(N_('_ArrayData_')),data(j).(N_('_ArrayType_')));
+            ndata=cast(data(j).(N_('_ArrayData_')),char(data(j).(N_('_ArrayType_'))));
         end
         iscpx=0;
         if(~isempty(strmatch(N_('_ArrayIsComplex_'),fn)))
