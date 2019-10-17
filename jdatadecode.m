@@ -105,6 +105,9 @@ function newdata=jdatadecode(data,varargin)
             end
             ndata=cast(data(j).(N_('_ArrayData_')),char(data(j).(N_('_ArrayType_'))));
         end
+	if(~isempty(strmatch(N_('_ArrayZipSize_'),fn)))
+	    ndata=reshape(ndata(:),data(j).(N_('_ArrayZipSize_')));
+	end
         iscpx=0;
         if(~isempty(strmatch(N_('_ArrayIsComplex_'),fn)))
             if(data(j).(N_('_ArrayIsComplex_')))
@@ -112,8 +115,6 @@ function newdata=jdatadecode(data,varargin)
             end
         end
         if(~isempty(strmatch(N_('_ArrayIsSparse_'),fn)) && data(j).(N_('_ArrayIsSparse_')))
-                if(islogical(data(j).(N_('_ArrayIsSparse_'))))
-                end
                 if(~isempty(strmatch(N_('_ArraySize_'),fn)))
                     dim=double(data(j).(N_('_ArraySize_'))(:)');
                     if(iscpx)

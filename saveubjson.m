@@ -529,6 +529,9 @@ if(issparse(item))
             % General case, store row and column indices.
             fulldata=[ix,iy,data];
         end
+        if(ismsgpack)
+            txt=[txt,N_('_ArrayZipSize_'),I_a(size(fulldata))];
+        end
         varargin{:}.ArrayToStruct=0;
         txt=[txt,N_('_ArrayData_'),...
                cell2ubjson('',num2cell(fulldata',2)',level+2,varargin{:})];
@@ -556,6 +559,10 @@ else
 	    txt=[txt,N_('_ArrayZipData_'), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),Imarker,varargin{:})];
         childcount=childcount+3;
     else
+        if(ismsgpack)
+            cid=I_(uint32(length(item(:))),Imarker,varargin{:});
+            txt=[txt,N_('_ArrayZipSize_'),I_a([~isreal(item)+1 length(item(:))],cid(1),Imarker,varargin{:})];
+        end
         if(isreal(item))
             txt=[txt,N_('_ArrayData_'),...
                 matdata2ubjson(item(:)',level+2,varargin{:})];
