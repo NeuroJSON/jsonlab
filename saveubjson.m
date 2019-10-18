@@ -530,7 +530,9 @@ if(issparse(item))
             fulldata=[ix,iy,data];
         end
         if(ismsgpack)
-            txt=[txt,N_('_ArrayZipSize_'),I_a(size(fulldata))];
+            cid=I_(uint32(max(size(fulldata))),Imarker,varargin{:});
+            txt=[txt,N_('_ArrayZipSize_'),I_a(size(fulldata),cid(1),Imarker,varargin{:})];
+            childcount=childcount+1;
         end
         varargin{:}.ArrayToStruct=0;
         txt=[txt,N_('_ArrayData_'),...
@@ -562,6 +564,7 @@ else
         if(ismsgpack)
             cid=I_(uint32(length(item(:))),Imarker,varargin{:});
             txt=[txt,N_('_ArrayZipSize_'),I_a([~isreal(item)+1 length(item(:))],cid(1),Imarker,varargin{:})];
+            childcount=childcount+1;
         end
         if(isreal(item))
             txt=[txt,N_('_ArrayData_'),...
@@ -641,11 +644,9 @@ if(~isvector(mat) && isnest==1)
 end
 
 type='';
-hasnegtive=(mat<0);
 
-varargin{:}.num2cell_=1;
 if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) == 0)))
-    if(isempty(hasnegtive))
+    if(~any(mat<0))
        if(max(mat(:))<=2^8)
            type=Imarker(1);
        end
