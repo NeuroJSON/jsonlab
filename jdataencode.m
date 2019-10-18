@@ -1,9 +1,9 @@
-function jdata=jdencode(data, varargin)
+function jdata=jdataencode(data, varargin)
 %
-%    jdata=jdencode(data)
+%    jdata=jdataencode(data)
 %       or
-%    jdata=jdencode(data, options)
-%    jdata=jdencode(data, 'Param1',value1, 'Param2',value2,...)
+%    jdata=jdataencode(data, options)
+%    jdata=jdataencode(data, 'Param1',value1, 'Param2',value2,...)
 %
 %    Serialize a MATLAB struct or cell array into a JData-compliant 
 %    structure as defined in the JData spec: http://github.com/fangq/jdata
@@ -19,7 +19,7 @@ function jdata=jdencode(data, varargin)
 %                         total element count is larger than this number.
 %
 %    example:
-%        jd=jdencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
+%        jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
 %
 %    license:
 %        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -29,7 +29,7 @@ function jdata=jdencode(data, varargin)
 
 
 if(nargin==0)
-    help jdencode
+    help jdataencode
     return;
 end
 
@@ -95,7 +95,7 @@ end
 
 %%-------------------------------------------------------------------------
 function newitem=mat2jd(item,varargin)
-if(isa(item,'string') || ischar(item) || (isvector(item) && isreal(item) && ~issparse(item)))
+if(isempty(item) || isa(item,'string') || ischar(item) || (isvector(item) && isreal(item) && ~issparse(item)))
     newitem=item;
     return;
 end
