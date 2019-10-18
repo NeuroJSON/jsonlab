@@ -149,12 +149,6 @@ if(~isempty(dozip))
     opt.Compression=dozip;
 end
 
-if(isfield(opt,'norowbracket'))
-    warning('Option ''NoRowBracket'' is depreciated, please use ''SingletArray'' and set its value to not(NoRowBracket)');
-    if(~isfield(opt,'singletarray'))
-        opt.singletarray=not(opt.norowbracket);
-    end
-end
 rootisarray=0;
 rootlevel=1;
 forceroot=jsonopt('ForceRootName',0,opt);
