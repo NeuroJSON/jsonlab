@@ -1,9 +1,9 @@
-function jdata=jdencode(data, varargin)
+function jdata=jdataencode(data, varargin)
 %
-%    jdata=jdencode(data)
+%    jdata=jdataencode(data)
 %       or
-%    jdata=jdencode(data, options)
-%    jdata=jdencode(data, 'Param1',value1, 'Param2',value2,...)
+%    jdata=jdataencode(data, options)
+%    jdata=jdataencode(data, 'Param1',value1, 'Param2',value2,...)
 %
 %    Serialize a MATLAB struct or cell array into a JData-compliant 
 %    structure as defined in the JData spec: http://github.com/fangq/jdata
@@ -19,7 +19,7 @@ function jdata=jdencode(data, varargin)
 %                         total element count is larger than this number.
 %
 %    example:
-%        jd=jdencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
+%        jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
 %
 %    license:
 %        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -55,7 +55,7 @@ elseif(islogical(item) || isnumeric(item))
     newitem=mat2jd(item,varargin{:});
 elseif(isa(item,'table'))
     newitem=table2jd(item,varargin{:});
-elseif(isa(item,'digraph'))
+elseif(isa(item,'digraph') || isa(item,'graph'))
     newitem=graph2jd(item,varargin{:});
 else
     newitem=any2jd(item,varargin{:});
@@ -164,13 +164,19 @@ newitem(N_('_TableRecords_'))=table2cell(item);
 function newitem=graph2jd(item,varargin)
 newitem=struct;
 nodedata=table2struct(item.Nodes);
-if(any(ismember(G.Edges.Properties.VariableNames,'Name')))
+if(isfield(nodedata,'Name'))
     nodedata=rmfield(nodedata,'Name');
-    newitem(N_('_GraphNodes_'))=containers.Map(item.Nodes.Name,num2cell(nodedata),'uniformValues',false);
+    newitem.(N_('_GraphNodes_'))=containers.Map(item.Nodes.Name,num2cell(nodedata),'uniformValues',false);
 else
-    newitem(N_('_GraphNodes_'))=containers.Map(1:max(item.Edges.EndNodes(:)),num2cell(nodedata),'uniformValues',false);
+    newitem.(N_('_GraphNodes_'))=containers.Map(1:max(item.Edges.EndNodes(:)),num2cell(nodedata),'uniformValues',false);
 end
-newitem(N_('_GraphEdges_'))=num2cell(table2cell(item.Edges),2);
+edgenodes=item.Edges.EndNodes;
+edgedata=table2struct(item.Edges);
+if(isfield(edgedata,'EndNodes'))
+    edgedata=rmfield(edgedata,'EndNodes');
+end
+edgenodes(:,3)=num2cell(edgedata);
+newitem.(N_('_GraphEdges_'))=edgenodes;
 
 %%-------------------------------------------------------------------------
 function newname=N_(name,varargin)
