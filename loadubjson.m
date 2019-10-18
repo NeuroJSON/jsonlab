@@ -330,7 +330,7 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
             end
             [val, pos] = parse_value(inputstr, pos, varargin{:});
             num=num+1;
-            object.(valid_field(str,varargin{:}))=val;
+            object.(encodevarname(str,varargin{:}))=val;
             [cc, pos]=next_char(inputstr,pos);
             if cc == '}' || (count>=0 && num>=count)
                 break;
@@ -355,40 +355,5 @@ function [cid,len]=elem_info(inputstr, pos, type)
         len=bytelen(id);
     else
         error_pos('unsupported type at position %d',inputstr, pos);
-    end
-end
-%%-------------------------------------------------------------------------
-
-function str = valid_field(str,varargin)
-% From MATLAB doc: field names must begin with a letter, which may be
-% followed by any combination of letters, digits, and underscores.
-% Invalid characters will be converted to underscores, and the prefix
-% "x0x[Hex code]_" will be added if the first character is not a letter.
-    if(~isempty(regexp(str,'^[^A-Za-z]','once')))
-        if(~isoctavemesh && str(1)+0 > 255)
-            str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
-        else
-            str=sprintf('x0x%X_%s',char(str(1)),str(2:end));
-        end
-    end
-    if(isvarname(str))
-        return;
-    end
-    if(~isoctavemesh)
-        str=regexprep(str,'([^0-9A-Za-z_])','_0x${sprintf(''%X'',unicode2native($1))}_');
-    else
-        cpos=regexp(str,'[^0-9A-Za-z_]');
-        if(isempty(cpos))
-            return;
-        end
-        str0=str;
-        pos0=[0 cpos(:)' length(str)];
-        str='';
-        for i=1:length(cpos)
-            str=[str str0(pos0(i)+1:cpos(i)-1) sprintf('_0x%X_',str0(cpos(i)))];
-        end
-        if(cpos(end)~=length(str))
-            str=[str str0(pos0(end-1)+1:pos0(end))];
-        end
     end
 end

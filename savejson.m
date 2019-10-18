@@ -268,13 +268,13 @@ nl=ws.newline;
 bracketlevel=~jsonopt('singletcell',1,varargin{:});
 if(len>bracketlevel)
     if(~isempty(name))
-        txt={padding0, '"', checkname(name,varargin{:}),'": [', nl}; name=''; 
+        txt={padding0, '"', decodevarname(name,varargin{:}),'": [', nl}; name=''; 
     else
         txt={padding0, '[', nl};
     end
 elseif(len==0)
     if(~isempty(name))
-        txt={padding0, '"' checkname(name,varargin{:}) '": []'}; name=''; 
+        txt={padding0, '"' decodevarname(name,varargin{:}) '": []'}; name=''; 
     else
         txt={padding0, '[]'};
     end
@@ -324,7 +324,7 @@ nl=ws.newline;
 
 if(isempty(item)) 
     if(~isempty(name)) 
-        txt={padding0, '"', checkname(name,varargin{:}),'": []'};
+        txt={padding0, '"', decodevarname(name,varargin{:}),'": []'};
     else
         txt={padding0, '[]'};
     end
@@ -333,7 +333,7 @@ if(isempty(item))
 end
 if(~isempty(name))
     if(forcearray)
-        txt={padding0, '"', checkname(name,varargin{:}),'": [', nl};
+        txt={padding0, '"', decodevarname(name,varargin{:}),'": [', nl};
     end
 else
     if(forcearray)
@@ -347,7 +347,7 @@ for j=1:dim(2)
   for i=1:dim(1)
     names = fieldnames(item(i,j));
     if(~isempty(name) && len==1 && ~forcearray)
-        txt(end+1:end+5)={padding1, '"', checkname(name,varargin{:}),'": {', nl};
+        txt(end+1:end+5)={padding1, '"', decodevarname(name,varargin{:}),'": {', nl};
     else
         txt(end+1:end+3)={padding1, '{', nl};
     end
@@ -412,7 +412,7 @@ nl=ws.newline;
 
 if(isempty(item)) 
     if(~isempty(name)) 
-        txt={padding0, '"', checkname(name,varargin{:}),'": []'};
+        txt={padding0, '"', decodevarname(name,varargin{:}),'": []'};
     else
         txt={padding0, '[]'};
     end
@@ -421,7 +421,7 @@ if(isempty(item))
 end
 if(~isempty(name)) 
     if(forcearray)
-        txt={padding0, '"', checkname(name,varargin{:}),'": {', nl};
+        txt={padding0, '"', decodevarname(name,varargin{:}),'": {', nl};
     end
 else
     if(forcearray)
@@ -463,7 +463,7 @@ sep=ws.sep;
 
 if(~isempty(name)) 
     if(len>1)
-        txt={padding1, '"', checkname(name,varargin{:}),'": [', nl};
+        txt={padding1, '"', decodevarname(name,varargin{:}),'": [', nl};
     end
 else
     if(len>1)
@@ -473,7 +473,7 @@ end
 for e=1:len
     val=escapejsonstring(item(e,:));
     if(len==1)
-        obj=['"' checkname(name,varargin{:}) '": ' '"',val,'"'];
+        obj=['"' decodevarname(name,varargin{:}) '": ' '"',val,'"'];
         if(isempty(name))
             obj=['"',val,'"'];
         end
@@ -514,7 +514,7 @@ if(((jsonopt('NestArray',0,varargin{:})==0) && length(size(item))>2) || issparse
               padding1,nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     else
     	txt=sprintf('%s"%s": {%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
-              padding1,checkname(name,varargin{:}),nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
+              padding1,decodevarname(name,varargin{:}),nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     end
 else
     if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0 && level>0)
@@ -526,9 +526,9 @@ else
     	txt=sprintf('%s%s',padding1,numtxt);
     else
         if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0)
-           	txt=sprintf('%s"%s": %s',padding1,checkname(name,varargin{:}),numtxt);
+           	txt=sprintf('%s"%s": %s',padding1,decodevarname(name,varargin{:}),numtxt);
         else
-    	    txt=sprintf('%s"%s": %s',padding1,checkname(name,varargin{:}),numtxt);
+    	    txt=sprintf('%s"%s": %s',padding1,decodevarname(name,varargin{:}),numtxt);
         end
     end
     return;
@@ -703,35 +703,6 @@ if(any(isinf(mat(:))))
 end
 if(any(isnan(mat(:))))
     txt=regexprep(txt,'NaN',jsonopt('NaN','"_NaN_"',varargin{:}));
-end
-
-%%-------------------------------------------------------------------------
-function newname=checkname(name,varargin)
-isunpack=jsonopt('UnpackHex',1,varargin{:});
-newname=name;
-if(isempty(regexp(name,'0x([0-9a-fA-F]+)_','once')))
-    return
-end
-if(isunpack)
-    isoct=jsonopt('IsOctave',0,varargin{:});
-    if(~isoct)
-        newname=regexprep(name,'(^x|_){1}0x([0-9a-fA-F]+)_','${native2unicode(hex2dec($2))}');
-    else
-        pos=regexp(name,'(^x|_){1}0x([0-9a-fA-F]+)_','start');
-        pend=regexp(name,'(^x|_){1}0x([0-9a-fA-F]+)_','end');
-        if(isempty(pos))
-            return;
-        end
-        str0=name;
-        pos0=[0 pend(:)' length(name)];
-        newname='';
-        for i=1:length(pos)
-            newname=[newname str0(pos0(i)+1:pos(i)-1) char(hex2dec(str0(pos(i)+3:pend(i)-1)))];
-        end
-        if(pos(end)~=length(name))
-            newname=[newname str0(pos0(end-1)+1:pos0(end))];
-        end
-    end
 end
 
 %%-------------------------------------------------------------------------

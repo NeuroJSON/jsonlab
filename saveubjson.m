@@ -265,13 +265,13 @@ end
 len=numel(item); % let's handle 1D cell first
 if(len>bracketlevel) 
     if(~isempty(name))
-        txt=[N_(checkname(name,varargin{:})) am0]; name=''; 
+        txt=[N_(decodevarname(name,varargin{:})) am0]; name=''; 
     else
         txt=am0; 
     end
 elseif(len==0)
     if(~isempty(name))
-        txt=[N_(checkname(name,varargin{:})) Zmarker]; name=''; 
+        txt=[N_(decodevarname(name,varargin{:})) Zmarker]; name=''; 
     else
         txt=Zmarker; 
     end
@@ -319,7 +319,7 @@ end
 
 if(~isempty(name)) 
     if(forcearray)
-        txt=[N_(checkname(name,varargin{:})) am0];
+        txt=[N_(decodevarname(name,varargin{:})) am0];
     end
 else
     if(forcearray)
@@ -341,7 +341,7 @@ for j=1:dim(2)
         om0=Omarker{1};
      end
      if(~isempty(name) && len==1 && ~forcearray)
-        txt=[txt N_(checkname(name,varargin{:})) om0]; 
+        txt=[txt N_(decodevarname(name,varargin{:})) om0]; 
      else
         txt=[txt om0]; 
      end
@@ -382,7 +382,7 @@ forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
 
 if(~isempty(name)) 
     if(forcearray)
-        txt=[N_(checkname(name,varargin{:})) om0];
+        txt=[N_(decodevarname(name,varargin{:})) om0];
     end
 else
     if(forcearray)
@@ -417,7 +417,7 @@ else
 end
 if(~isempty(name)) 
     if(len>1)
-        txt=[N_(checkname(name,varargin{:})) am0];
+        txt=[N_(decodevarname(name,varargin{:})) am0];
     end
 else
     if(len>1)
@@ -427,7 +427,7 @@ end
 for e=1:len
     val=item(e,:);
     if(len==1)
-        obj=[N_(checkname(name,varargin{:})) '' '',S_(val),''];
+        obj=[N_(decodevarname(name,varargin{:})) '' '',S_(val),''];
         if(isempty(name))
             obj=['',S_(val),''];
         end
@@ -466,10 +466,10 @@ if((length(size(item))>2 && isnest==0)  || issparse(item) || ~isreal(item) || ..
     	txt=[Omarker{1} N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker,varargin{:}) ];
       else
           if(isempty(item))
-              txt=[N_(checkname(name,varargin{:})),Zmarker];
+              txt=[N_(decodevarname(name,varargin{:})),Zmarker];
               return;
           else
-    	      txt=[N_(checkname(name,varargin{:})),Omarker{1},N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker,varargin{:})];
+    	      txt=[N_(decodevarname(name,varargin{:})),Omarker{1},N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker,varargin{:})];
           end
       end
       childcount=2;
@@ -479,9 +479,9 @@ else
     else
         if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0)
             numtxt=regexprep(regexprep(matdata2ubjson(item,level+1,varargin{:}),'^\[',''),']$','');
-           	txt=[N_(checkname(name,varargin{:})) numtxt];
+           	txt=[N_(decodevarname(name,varargin{:})) numtxt];
         else
-    	    txt=[N_(checkname(name,varargin{:})),matdata2ubjson(item,level+1,varargin{:})];
+    	    txt=[N_(decodevarname(name,varargin{:})),matdata2ubjson(item,level+1,varargin{:})];
         end
     end
     return;
@@ -697,34 +697,6 @@ else
     end
 end
 
-%%-------------------------------------------------------------------------
-function newname=checkname(name,varargin)
-isunpack=jsonopt('UnpackHex',1,varargin{:});
-newname=name;
-if(isempty(regexp(name,'0x([0-9a-fA-F]+)_','once')))
-    return
-end
-if(isunpack)
-    isoct=jsonopt('IsOctave',0,varargin{:});
-    if(~isoct)
-        newname=regexprep(name,'(^x|_){1}0x([0-9a-fA-F]+)_','${native2unicode(hex2dec($2))}');
-    else
-        pos=regexp(name,'(^x|_){1}0x([0-9a-fA-F]+)_','start');
-        pend=regexp(name,'(^x|_){1}0x([0-9a-fA-F]+)_','end');
-        if(isempty(pos))
-            return;
-        end
-        str0=name;
-        pos0=[0 pend(:)' length(name)];
-        newname='';
-        for i=1:length(pos)
-            newname=[newname str0(pos0(i)+1:pos(i)-1) char(hex2dec(str0(pos(i)+3:pend(i)-1)))];
-        end
-        if(pos(end)~=length(name))
-            newname=[newname str0(pos0(end-1)+1:pos0(end))];
-        end
-    end
-end
 %%-------------------------------------------------------------------------
 function val=N_(str)
 global ismsgpack
