@@ -134,7 +134,9 @@ function data = loadjson(fname,varargin)
     end
 end
 
-%% all functions
+%%-------------------------------------------------------------------------
+%% helper functions
+%%-------------------------------------------------------------------------
 
 function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, varargin) % JSON array is written in row-major order
     pos=parse_char(inputstr, pos, '[');
@@ -424,7 +426,7 @@ function [object, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, 
     pos=parse_char(inputstr, pos, '}');
     if(isstruct(object) && jsonopt('JDataDecode',1,varargin{:})==1)
         varargin{:}.Recursive=0;
-        object=jdatadecode(object,varargin{:});
+        object=jdatadecode(object,'Base64',1,varargin{:});
     end
 end
 

@@ -86,6 +86,8 @@ function json=saveubjson(rootname,obj,varargin)
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
 %        opt.Debug [0|1]: output binary numbers in <%g> format for debugging
+%        opt.PreEncode [0|1]: if set to 1, call jdataencode first to preprocess
+%                         the input data before saving
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
@@ -127,6 +129,10 @@ else
 end
 opt.IsOctave=isoctavemesh;
 
+if(jsonopt('PreEncode',0,opt))
+    obj=jdataencode(obj,opt);
+end
+
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
     if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
@@ -146,7 +152,9 @@ if(~isempty(dozip))
     end    
     opt.Compression=dozip;
 end
+
 ismsgpack=jsonopt('MessagePack',0,opt) + bitshift(jsonopt('Debug',0,opt),1);
+
 if(~bitget(ismsgpack, 1))
     opt.IM_='UiIlL';
     opt.FM_='dD';
@@ -164,15 +172,11 @@ else
     opt.OM_={char(hex2dec('df')),''};
     opt.AM_={char(hex2dec('dd')),''};
 end
-if(isfield(opt,'norowbracket'))
-    warning('Option ''NoRowBracket'' is depreciated, please use ''SingletArray'' and set its value to not(NoRowBracket)');
-    if(~isfield(opt,'singletarray'))
-        opt.singletarray=not(opt.norowbracket);
-    end
-end
+
 rootisarray=0;
 rootlevel=1;
 forceroot=jsonopt('ForceRootName',0,opt);
+
 if((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || ...
         iscell(obj) || isobject(obj)) && isempty(rootname) && forceroot==0)
     rootisarray=1;
@@ -182,10 +186,13 @@ else
         rootname=varname;
     end
 end
+
 if((isstruct(obj) || iscell(obj))&& isempty(rootname) && forceroot)
     rootname='root';
 end
+
 json=obj2ubjson(rootname,obj,rootlevel,opt);
+
 if(~rootisarray)
     if(bitget(ismsgpack, 1))
         json=[char(129) json opt.OM_{2}];
@@ -210,10 +217,12 @@ end
 %%-------------------------------------------------------------------------
 function txt=obj2ubjson(name,item,level,varargin)
 
-if(iscell(item))
+if(iscell(item) || isa(item,'string'))
     txt=cell2ubjson(name,item,level,varargin{:});
 elseif(isstruct(item))
     txt=struct2ubjson(name,item,level,varargin{:});
+elseif(isnumeric(item) || islogical(item))
+    txt=mat2ubjson(name,item,level,varargin{:});
 elseif(ischar(item))
     txt=str2ubjson(name,item,level,varargin{:});
 elseif(isa(item,'function_handle'))
@@ -222,14 +231,16 @@ elseif(isa(item,'containers.Map'))
     txt=map2ubjson(name,item,level,varargin{:});
 elseif(isa(item,'categorical'))
     txt=cell2ubjson(name,cellstr(item),level,varargin{:});
-elseif(isobject(item)) 
-    if(~exist('OCTAVE_VERSION','builtin') && exist('istable') && istable(item))
-        txt=matlabtable2ubjson(name,item,level,varargin{:});
-    else
-        txt=matlabobject2ubjson(name,item,level,varargin{:});
-    end
+elseif(isa(item,'table'))
+    txt=matlabtable2ubjson(name,item,level,varargin{:});
+elseif(isa(item,'graph') || isa(item,'digraph'))
+    txt=struct2ubjson(name,jdataencode(item),level,varargin{:});
 else
-    txt=mat2ubjson(name,item,level,varargin{:});
+    if(isoctavemesh)
+        txt=matlabobject2ubjson(name,item,level,varargin{:});
+    else
+        txt=any2ubjson(name,item,level,varargin{:});
+    end
 end
 
 %%-------------------------------------------------------------------------
@@ -928,6 +939,21 @@ else
   end
   data=[am0 data(:)' Amarker{2}];
 end
+
+%%-------------------------------------------------------------------------
+function txt=any2ubjson(name,item,level,varargin)
+st=containers.Map();
+st('_DataInfo_')=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));;
+st('_ByteStream_')=getByteStreamFromArray(item);
+
+if(isempty(name))
+    txt=map2ubjson(name,st,level,varargin{:});
+else
+    temp=struct(name,struct());
+    temp.(name)=st;
+    txt=map2ubjson(name,temp.(name),level,varargin{:});
+end
+
 %%-------------------------------------------------------------------------
 function bytes=data2byte(varargin)
 bytes=typecast(varargin{:});

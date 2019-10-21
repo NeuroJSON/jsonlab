@@ -90,6 +90,8 @@ function json=savejson(rootname,obj,varargin)
 %                         please set FormatVersion to 1.9 or earlier.
 %        opt.Encoding ['']: json file encoding. Support all encodings of
 %                         fopen() function
+%        opt.PreEncode [0|1]: if set to 1, call jdataencode first to preprocess
+%                         the input data before saving
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
@@ -128,6 +130,10 @@ else
    opt=varargin2struct(varargin{:});
 end
 opt.IsOctave=isoctavemesh;
+
+if(jsonopt('PreEncode',0,opt))
+    obj=jdataencode(obj,opt);
+end
 
 dozip=jsonopt('Compression','',opt);
 if(~isempty(dozip))
@@ -215,6 +221,8 @@ if(iscell(item) || isa(item,'string'))
     txt=cell2json(name,item,level,varargin{:});
 elseif(isstruct(item))
     txt=struct2json(name,item,level,varargin{:});
+elseif(isnumeric(item) || islogical(item))
+    txt=mat2json(name,item,level,varargin{:});
 elseif(ischar(item))
     txt=str2json(name,item,level,varargin{:});
 elseif(isa(item,'function_handle'))
@@ -223,14 +231,16 @@ elseif(isa(item,'containers.Map'))
     txt=map2json(name,item,level,varargin{:});
 elseif(isa(item,'categorical'))
     txt=cell2json(name,cellstr(item),level,varargin{:});
-elseif(isobject(item))
-    if(~jsonopt('IsOctave',0,varargin{:}) && exist('istable') && istable(item))
-        txt=matlabtable2json(name,item,level,varargin{:});
-    else
-        txt=matlabobject2json(name,item,level,varargin{:});
-    end
+elseif(isa(item,'table'))
+    txt=matlabtable2json(name,item,level,varargin{:});
+elseif(isa(item,'graph') || isa(item,'digraph'))
+    txt=struct2json(name,jdataencode(item),level,varargin{:});
 else
-    txt=mat2json(name,item,level,varargin{:});
+    if(isoctavemesh)
+        txt=matlabobject2json(name,item,level,varargin{:});
+    else
+        txt=any2json(name,item,level,varargin{:});
+    end
 end
 
 %%-------------------------------------------------------------------------
@@ -697,6 +707,20 @@ if(any(isinf(mat(:))))
 end
 if(any(isnan(mat(:))))
     txt=regexprep(txt,'NaN',jsonopt('NaN','"_NaN_"',varargin{:}));
+end
+
+%%-------------------------------------------------------------------------
+function txt=any2json(name,item,level,varargin)
+st=containers.Map();
+st('_DataInfo_')=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));;
+st('_ByteStream_')=char(base64encode(getByteStreamFromArray(item)));
+
+if(isempty(name))
+    txt=map2json(name,st,level,varargin{:});
+else
+    temp=struct(name,struct());
+    temp.(name)=st;
+    txt=map2json(name,temp.(name),level,varargin{:});
 end
 
 %%-------------------------------------------------------------------------

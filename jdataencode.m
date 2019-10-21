@@ -50,8 +50,6 @@ if(nargin==0)
 end
 
 opt=varargin2struct(varargin{:});
-opt.prefix=jsonopt('Prefix',sprintf('x0x%X','_'+0),opt);
-
 jdata=obj2jd(data,opt);
 
 %%-------------------------------------------------------------------------
@@ -61,6 +59,8 @@ if(iscell(item))
     newitem=cell2jd(item,varargin{:});
 elseif(isstruct(item))
     newitem=struct2jd(item,varargin{:});
+elseif(isnumeric(item) || islogical(item))
+    newitem=mat2jd(item,varargin{:});
 elseif(ischar(item) || isa(item,'string'))
     newitem=mat2jd(item,varargin{:});
 elseif(isa(item,'containers.Map'))
@@ -69,14 +69,14 @@ elseif(isa(item,'categorical'))
     newitem=cell2jd(cellstr(item),varargin{:});
 elseif(isa(item,'function_handle'))
     newitem=struct2jd(functions(item),varargin{:});
-elseif(islogical(item) || isnumeric(item))
-    newitem=mat2jd(item,varargin{:});
 elseif(isa(item,'table'))
     newitem=table2jd(item,varargin{:});
 elseif(isa(item,'digraph') || isa(item,'graph'))
     newitem=graph2jd(item,varargin{:});
-else
+elseif(~isoctavemesh)
     newitem=any2jd(item,varargin{:});
+else
+    newitem=item;
 end
 
 %%-------------------------------------------------------------------------
@@ -88,13 +88,13 @@ newitem=cellfun(@(x) obj2jd(x, varargin{:}), item, 'UniformOutput',false);
 function newitem=struct2jd(item,varargin)
 
 num=numel(item);
-if(num>1)
+if(num>1)  % struct array
     newitem=obj2jd(num2cell(item),varargin{:});
     try
        newitem=cell2mat(newitem);
     catch
     end
-else
+else       % a single struct
     names=fieldnames(item);
     newitem=struct;
     for i=1:length(names)
@@ -106,19 +106,28 @@ end
 function newitem=map2jd(item,varargin)
 
 names=item.keys;
-if(jsonopt('MapAsStruct',0,varargin{:}))
+if(jsonopt('MapAsStruct',0,varargin{:}))  % convert a map to struct
     newitem=struct;
-    for i=1:length(names)
-        newitem(N_(names{i},varargin{:}))=obj2jd(item(names{i}),varargin{:});
+    if(~strcmp(item.KeyType,'char'))
+        data=num2cell(reshape([names, item.values],length(names),2),2);
+        for i=1:length(names)
+            data{i}{2}=obj2jd(data{i}{2},varargin{:});
+        end
+        newitem.(N_('_MapData_',varargin{:}))=data;
+    else
+        for i=1:length(names)
+            newitem.(N_(names{i},varargin{:}))=obj2jd(item(names{i}),varargin{:});
+        end
     end
-else
-    newitem=containers.Map;
+else   % keep as a map and only encode its values
+    newitem=containers.Map('KeyType',item.KeyType,'ValueType','any');
     for i=1:length(names)
         newitem(names{i})=obj2jd(item(names{i}),varargin{:});
     end
 end
 %%-------------------------------------------------------------------------
 function newitem=mat2jd(item,varargin)
+
 if(isempty(item) || isa(item,'string') || ischar(item) || (isvector(item) && isreal(item) && ~issparse(item)))
     newitem=item;
     return;
@@ -173,6 +182,7 @@ if(jsonopt('UseArrayZipSize',1,varargin{:})==0)
     data=reshape(data,fliplr(newitem.(N('_ArrayZipSize_'))));
     newitem.(N('_ArrayData_'))=permute(data,ndims(data):-1:1);
 end
+
 if(~isempty(zipmethod) && numel(item)>minsize)
     compfun=str2func([zipmethod 'encode']);
     newitem.(N('_ArrayZipType_'))=lower(zipmethod);
@@ -186,35 +196,51 @@ end
 
 %%-------------------------------------------------------------------------
 function newitem=table2jd(item,varargin)
+
 newitem=struct;
-newitem(N('_TableRows_',varargin{:}))=item.Properties.RowNames';
-newitem(N('_TableCols_',varargin{:}))=item.Properties.VariableNames;
-newitem(N('_TableRecords_',varargin{:}))=table2cell(item);
+newitem(N_('_TableRows_',varargin{:}))=item.Properties.RowNames';
+newitem(N_('_TableCols_',varargin{:}))=item.Properties.VariableNames;
+newitem(N_('_TableRecords_',varargin{:}))=table2cell(item);
 
 %%-------------------------------------------------------------------------
 function newitem=graph2jd(item,varargin)
+
 newitem=struct;
 nodedata=table2struct(item.Nodes);
 if(isfield(nodedata,'Name'))
     nodedata=rmfield(nodedata,'Name');
-    newitem.(N_('_GraphNodes_',varargin{:}))=containers.Map(item.Nodes.Name,num2cell(nodedata),'uniformValues',false);
+    newitem.(N_('_GraphNodes_',varargin{:}))=containers.Map(item.Nodes.Name,num2cell(nodedata),'UniformValues',false);
 else
-    newitem.(N_('_GraphNodes_',varargin{:}))=containers.Map(1:max(item.Edges.EndNodes(:)),num2cell(nodedata),'uniformValues',false);
+    newitem.(N_('_GraphNodes_',varargin{:}))=containers.Map(1:max(item.Edges.EndNodes(:)),num2cell(nodedata),'UniformValues',false);
 end
-edgenodes=item.Edges.EndNodes;
+edgenodes=num2cell(item.Edges.EndNodes);
 edgedata=table2struct(item.Edges);
 if(isfield(edgedata,'EndNodes'))
     edgedata=rmfield(edgedata,'EndNodes');
 end
 edgenodes(:,3)=num2cell(edgedata);
-newitem.(N_('_GraphEdges_',varargin{:}))=edgenodes;
+if(isa(item,'graph'))
+    if(strcmp(jsonopt('Prefix',sprintf('x0x%X','_'+0),varargin{:}),'x'))
+        newitem.(genvarname('_GraphEdges0_'))=edgenodes;
+    else
+        newitem.(encodevarname('_GraphEdges0_'))=edgenodes;
+    end
+else
+    newitem.(N_('_GraphEdges_',varargin{:}))=edgenodes;
+end
 
 %%-------------------------------------------------------------------------
 function newitem=any2jd(item,varargin)
-newitem.(N_('_DataInfo_',varargin{:}))=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));
-newitem.(N_('_ByteStream_',varargin{:}))=getByteStreamFromArray(item);  % use undocumented matlab function
+
+N=@(x) N_(x,varargin{:});
+newitem.(N('_DataInfo_'))=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));
+newitem.(N('_ByteStream_'))=getByteStreamFromArray(item);  % use undocumented matlab function
+if(jsonopt('Base64',0,varargin{:}))
+    newitem.(N('_ByteStream_'))=char(base64encode(newitem.(N('_ByteStream_'))));
+end
 
 %%-------------------------------------------------------------------------
 function newname=N_(name,varargin)
+
 prefix=jsonopt('Prefix',sprintf('x0x%X','_'+0),varargin{:});
 newname=[prefix name];

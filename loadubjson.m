@@ -97,7 +97,7 @@ function data = loadubjson(fname,varargin)
 end
 
 %%-------------------------------------------------------------------------
-%% subfunctions
+%% helper functions
 %%-------------------------------------------------------------------------
 
 function [data, adv]=parse_block(inputstr, pos, type,count,varargin)
@@ -341,7 +341,7 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
         pos=parse_char(inputstr, pos, '}');
     end
     if(isstruct(object))
-        object=jdatadecode(object,struct('Recursive',0, 'Base64',0));
+        object=jdatadecode(object,'Recursive',0, 'Base64',0,varargin{:});
     end
 end
 
