@@ -86,7 +86,7 @@ function json=saveubjson(rootname,obj,varargin)
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
 %        opt.Debug [0|1]: output binary numbers in <%g> format for debugging
-%        opt.PreEncode [0|1]: if set to 1, call jdataencode first to preprocess
+%        opt.PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
@@ -129,8 +129,8 @@ else
 end
 opt.IsOctave=isoctavemesh;
 
-if(jsonopt('PreEncode',0,opt))
-    obj=jdataencode(obj,'Base64',0,opt);
+if(jsonopt('PreEncode',1,opt))
+    obj=jdataencode(obj,'Base64',0,'UseArrayZipSize',jsonopt('MessagePack',0,opt),opt);
 end
 
 dozip=jsonopt('Compression','',opt);

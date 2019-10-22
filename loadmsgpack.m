@@ -35,7 +35,7 @@ function data = loadmsgpack(fname,varargin)
     if(iscell(data))
         data=cellfun(@(x) jdatadecode(x),data,'UniformOutput',false);
     elseif(isstruct(data))
-        data=jdatadecode(data);
+        data=jdatadecode(data,'Base64',0);
     end
 end
 

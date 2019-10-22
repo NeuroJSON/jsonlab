@@ -138,7 +138,7 @@
 
 >> >> ===============================================
 >> example1.json
-{Udata{U	firstNameSUJohnUlastNameSUSmithUageiUaddress{UstreetAddressSU21 2nd StreetUcitySUNew YorkUstateSUNYU
+{Udata{U	firstNameSUJohnUlastNameSUSmithUageUUaddress{UstreetAddressSU21 2nd StreetUcitySUNew YorkUstateSUNYU
 postalCodeSU10021}UphoneNumber[{UtypeSUhomeUnumberSU212 555-1234}{UtypeSUfaxUnumberSU646 555-4567}]}}
 ===============================================
 >> example2.json
@@ -150,5 +150,5 @@ GlossEntry{UIDSUSGMLUSortAsSUSGMLU	GlossTermSU$Standard Generalized Markup L
 CloseDoc()}]}}}}
 ===============================================
 >> example4.json
-{Udata[{Usample{Urhoi}}{Usample{Urhoi}}[[$i#U[$i#U[$i#U][SUPaperSUScissorsSUStone][CaSUb\SUc"SUd\"SUe"[SUf\"[SUg[\SUh[\"]]}
+{Udata[{Usample{UrhoU}}{Usample{UrhoU}}[[$U#U[$U#U[$U#U][SUPaperSUScissorsSUStone][CaSUb\SUc"SUd\"SUe"[SUf\"[SUg[\SUh[\"]]}
 >> 

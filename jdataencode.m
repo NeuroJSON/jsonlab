@@ -18,7 +18,7 @@ function jdata=jdataencode(data, varargin)
 %                         be encoded with base64 format and need to be
 %                         decoded first. This is needed for JSON but not
 %                         UBJSON data
-%            Prefix: [x0x5F|x] for JData files loaded via loadjson/loadubjson, the
+%            Prefix: ['x0x5F'|'x'] for JData files loaded via loadjson/loadubjson, the
 %                         default JData keyword prefix is 'x0x5F'(default);
 %                         if the json file is loaded using matlab2018's
 %                         jsondecode(), the prefix is 'x'.
@@ -33,6 +33,11 @@ function jdata=jdataencode(data, varargin)
 %                         to compress data array
 %            CompressArraySize: [100|int]: only to compress an array if the  
 %                         total element count is larger than this number.
+%            FormatVersion [2|float]: set the JSONLab output version; since
+%                         v2.0, JSONLab uses JData specification Draft 1
+%                         for output format, it is incompatible with all
+%                         previous releases; if old output is desired,
+%                         please set FormatVersion to 1.9 or earlier.
 %
 %    example:
 %        jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
@@ -129,7 +134,7 @@ end
 function newitem=mat2jd(item,varargin)
 
 if(isempty(item) || isa(item,'string') || ischar(item) || ...
-        (isvector(item) && isreal(item) && ~issparse(item)) || ...
+        ((isvector(item) || ismatrix(item)) && isreal(item) && ~issparse(item)) || ...
         jsonopt('NestArray',0,varargin{:}))
     newitem=item;
     return;
@@ -148,41 +153,47 @@ newitem=struct(N('_ArrayType_'),class(item),N('_ArraySize_'),size(item));
 
 if(isreal(item))
     if(issparse(item))
-	    fulldata=full(item(find(item)));
+	fulldata=full(item(find(item)));
         newitem.(N('_ArrayIsSparse_'))=true;
-	    newitem.(N('_ArrayZipSize_'))=[2+(~isvector(item)),length(fulldata)];
+	newitem.(N('_ArrayZipSize_'))=[2+(~isvector(item)),length(fulldata)];
         if(isvector(item))
             newitem.(N('_ArrayData_'))=[find(item(:))', fulldata(:)'];
         else
             [ix,iy]=find(item);
 	        newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)', fulldata(:)'];
-	    end
+	end
     else
-        item=permute(item,ndims(item):-1:1);
-	    newitem.(N('_ArrayData_'))=item(:)';
+        if(jsonopt('FormatVersion',2,varargin{:})>1.9)
+                item=permute(item,ndims(item):-1:1);
+        end
+	newitem.(N('_ArrayData_'))=item(:)';
     end
 else
     newitem.(N('_ArrayIsComplex_'))=true;
     if(issparse(item))
-	    fulldata=full(item(find(item)));
+	fulldata=full(item(find(item)));
         newitem.(N('_ArrayIsSparse_'))=true;
-	    newitem.(N('_ArrayZipSize_'))=[3+(~isvector(item)),length(fulldata)];
+	newitem.(N('_ArrayZipSize_'))=[3+(~isvector(item)),length(fulldata)];
         if(isvector(item))
             newitem.(N('_ArrayData_'))=[find(item(:))', real(fulldata(:))', imag(fulldata(:))'];
         else
             [ix,iy]=find(item);
             newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)' , real(fulldata(:))', imag(fulldata(:))'];
-	    end
+	end
     else
+        if(jsonopt('FormatVersion',2,varargin{:})>1.9)
+                item=permute(item,ndims(item):-1:1);
+        end
         newitem.(N('_ArrayZipSize_'))=[2,numel(item)];
-	    newitem.(N('_ArrayData_'))=[real(item(:))', imag(item(:))'];
+	newitem.(N('_ArrayData_'))=[real(item(:))', imag(item(:))'];
     end
 end
 
-if(jsonopt('UseArrayZipSize',1,varargin{:})==0)
+if(jsonopt('UseArrayZipSize',1,varargin{:})==0 && isfield(newitem,N('_ArrayZipSize_')))
     data=newitem.(N('_ArrayData_'));
     data=reshape(data,fliplr(newitem.(N('_ArrayZipSize_'))));
     newitem.(N('_ArrayData_'))=permute(data,ndims(data):-1:1);
+    newitem=rmfield(newitem,N_('_ArrayZipSize_'));
 end
 
 if(~isempty(zipmethod) && numel(item)>minsize)
@@ -196,12 +207,16 @@ if(~isempty(zipmethod) && numel(item)>minsize)
     end
 end
 
+if(isfield(newitem,N('_ArrayData_')) && isempty(newitem.(N_('_ArrayData_'))))
+    newitem.(N_('_ArrayData_'))=[];
+end
+
 %%-------------------------------------------------------------------------
 function newitem=table2jd(item,varargin)
 
 newitem=struct;
-newitem.(N_('_TableRows_',varargin{:}))=item.Properties.RowNames';
 newitem.(N_('_TableCols_',varargin{:}))=item.Properties.VariableNames;
+newitem.(N_('_TableRows_',varargin{:}))=item.Properties.RowNames';
 newitem.(N_('_TableRecords_',varargin{:}))=table2cell(item);
 
 %%-------------------------------------------------------------------------

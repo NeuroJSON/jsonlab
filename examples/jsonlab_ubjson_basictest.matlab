@@ -85,7 +85,7 @@ data2json =
 >> 
 ans =
 
-[$i#U
+[$U#U
 
 >> 
 json2data =
@@ -107,7 +107,7 @@ data2json =
 >> 
 ans =
 
-[$i#[$U#U
+[$U#[$U#U
 
 >> 
 json2data =
@@ -172,12 +172,12 @@ data2json =
 >> 
 ans =
 
-[CaT[$i#[$U#U]
+[CaT[$U#[$U#U]
 
 >> 
 json2data = 
 
-    'a'    [1]    [2x1 int8]
+    'a'    [1]    [2x1 uint8]
 
 >> >> 
 %=================================================
@@ -187,8 +187,8 @@ json2data =
 >> >> >> 
 ans =
 
-[[[ii	iii!i)][iiiii#i+][iiiii%i-][iiiii'i/]][[ii
-iii"i*][iiiii$i,][iiiii&i.][iiii i(i0]]]
+[[[UU	UUU!U)][UUUUU#U+][UUUUU%U-][UUUUU'U/]][[UU
+UUU"U*][UUUUU$U,][UUUUU&U.][UUUU U(U0]]]
 
 >> 
 json2data = 
@@ -203,7 +203,7 @@ json2data =
 >> >> >> 
 ans =
 
-{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$i#U0	!)#+%-'/
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$U#U0	!)#+%-'/
 "*$,&. (0}
 
 >> 
@@ -250,7 +250,7 @@ json2data(:,:,6) =
 >> >> >> 
 ans =
 
-{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$i#U0	!)#+%-'/
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$U#U0	!)#+%-'/
 "*$,&. (0}
 
 >> 
@@ -297,8 +297,8 @@ json2data(:,:,3,2) =
 >> >> >> 
 ans =
 
-[[[ii][ii][ii][ii]][[i	i
-][ii][ii][ii]][[ii][ii][ii][ii]][[ii][ii][ii][ii ]][[i!i"][i#i$][i%i&][i'i(]][[i)i*][i+i,][i-i.][i/i0]]]
+[[[UU][UU][UU][UU]][[U	U
+][UU][UU][UU]][[UU][UU][UU][UU]][[UU][UU][UU][UU ]][[U!U"][U#U$][U%U&][U'U(]][[U)U*][U+U,][U-U.][U/U0]]]
 
 >> >> 
 %=================================================
@@ -308,7 +308,7 @@ ans =
 >> >> >> 
 ans =
 
-{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$i#U0	
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayData_[$U#U0	
  !"#$%&'()*+,-./0}
 
 >> >> 
@@ -324,7 +324,7 @@ data2json =
 >> 
 ans =
 
-{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$i#[$U#U}
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$U#[$U#U}
 
 >> 
 json2data =
@@ -349,7 +349,7 @@ data2json =
 >> 
 ans =
 
-{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$i#[$U#U# 	
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayData_[$U#[$U#U# 	
 !"$}
 
 >> 
@@ -405,13 +405,7 @@ ans =
 
 {Usparse{U_ArrayType_SUdoubleU_ArraySize_[$U#U
 
-U_ArrayIsSparse_TU_ArrayData_[[$i#U		
-
-
-[$i#U		
-
-
-[$D#U	?äûÓë12?è?h:öl;?ë,8Ù±?çÇ½½æ'#?Ù?[`o?å¸2ÉNé?¢HÍpà?íãEÎ¹¶P?äù¬Ä²	¶]}}
+U_ArrayIsSparse_TU_ArrayData_[$D#[$U#U	?ð      @       ?äûÓë12@"      @       ?è?h:öl;@      @      ?ë,8Ù±@$      @      ?çÇ½½æ'#@$      @       ?Ù?[`o@      @"      ?å¸2ÉNé@       @$      ?¢HÍpà@      @$      ?íãEÎ¹¶P@$      @$      ?äù¬Ä²	¶}}
 
 >> 
 json2data = 
@@ -441,13 +435,7 @@ ans =
 
 {Ucomplex_sparse{U_ArrayType_SUdoubleU_ArraySize_[$U#U
 
-U_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[[$i#U		
-
-
-[$i#U		
-
-
-[$D#U	?äûÓë12?è?h:öl;?ë,8Ù±?çÇ½½æ'#?Ù?[`o?å¸2ÉNé?¢HÍpà?íãEÎ¹¶P?äù¬Ä²	¶[$D#U	¿äûÓë12¿è?h:öl;¿ë,8Ù±¿çÇ½½æ'#¿Ù?[`o¿å¸2ÉNé¿¢HÍpà¿íãEÎ¹¶P¿äù¬Ä²	¶]}}
+U_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$D#[$U#U	?ð      @       ?äûÓë12¿äûÓë12@"      @       ?è?h:öl;¿è?h:öl;@      @      ?ë,8Ù±¿ë,8Ù±@$      @      ?çÇ½½æ'#¿çÇ½½æ'#@$      @       ?Ù?[`o¿Ù?[`o@      @"      ?å¸2ÉNé¿å¸2ÉNé@       @$      ?¢HÍpà¿¢HÍpà@      @$      ?íãEÎ¹¶P¿íãEÎ¹¶P@$      @$      ?äù¬Ä²	¶¿äù¬Ä²	¶}}
 
 >> 
 json2data = 
@@ -462,7 +450,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Uall_zero_sparse{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[ZZZ]}}
+{Uall_zero_sparse{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_Z}}
 
 >> 
 json2data = 
@@ -522,7 +510,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Usparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[[$i#U[$i#U]}}
+{Usparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[$U#[$U#U}}
 
 >> 
 json2data = 
@@ -537,7 +525,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Ucomplex_sparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[[$i#U[$i#U[$i#Uýÿü]}}
+{Ucomplex_sparse_column_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$i#[$U#Uýÿü}}
 
 >> 
 json2data = 
@@ -552,7 +540,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Usparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[[$i#U[$i#U]}}
+{Usparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsSparse_TU_ArrayData_[$U#[$U#U}}
 
 >> 
 json2data = 
@@ -567,7 +555,7 @@ json2data =
 >> >> >> 
 ans =
 
-{Ucomplex_sparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[[$i#U[$i#U[$i#Uýÿü]}}
+{Ucomplex_sparse_row_vector{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayIsSparse_TU_ArrayData_[$i#[$U#Uýÿü}}
 
 >> 
 json2data = 
@@ -591,7 +579,7 @@ data2json =
 >> 
 ans =
 
-{Uastruct{UnameSUThink DifferentUyearIÍUmagic[$i#[$U#U	Umisfits[$D#Uð      ÿø      Uembedded{UleftTUrightF}}}
+{Uastruct{UnameSUThink DifferentUyearIÍUmagic[$U#[$U#U	Umisfits[$D#Uð      ÿø      Uembedded{UleftTUrightF}}}
 
 >> 
 json2data = 
@@ -611,7 +599,7 @@ logical
 >> >> >> >> >> 
 ans =
 
-{USupreme Commander[{UnameSUNexus PrimeUranki	}{UnameSUSentinel PrimeUranki	}{UnameSUOptimus PrimeUranki	}]}
+{USupreme Commander[{UnameSUNexus PrimeUrankU	}{UnameSUSentinel PrimeUrankU	}{UnameSUOptimus PrimeUrankU	}]}
 
 >> 
 json2data = 
@@ -633,7 +621,7 @@ data2json =
 >> 
 ans =
 
-{Udebian[[{UbuzzD?ñUrexD?ó333333UboD?ôÌÌÌÌÌÍUhammiUslinkD@ ÌÌÌÌÌÍUpotatoD@UwoodyiUsargeD@ÌÌÌÌÌÍUetchiUlennyiUsqueezeiUwheezyi}{UUbuntu[SUKubuntuSUXubuntuSULubuntu]}[$D#U@$záG®@$333333@&záG®@&333333]]}
+{Udebian[[{UbuzzD?ñUrexD?ó333333UboD?ôÌÌÌÌÌÍUhammUUslinkD@ ÌÌÌÌÌÍUpotatoD@UwoodyUUsargeD@ÌÌÌÌÌÍUetchUUlennyUUsqueezeUUwheezyU}{UUbuntu[SUKubuntuSUXubuntuSULubuntu]}[$D#U@$záG®@$333333@&záG®@&333333]]}
 
 >> 
 json2data = 
@@ -651,7 +639,7 @@ json2data =
                ValidName: 1
        x0x5F_InvalidName: 2
        x0x3A_Field_0x3A_: 3
-    x0xEFBFBD__0xEFBFBD_: '绝密'
+    x0xE9A1B9__0xE79BAE_: '绝密'
 
 >> >> 
 %=================================================
@@ -681,7 +669,7 @@ json2data =
 >> >> >> 
 ans =
 
-{U	data2json[[[[i][[i][i]]][[i][i]][[i]]][[[i]][[i][i	]][[i
+{U	data2json[[[[U][[U][U]]][[U][U]][[U]]][[[U]][[U][U	]][[U
 ]]]]}
 
 >> 
@@ -705,7 +693,7 @@ data2json =
 >> >> 
 ans =
 
-{U	data2json[[{UidxiUdataSUstructs}{UidxiUdataSUstructs}][{UidxiUdataSUstructs}{UidxiUdataSUstructs}][{UidxiUdataSUstructs}{UidxiUdataSUstructs}]]}
+{U	data2json[[{UidxUUdataSUstructs}{UidxUUdataSUstructs}][{UidxUUdataSUstructs}{UidxUUdataSUstructs}][{UidxUUdataSUstructs}{UidxUUdataSUstructs}]]}
 
 >> 
 json2data = 
@@ -725,7 +713,7 @@ data2json =
 
 ans =
 
-[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayiUHouri UMinutei USecondi USystemTimeZoneSUAmerica/New_York}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthiUDayi	UHouri UMinutei USecondi USystemTimeZoneSUAmerica/New_York}]
+[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthUUDayUUHourU UMinuteU USecondU USystemTimeZoneSUAmerica/New_York}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthUUDayU	UHourU UMinuteU USecondU USystemTimeZoneSUAmerica/New_York}]
 
 
 json2data = 
@@ -749,7 +737,7 @@ data2json =
 
 ans =
 
-{UAndyiUOmiUWilliami}
+{UAndyUUOmUUWilliamU}
 
 
 json2data = 
@@ -776,7 +764,7 @@ data2json =
 
 ans =
 
-{Utable{U_TableCols_[SUNamesSUAge]U_TableRecords_[[SUAndy[i]][SUWilliam[i]][SUOm[i]]]U_TableRows_Z}}
+{Utable{U_TableCols_[SUNamesSUAge]U_TableRows_ZU_TableRecords_[[SUAndy[U]][SUWilliam[U]][SUOm[U]]]}}
 
 
 json2data = 
