@@ -209,7 +209,7 @@ function [out, idx] = parsearray(len, bytes, idx)
     for n=1:len
         [out{n}, idx] = parse(bytes, idx);
     end
-    if(true)
+    if(isnumeric(out{1}))
       try
         oldobj=out;
         out=cell2mat(out);

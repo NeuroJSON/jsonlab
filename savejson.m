@@ -132,7 +132,7 @@ end
 opt.IsOctave=isoctavemesh;
 
 if(jsonopt('PreEncode',0,opt))
-    obj=jdataencode(obj,opt);
+    obj=jdataencode(obj,'Base64',1,'UseArrayZipSize',0,opt);
 end
 
 dozip=jsonopt('Compression','',opt);
@@ -235,12 +235,10 @@ elseif(isa(item,'table'))
     txt=matlabtable2json(name,item,level,varargin{:});
 elseif(isa(item,'graph') || isa(item,'digraph'))
     txt=struct2json(name,jdataencode(item),level,varargin{:});
+elseif(isobject(item))
+    txt=matlabobject2json(name,item,level,varargin{:});
 else
-    if(isoctavemesh)
-        txt=matlabobject2json(name,item,level,varargin{:});
-    else
-        txt=any2json(name,item,level,varargin{:});
-    end
+    txt=any2json(name,item,level,varargin{:});
 end
 
 %%-------------------------------------------------------------------------
@@ -614,21 +612,24 @@ txt=sprintf('%s%s%s',txt,padding1,'}');
 
 %%-------------------------------------------------------------------------
 function txt=matlabobject2json(name,item,level,varargin)
-if numel(item) == 0 %empty object
-    st = struct();
-elseif numel(item) == 1 %
-    st = struct();
-    txt = str2json(name, char(item), level, varargin(:));
-    return
-else
-    propertynames = properties(item);
-    for p = 1:numel(propertynames)
-        for o = numel(item):-1:1 % aray of objects
-            st(o).(propertynames{p}) = item(o).(propertynames{p});
-        end
+try
+    if numel(item) == 0 %empty object
+        st = struct();
+    elseif numel(item) == 1 %
+        txt = str2json(name, char(item), level, varargin(:));
+        return
+    else
+            propertynames = properties(item);
+            for p = 1:numel(propertynames)
+                for o = numel(item):-1:1 % aray of objects
+                    st(o).(propertynames{p}) = item(o).(propertynames{p});
+                end
+            end
     end
+    txt=struct2json(name,st,level,varargin{:});
+catch
+    txt = any2json(name,item, level, varargin(:));
 end
-txt=struct2json(name,st,level,varargin{:});
 
 %%-------------------------------------------------------------------------
 function txt=matlabtable2json(name,item,level,varargin)
@@ -712,7 +713,7 @@ end
 %%-------------------------------------------------------------------------
 function txt=any2json(name,item,level,varargin)
 st=containers.Map();
-st('_DataInfo_')=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));;
+st('_DataInfo_')=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));
 st('_ByteStream_')=char(base64encode(getByteStreamFromArray(item)));
 
 if(isempty(name))

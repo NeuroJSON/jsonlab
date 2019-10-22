@@ -73,8 +73,8 @@ elseif(isa(item,'table'))
     newitem=table2jd(item,varargin{:});
 elseif(isa(item,'digraph') || isa(item,'graph'))
     newitem=graph2jd(item,varargin{:});
-elseif(~isoctavemesh)
-    newitem=any2jd(item,varargin{:});
+elseif(isobject(item))
+    newitem=matlabobject2jd(item,varargin{:});
 else
     newitem=item;
 end
@@ -128,7 +128,9 @@ end
 %%-------------------------------------------------------------------------
 function newitem=mat2jd(item,varargin)
 
-if(isempty(item) || isa(item,'string') || ischar(item) || (isvector(item) && isreal(item) && ~issparse(item)))
+if(isempty(item) || isa(item,'string') || ischar(item) || ...
+        (isvector(item) && isreal(item) && ~issparse(item)) || ...
+        jsonopt('NestArray',0,varargin{:}))
     newitem=item;
     return;
 end
@@ -142,7 +144,7 @@ end
 
 N=@(x) N_(x,varargin{:});
 
-newitem=struct(N('_ArraySize_'),size(item),N('_ArrayType_'),class(item));
+newitem=struct(N('_ArrayType_'),class(item),N('_ArraySize_'),size(item));
 
 if(isreal(item))
     if(issparse(item))
@@ -150,7 +152,7 @@ if(isreal(item))
         newitem.(N('_ArrayIsSparse_'))=true;
 	    newitem.(N('_ArrayZipSize_'))=[2+(~isvector(item)),length(fulldata)];
         if(isvector(item))
-            newitem.(N('_ArrayData_'))=[find(item)', fulldata(:)'];
+            newitem.(N('_ArrayData_'))=[find(item(:))', fulldata(:)'];
         else
             [ix,iy]=find(item);
 	        newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)', fulldata(:)'];
@@ -166,14 +168,14 @@ else
         newitem.(N('_ArrayIsSparse_'))=true;
 	    newitem.(N('_ArrayZipSize_'))=[3+(~isvector(item)),length(fulldata)];
         if(isvector(item))
-            newitem.(N('_ArrayData_'))=[find(item)', real(fulldata(:)'), imag(fulldata(:)')];
+            newitem.(N('_ArrayData_'))=[find(item(:))', real(fulldata(:))', imag(fulldata(:))'];
         else
             [ix,iy]=find(item);
-            newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)' , real(fulldata(:)'), imag(fulldata(:)')];
+            newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)' , real(fulldata(:))', imag(fulldata(:))'];
 	    end
     else
         newitem.(N('_ArrayZipSize_'))=[2,numel(item)];
-	    newitem.(N('_ArrayData_'))=[real(item(:)'), imag(item(:)')];
+	    newitem.(N('_ArrayData_'))=[real(item(:))', imag(item(:))'];
     end
 end
 
@@ -198,9 +200,9 @@ end
 function newitem=table2jd(item,varargin)
 
 newitem=struct;
-newitem(N_('_TableRows_',varargin{:}))=item.Properties.RowNames';
-newitem(N_('_TableCols_',varargin{:}))=item.Properties.VariableNames;
-newitem(N_('_TableRecords_',varargin{:}))=table2cell(item);
+newitem.(N_('_TableRows_',varargin{:}))=item.Properties.RowNames';
+newitem.(N_('_TableCols_',varargin{:}))=item.Properties.VariableNames;
+newitem.(N_('_TableRecords_',varargin{:}))=table2cell(item);
 
 %%-------------------------------------------------------------------------
 function newitem=graph2jd(item,varargin)
@@ -227,6 +229,25 @@ if(isa(item,'graph'))
     end
 else
     newitem.(N_('_GraphEdges_',varargin{:}))=edgenodes;
+end
+
+%%-------------------------------------------------------------------------
+function newitem=matlabobject2jd(item,varargin)
+try
+    if numel(item) == 0 %empty object
+        newitem = struct();
+    elseif numel(item) == 1 %
+        newitem = char(item);
+    else
+        propertynames = properties(item);
+        for p = 1:numel(propertynames)
+            for o = numel(item):-1:1 % aray of objects
+                newitem(o).(propertynames{p}) = item(o).(propertynames{p});
+            end
+        end
+    end
+catch
+    newitem=any2jd(item,varargin{:});
 end
 
 %%-------------------------------------------------------------------------

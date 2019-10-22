@@ -130,7 +130,7 @@ end
 opt.IsOctave=isoctavemesh;
 
 if(jsonopt('PreEncode',0,opt))
-    obj=jdataencode(obj,opt);
+    obj=jdataencode(obj,'Base64',0,opt);
 end
 
 dozip=jsonopt('Compression','',opt);
@@ -235,12 +235,10 @@ elseif(isa(item,'table'))
     txt=matlabtable2ubjson(name,item,level,varargin{:});
 elseif(isa(item,'graph') || isa(item,'digraph'))
     txt=struct2ubjson(name,jdataencode(item),level,varargin{:});
+elseif(isobject(item))
+    txt=matlabobject2ubjson(name,item,level,varargin{:});
 else
-    if(isoctavemesh)
-        txt=matlabobject2ubjson(name,item,level,varargin{:});
-    else
-        txt=any2ubjson(name,item,level,varargin{:});
-    end
+    txt=any2ubjson(name,item,level,varargin{:});
 end
 
 %%-------------------------------------------------------------------------
@@ -613,19 +611,24 @@ end
 
 %%-------------------------------------------------------------------------
 function txt=matlabobject2ubjson(name,item,level,varargin)
-st = struct();
-if numel(item) > 0 %non-empty object
-    % "st = struct(item);" would produce an inmutable warning, because it
-    % make the protected and private properties visible. Instead we get the
-    % visible properties
-    propertynames = properties(item);
-    for p = 1:numel(propertynames)
-        for o = numel(item):-1:1 % aray of objects
-            st(o).(propertynames{p}) = item(o).(propertynames{p});
-        end
+try
+    if numel(item) == 0 %empty object
+        st = struct();
+    elseif numel(item) == 1 %
+        txt = str2ubjson(name, char(item), level, varargin(:));
+        return
+    else
+            propertynames = properties(item);
+            for p = 1:numel(propertynames)
+                for o = numel(item):-1:1 % aray of objects
+                    st(o).(propertynames{p}) = item(o).(propertynames{p});
+                end
+            end
     end
+    txt = struct2ubjson(name,st,level,varargin{:});
+catch
+    txt = any2ubjson(name,item, level, varargin(:));
 end
-txt=struct2ubjson(name,st,level,varargin{:});
 
 %%-------------------------------------------------------------------------
 function txt=matdata2ubjson(mat,level,varargin)
