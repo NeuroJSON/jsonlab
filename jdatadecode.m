@@ -6,6 +6,9 @@ function newdata=jdatadecode(data,varargin)
 % (accepts JData objects loaded from either loadjson/loadubjson or 
 % jsondecode for MATLAB R2018a or later)
 %
+% This function implements the JData Specification Draft 2a (Oct. 2019)
+% see http://github.com/fangq/jdata for details
+%
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 %
 % input:
@@ -40,7 +43,7 @@ function newdata=jdatadecode(data,varargin)
 %               structure; otherwise, the same as the input.
 %
 % examples:
-%      obj=struct('_ArrayType_','double','_ArraySize_',[2 3],
+%      obj=struct('_ArrayType_','double','_ArraySize_',[2 3],...
 %                 '_ArrayIsSparse_',1 ,'_ArrayData_',null);
 %      jdata=jdatadecode(obj);
 %

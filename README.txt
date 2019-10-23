@@ -3,9 +3,11 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-*Copyright (C) 2011-2019  Qianqian Fang <q.fang at neu.edu>
-*License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-*Version: 1.9 (Magnus - alpha)
+* Copyright (C) 2011-2019  Qianqian Fang <q.fang at neu.edu>
+* License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
+* Version: 1.9.8 (Magnus - beta)
+* JData Specification Version: Draft 2a (http://github.com/fangq/jdata)
+* URL: http://openjdata.org/jsonlab
 
 -------------------------------------------------------------------------------
 
@@ -23,92 +25,110 @@ V.  Acknowledgement
 
 0. What's New
 
-JSONLab v1.9 is the alpha release of the next milestone - code named "Magnus".
-Notable changes are summarized below, key features marked by *:
+JSONLab v1.9.8 is the beta release of the next milestone - code named "Magnus".
 
- 2019-05-06 [25ad795] unescape string in loadjson.m
- 2019-05-04 [2e317c9] explain extra compression fields
- 2019-05-02 [1b1be65] avoid side effect of removing singletarray
- 2019-05-02*[8360fd1] support zmat based base64 encoding and decoding
- 2019-05-01*[c797bb2] integrating zmat, for zlib/gzip data compression
- 2019-04-29 [70551fe] remove warnings from matlab
- 2019-04-28 [0d61c4b] complete data compression support, close #52
- 2019-04-27 [804115b] avoid typecast error
- 2019-04-27 [c166aa7] change default compressarraysize to 100
- 2019-04-27*[3322f6f] major new feature: support array compression and decompression
- 2019-03-13*[9c01046] support saving function handles, close #51
- 2019-03-13 [a8fde38] add option to parse string array or convert to char, close #50
- 2019-03-12 [ed2645e] treat string array as cell array in newer matlab
- 2018-11-18 [c3eb021] allow saving uint64 integers in saveubjson, fix #49
+Starting from this release, JSONLab supports encoding/decoding MessagePack,
+a widely-used binary JSON-like data format. Via ZMat v0.9, JSONLab v1.9.8
+also supports LZMA/LZ4/LZ4HC data compression/decompression. More importantly,
+JSONLab is now the official reference implementation for JData Specification (Draft 2a)
+as defined in http://github.com/fangq/jdata, the foundation for the OpenJData
+Project (http://openjdata.org).
 
-The biggest change in this release, compared to v1.8 released in July 2018,
-is the support of data compression via the 'Compression' option for both
-savejson and saveubjson. Two compression methods are currently supported - 
-"zlib" and "gzip". The compression interfaces, zlibencode/zlibdecode/gzipencode/
-gzipdecode are modified from the "Byte Encoding Utilities" by Kota Yamaguchi [1],
-which has built-in support for java-based compression in MATLAB (when jvm is 
-enabled). To support Octave, as well as MATLAB in "nojvm" mode, a mex-based
-data compression/encoding toolbox, ZMat [2], written by Qianqian Fang, takes priority
-over the java-based utilities, if installed. For savejson, a 'base64' encoding is
-applied to convert the compressed binary stream into a string; 'base64' encoding
-is not used in saveubjson. The encoding and restoration of the binary matlab arrays
-are automatically handled in save*json/load*json round-trip conversions.
+There have been numerous major updates to this toolbox since the previous 
+release v1.9 in May 2019. A list of the major changes are summarized below
+with key features marked by *:
 
-To save matlab data with compression, one simply append 'Compression', 'method' pair
-in the savejson/saveubjson call. For example
-
-  jsonstr=savejson('',mydata,'compression','zlib');
-  data=loadjson(jsonstr);
-
-In addition, the below features are added to JSONLab
-
-* save function handles
-* support saving "string" class in MATLAB
-* fix two bugs in saveubjson
-* unescape strings in loadjson
+* 2019-10-22*[650b5ec] enable preencode by default for savejson and saveubjson
+* 2019-10-21*[874945f] decode graph data, encode non-char-keyed map data
+* 2019-10-18 [11712b7] add any2jd, pass opt to name check, add more options
+* 2019-10-18*[f97de9b] extract name encoding/decoding to separate function, like in easyh5
+* 2019-10-17*[9d0fd4a] rewrite jdataencode
+* 2019-10-15 [23f14d6] minor updates to make msgpack to work on octave
+* 2019-09-16*[689cb40] support lz4 and lz4hc compression via zmat v0.9
+* 2019-07-11*[06d33aa] update zmat test to support zmat v0.8 mox-the-fox
+* 2019-06-24*[eba4078] saving table objects with new syntax
+* 2019-06-12 [3eb6d56] change ArrayCompression keywords to ArrayZip to be short
+* 2019-06-12*[e5f2ffb] complete saveubjson debug mode, add compression example
+* 2019-06-11 [ebbcfd2] pass formatversion tag to jdatadecode
+* 2019-06-10*[95b2eb0] add jdataencode and jdatadecode
+* 2019-06-10*[f86219d] major update: use row-major for N-D array, incompatible with old JSONLab
+* 2019-05-31*[0c467ee] support lzma and lzip compression decompression via zmat toolbox (http://github.com/fangq/zmat)
+* 2019-05-31 [599ee4c] support categorical data
+* 2019-05-30*[d47be45] fast bracket matching
+* 2019-05-24*[0ec2d01] rewriting fastarrayparser, 10x faster for Octave, close #4 with fast bracket matching
+* 2019-05-22*[d8c19b8] add support to MessagePack, close #53, add NestArray option, close #6
+* 2019-05-19*[c87e7d2] support containers.Map
 
 
-* [1] https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
-* [2] http://github.com/fangq/zmat
+Please note that JSONLab v1.9.8 is compliant with JData Spec Draft 2a, while
+v1.9 and previous releases are compatible with Draft 1. The main differences are
+
+* _ArrayCompressionMethod_, _ArrayCompressionSize_</tt> and <tt>_ArrayCompressedData_</tt> \
+ are replaced by <tt>_ArrayZipType_``, <tt>_ArrayZipSize_</tt> and <tt>_ArrayZipData_``, respectively
+* The serialization of N-D array data stored in <tt>_ArrayData_``is changed from \
+ column-major to row-major
+
+To read data files generated by JSONLab v1.9 or older versions, you need to attach
+option <tt>'FormatVersion', 1.9</tt> in all the loadjson/savejson function calls. 
+To convert an older file (JSON/UBJSON) to the new format, you should run
+
+   data=loadjson('my_old_data_file.json','FormatVersion',1.9)
+   savejson('',data,'FileName','new_file.json')
+
+You are strongly encouraged to convert all previously generated data files using the new
+format.
+
 
 -------------------------------------------------------------------------------
 
 I.  Introduction
 
-JSONLab is a free and open-source implementation of a JSON/UBJSON encoder 
+JSONLab is a free and open-source implementation of a JSON/UBJSON/MessagePack encoder 
 and a decoder in the native MATLAB language. It can be used to convert a MATLAB 
-data structure (array, struct, cell, struct array and cell array) into 
-JSON/UBJSON formatted strings, or to decode a JSON/UBJSON file into MATLAB 
-data structure. JSONLab supports both MATLAB and  
-[http://www.gnu.org/software/octave/ GNU Octave] (a free MATLAB clone).
+data structure (array, struct, cell, struct array, cell array, and objects) into 
+JSON/UBJSON/MessagePack formatted strings, or to decode a 
+JSON/UBJSON/MessagePack file into MATLAB data structure. JSONLab supports both 
+MATLAB and [http://www.gnu.org/software/octave GNU Octave] (a free MATLAB clone).
 
 JSON ([http://www.json.org/ JavaScript Object Notation]) is a highly portable, 
-human-readable and "[http://en.wikipedia.org/wiki/JSON fat-free]" text format 
-to represent complex and hierarchical data. It is as powerful as 
-[http://en.wikipedia.org/wiki/XML XML], but less verbose. JSON format is widely 
-used for data-exchange in applications, and is essential for the wild success 
-of [http://en.wikipedia.org/wiki/Ajax_(programming) Ajax] and 
-[http://en.wikipedia.org/wiki/Web_2.0 Web2.0]. 
+human-readable and [http://en.wikipedia.org/wiki/JSON "fat-free"] text format 
+to represent complex and hierarchical data. It is as powerful as [http://en.wikipedia.org/wiki/XML XML]
+but less verbose. JSON format is widely used for data-exchange in applications.
 
-UBJSON ([<http://ubjson.org/ Universal Binary JSON]) is a binary JSON format, specifically 
-optimized for compact file size and better performance while keeping
+UBJSON ([http://ubjson.org/ Universal Binary JSON]) is a binary JSON format, specifically 
+specifically optimized for compact file size and better performance while keeping
 the semantics as simple as the text-based JSON format. Using the UBJSON
 format allows to wrap complex binary data in a flexible and extensible
 structure, making it possible to process complex and large dataset 
-without accuracy loss due to text conversions.
+without accuracy loss due to text conversions. MessagePack is another binary
+JSON-like data format widely used in data exchange in web/native applications.
+It is slightly more compact than UBJSON, but is not directly readable compared
+to UBJSON.
 
-We envision that both JSON and its binary version will serve as part of 
-the mainstream data-exchange formats for scientific research in the future. 
-It will provide the flexibility and generality achieved by other popular 
-general-purpose file specifications, such as
-[http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5], with significantly 
-reduced complexity and enhanced performance.
+We envision that both JSON and its binary counterparts will play important 
+roles as mainstream data-exchange formats for scientific research.
+It has both the flexibility and generality as offered by other popular 
+general-purpose file specifications, such as [http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5] 
+but with significantly reduced complexity and excellent readability.
+
+Towards this goal, we have developed the JData Specification (http://github.com/fangq/jdata) 
+to standardize serializations of complex scientific data structures, such as
+N-D arrays, sparse/complex-valued arrays, trees, maps, tables and graphs using
+JSON/binary JSON constructs. The text and binary formatted JData files are
+syntactically compatible with JSON/UBJSON formats, and can be readily parsed 
+using existing JSON and UBJSON parsers.
+
+Please note that data files produced by <tt>saveubjson</tt> may utilize a special
+"optimized header" to store N-D (N>1) arrays, as defined in the JData Specification Draft 2.
+This feature is not supported by UBJSON Specification Draft 12. To produce 
+UBJSON files that can be parsed by UBJSON-Draft-12 compliant parsers, you must
+add the option <tt>'NestArray',1</tt> in the call to <tt>saveubjson``.
 
 -------------------------------------------------------------------------------
 
 II. Installation
 
-The installation of JSONLab is no different than any other simple
+The installation of JSONLab is no different from installing any other
 MATLAB toolbox. You only need to download/unzip the JSONLab package
 to a folder, and add the folder's path to MATLAB/Octave's path list
 by using the following command:
@@ -130,333 +150,89 @@ and type addpath('/path/to/jsonlab') in this file, save and quit the editor.
 MATLAB will execute this file every time it starts. For Octave, the file
 you need to edit is ~/.octaverc , where "~" is your home directory.
 
+=== Install JSONLab on Fedora 24 or later ===
+
+JSONLab has been available as an official Fedora package since 2015. You may
+install it directly using the below command
+
+   sudo dnf install octave-jsonlab
+
+To enable data compression/decompression, you are encouraged to install <tt>octave-zmat</tt> using
+
+   sudo dnf install octave-zmat
+
+=== Install JSONLab on Arch Linux ===
+
+JSONLab is also available on Arch Linux. You may install it using the below command
+
+   sudo pacman -S jsonlab
+
 -------------------------------------------------------------------------------
 
 III.Using JSONLab
 
-JSONLab provides two functions, loadjson.m -- a MATLAB->JSON decoder, 
-and savejson.m -- a MATLAB->JSON encoder, for the text-based JSON, and 
-two equivallent functions -- loadubjson and saveubjson for the binary 
-JSON. The detailed help info for the four functions can be found below:
+JSONLab provides two functions, <tt>loadjson</tt> -- a MATLAB->JSON decoder, 
+and <tt>savejson</tt> -- a MATLAB->JSON encoder, for the text-based JSON, and 
+two equivallent function pairs -- <tt>loadubjson</tt> and <tt>saveubjson</tt> for binary 
+JSON and <tt>loadmsgpack</tt> and <tt>savemsgpack</tt> for MessagePack. The <tt>load</tt> functions 
+for the 3 supported data formats share almost the same input parameters; 
+similarly for the 3 <tt>save</tt> functions (``savejson/saveubjson/savemsgpack``)
+The detailed help information can be found in the <tt>Contents.m</tt> file. 
 
-=== loadjson.m ===
-<pre>
-  data=loadjson(fname,opt)
-     or
-  data=loadjson(fname,'param1',value1,'param2',value2,...)
- 
-  parse a JSON (JavaScript Object Notation) file or string
- 
-  authors:Qianqian Fang (q.fang <at> neu.edu)
-  created on 2011/09/09, including previous works from 
- 
-          Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
-             created on 2009/11/02
-          FranÃ§ois Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
-             created on  2009/03/22
-          Joel Feenstra:
-          http://www.mathworks.com/matlabcentral/fileexchange/20565
-             created on 2008/07/03
- 
-  $Id$
- 
-  input:
-       fname: input file name, if fname contains "{}" or "[]", fname
-              will be interpreted as a JSON string
-       opt: a struct to store parsing options, opt can be replaced by 
-            a list of ('param',value) pairs - the param string is equivallent
-            to a field in opt. opt can have the following 
-            fields (first in [.|.] is the default)
- 
-            opt.SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
-                          for each element of the JSON data, and group 
-                          arrays based on the cell2mat rules.
-            opt.FastArrayParser [1|0 or integer]: if set to 1, use a
-                          speed-optimized array parser when loading an 
-                          array object. The fast array parser may 
-                          collapse block arrays into a single large
-                          array similar to rules defined in cell2mat; 0 to 
-                          use a legacy parser; if set to a larger-than-1
-                          value, this option will specify the minimum
-                          dimension to enable the fast array parser. For
-                          example, if the input is a 3D array, setting
-                          FastArrayParser to 1 will return a 3D array;
-                          setting to 2 will return a cell array of 2D
-                          arrays; setting to 3 will return to a 2D cell
-                          array of 1D vectors; setting to 4 will return a
-                          3D cell array.
-            opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
-            opt.ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
-                          (introduced in MATLAB R2016b) to char arrays; if set to 1,
-                          loadjson skips this conversion.
-            opt.Encoding ['']: json file encoding. Support all encodings of
-                          fopen() function
-
-  output:
-       dat: a cell array, where {...} blocks are converted into cell arrays,
-            and [...] are converted to arrays
- 
-  examples:
-       dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
-       dat=loadjson(['examples' filesep 'example1.json'])
-       dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',1)
- 
-  license:
-      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
-  </pre>
+In the below section, we simply provide a few examples on how to use
+each of the core functions for encoding/decoding JSON/UBJSON/MessagePack data
 
 === savejson.m ===
 
-<pre>
-  json=savejson(rootname,obj,filename)
-     or
-  json=savejson(rootname,obj,opt)
-  json=savejson(rootname,obj,'param1',value1,'param2',value2,...)
- 
-  convert a MATLAB object (cell, struct or array) into a JSON (JavaScript
-  Object Notation) string
- 
-  author: Qianqian Fang (q.fang <at> neu.edu)
-  created on 2011/09/09
- 
-  $Id$
- 
-  input:
-       rootname: the name of the root-object, when set to '', the root name
-         is ignored, however, when opt.ForceRootName is set to 1 (see below),
-         the MATLAB variable name will be used as the root name.
-       obj: a MATLAB object (array, cell, cell array, struct, struct array,
-       class instance).
-       filename: a string for the file name to save the output JSON data.
-       opt: a struct for additional options, ignore to use default values.
-         opt can have the following fields (first in [.|.] is the default)
- 
-         opt.FileName [''|string]: a file name to save the output JSON data
-         opt.FloatFormat ['%.10g'|string]: format to show each numeric element
-                          of a 1D/2D array;
-         opt.ArrayIndent [1|0]: if 1, output explicit data array with
-                          precedent indentation; if 0, no indentation
-         opt.ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
-                          array in JSON array format; if sets to 1, an
-                          array will be shown as a struct with fields
-                          "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
-                          sparse arrays, the non-zero elements will be
-                          saved to _ArrayData_ field in triplet-format i.e.
-                          (ix,iy,val) and "_ArrayIsSparse_" will be added
-                          with a value of 1; for a complex array, the 
-                          _ArrayData_ array will include two columns 
-                          (4 for sparse) to record the real and imaginary 
-                          parts, and also "_ArrayIsComplex_":1 is added. 
-         opt.ParseLogical [0|1]: if this is set to 1, logical array elem
-                          will use true/false rather than 1/0.
-         opt.SingletArray [0|1]: if this is set to 1, arrays with a single
-                          numerical element will be shown without a square
-                          bracket, unless it is the root object; if 0, square
-                          brackets are forced for any numerical arrays.
-         opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
-                          even it has only one element; if 0, brackets
-                          are ignored when a cell has only 1 element.
-         opt.ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
-                          will use the name of the passed obj variable as the 
-                          root object name; if obj is an expression and 
-                          does not have a name, 'root' will be used; if this 
-                          is set to 0 and rootname is empty, the root level 
-                          will be merged down to the lower level.
-         opt.Inf ['"$1_Inf_"'|string]: a customized regular expression pattern
-                          to represent +/-Inf. The matched pattern is '([-+]*)Inf'
-                          and $1 represents the sign. For those who want to use
-                          1e999 to represent Inf, they can set opt.Inf to '$11e999'
-         opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
-                          to represent NaN
-         opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
-                          for example, if opt.JSONP='foo', the JSON data is
-                          wrapped inside a function call as 'foo(...);'
-         opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
-                          back to the string form
-         opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
-         opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
-         opt.Compression  'zlib' or 'gzip': specify array compression
-                          method; currently only supports 'gzip' or 'zlib'. The
-                          data compression only applicable to numerical arrays 
-                          in 3D or higher dimensions, or when ArrayToStruct
-                          is 1 for 1D or 2D arrays. If one wants to
-                          compress a long string, one must convert
-                          it to uint8 or int8 array first. The compressed
-                          array uses three extra fields
-                          "_ArrayZipType_": the opt.Compression value. 
-                          "_ArrayZipSize_": a 1D interger array to
-                             store the pre-compressed (but post-processed)
-                             array dimensions, and 
-                          "_ArrayZipData_": the "base64" encoded
-                              compressed binary array data. 
-         opt.CompressArraySize [100|int]: only to compress an array if the total 
-                          element count is larger than this number.
-         opt.Encoding ['']: json file encoding. Support all encodings of
-                          fopen() function
-
-         opt can be replaced by a list of ('param',value) pairs. The param 
-         string is equivallent to a field in opt and is case sensitive.
-  output:
-       json: a string in the JSON format (see http://json.org)
- 
-  examples:
        jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
-                'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
-                'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
+                'MeshElem',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
+                'MeshSurf',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
                            2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
                 'MeshCreator','FangQ','MeshTitle','T6 Cube',...
                 'SpecialData',[nan, inf, -inf]);
+       savejson(jsonmesh)
        savejson('jmesh',jsonmesh)
-       savejson('',jsonmesh,'ArrayIndent',0,'FloatFormat','\t%.5g')
- 
-  license:
-      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
- </pre>
+       savejson('',jsonmesh,'compact',1)
+       savejson('jmesh',jsonmesh,'outputfile.json')
+       savejson('',jsonmesh,'ArrayIndent',0,'FloatFormat','\t%.5g','FileName','outputfile2.json')
+       savejson('cpxrand',eye(5)+1i*magic(5))
+       savejson('ziparray',eye(10),'Compression','zlib','CompressArraySize',1)
+       savejson('',jsonmesh,'ArrayToStruct',1)
 
-=== loadubjson.m ===
+=== loadjson.m ===
 
-<pre>
-  data=loadubjson(fname,opt)
-     or
-  data=loadubjson(fname,'param1',value1,'param2',value2,...)
- 
-  parse a JSON (JavaScript Object Notation) file or string
- 
-  authors:Qianqian Fang (q.fang <at> neu.edu)
-  created on 2013/08/01
- 
-  $Id$
- 
-  input:
-       fname: input file name, if fname contains "{}" or "[]", fname
-              will be interpreted as a UBJSON string
-       opt: a struct to store parsing options, opt can be replaced by 
-            a list of ('param',value) pairs - the param string is equivallent
-            to a field in opt. opt can have the following 
-            fields (first in [.|.] is the default)
- 
-            opt.SimplifyCell [0|1]: if set to 1, loadubjson will call cell2mat
-                          for each element of the JSON data, and group 
-                          arrays based on the cell2mat rules.
-            opt.IntEndian [B|L]: specify the endianness of the integer fields
-                          in the UBJSON input data. B - Big-Endian format for 
-                          integers (as required in the UBJSON specification); 
-                          L - input integer fields are in Little-Endian order.
-            opt.NameIsString [0|1]: for UBJSON Specification Draft 8 or 
-                          earlier versions (JSONLab 1.0 final or earlier), 
-                          the "name" tag is treated as a string. To load 
-                          these UBJSON data, you need to manually set this 
-                          flag to 1.
- 
-  output:
-       dat: a cell array, where {...} blocks are converted into cell arrays,
-            and [...] are converted to arrays
- 
-  examples:
-       obj=struct('string','value','array',[1 2 3]);
-       ubjdata=saveubjson('obj',obj);
-       dat=loadubjson(ubjdata)
-       dat=loadubjson(['examples' filesep 'example1.ubj'])
-       dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',1)
- 
-  license:
-      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
-</pre>
+       loadjson('{}')
+       dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
+       dat=loadjson(['examples' filesep 'example1.json'])
+       dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',1)
 
 === saveubjson.m ===
 
-<pre>
-  json=saveubjson(rootname,obj,filename)
-     or
-  json=saveubjson(rootname,obj,opt)
-  json=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
- 
-  convert a MATLAB object (cell, struct or array) into a Universal 
-  Binary JSON (UBJSON) binary string
- 
-  author: Qianqian Fang (q.fang <at> neu.edu)
-  created on 2013/08/17
- 
-  $Id$
- 
-  input:
-       rootname: the name of the root-object, when set to '', the root name
-         is ignored, however, when opt.ForceRootName is set to 1 (see below),
-         the MATLAB variable name will be used as the root name.
-       obj: a MATLAB object (array, cell, cell array, struct, struct array,
-       class instance)
-       filename: a string for the file name to save the output UBJSON data
-       opt: a struct for additional options, ignore to use default values.
-         opt can have the following fields (first in [.|.] is the default)
- 
-         opt.FileName [''|string]: a file name to save the output JSON data
-         opt.ArrayToStruct[0|1]: when set to 0, saveubjson outputs 1D/2D
-                          array in JSON array format; if sets to 1, an
-                          array will be shown as a struct with fields
-                          "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
-                          sparse arrays, the non-zero elements will be
-                          saved to _ArrayData_ field in triplet-format i.e.
-                          (ix,iy,val) and "_ArrayIsSparse_" will be added
-                          with a value of 1; for a complex array, the 
-                          _ArrayData_ array will include two columns 
-                          (4 for sparse) to record the real and imaginary 
-                          parts, and also "_ArrayIsComplex_":1 is added. 
-         opt.ParseLogical [1|0]: if this is set to 1, logical array elem
-                          will use true/false rather than 1/0.
-         opt.SingletArray [0|1]: if this is set to 1, arrays with a single
-                          numerical element will be shown without a square
-                          bracket, unless it is the root object; if 0, square
-                          brackets are forced for any numerical arrays.
-         opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
-                          even it has only one element; if 0, brackets
-                          are ignored when a cell has only 1 element.
-         opt.ForceRootName [0|1]: when set to 1 and rootname is empty, saveubjson
-                          will use the name of the passed obj variable as the 
-                          root object name; if obj is an expression and 
-                          does not have a name, 'root' will be used; if this 
-                          is set to 0 and rootname is empty, the root level 
-                          will be merged down to the lower level.
-         opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
-                          for example, if opt.JSON='foo', the JSON data is
-                          wrapped inside a function call as 'foo(...);'
-         opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
-                          back to the string form
-         opt.Compression  'zlib' or 'gzip': specify array compression
-                          method; currently only supports 'gzip' or 'zlib'. The
-                          data compression only applicable to numerical arrays 
-                          in 3D or higher dimensions, or when ArrayToStruct
-                          is 1 for 1D or 2D arrays. If one wants to
-                          compress a long string, one must convert
-                          it to uint8 or int8 array first. The compressed
-                          array uses three extra fields
-                          "_ArrayZipType_": the opt.Compression value. 
-                          "_ArrayZipSize_": a 1D interger array to
-                             store the pre-compressed (but post-processed)
-                             array dimensions, and 
-                          "_ArrayZipData_": the binary stream of
-                             the compressed binary array data WITHOUT
-                             'base64' encoding
-         opt.CompressArraySize [100|int]: only to compress an array if the total 
-                          element count is larger than this number.
- 
-         opt can be replaced by a list of ('param',value) pairs. The param 
-         string is equivallent to a field in opt and is case sensitive.
-  output:
-       json: a binary string in the UBJSON format (see http://ubjson.org)
- 
-  examples:
-       jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
-                'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
-                'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
-                           2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
-                'MeshCreator','FangQ','MeshTitle','T6 Cube',...
-                'SpecialData',[nan, inf, -inf]);
-       saveubjson('jsonmesh',jsonmesh)
-       saveubjson('jsonmesh',jsonmesh,'meshdata.ubj')
- 
-  license:
-      BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
-</pre>
+       a={single(rand(2)), struct('va',1,'vb','string'), 1+2i};
+       saveubjson(a)
+       saveubjson('rootname',a,'testdata.ubj')
+       saveubjson('zeros',zeros(100),'Compression','gzip')
+
+=== loadubjson.m ===
+
+       obj=struct('string','value','array',single([1 2 3]),'empty',[],'magic',uint8(magic(5)));
+       ubjdata=saveubjson('obj',obj);
+       dat=loadubjson(ubjdata)
+       class(dat.obj.array)
+       isequaln(obj,dat.obj)
+       dat=loadubjson(saveubjson('',eye(10),'Compression','zlib','CompressArraySize',1))
+
+=== jdataencode.m ===
+
+      jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
+      savejson('',jd)
+
+=== jdatadecode.m ===
+
+      rawdata=struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5));
+      jd=jdataencode(rawdata)
+      newjd=jdatadecode(jd)
+      isequaln(newjd,rawdata)
 
 
 === examples ===
@@ -485,11 +261,11 @@ Here are the known issues:
 # When processing names containing multi-byte characters, Octave and MATLAB \
 can give different field-names; you can use feature('DefaultCharacterSet','latin1') \
 in MATLAB to get consistant results
-# savejson can not handle class and dataset.
+# <tt>savejson</tt> can only export the properties from MATLAB classes, but not the methods
 # saveubjson converts a logical array into a uint8 ([U]) array
-# an unofficial N-D array count syntax is implemented in saveubjson. We are \
-actively communicating with the UBJSON spec maintainer to investigate the \
-possibility of making it upstream
+# a special N-D array format, as defined in the JData specification, is implemented in \
+<tt>saveubjson</tt>. You may use <tt>saveubjson(...,'NestArray',1)</tt> to create UBJSON \
+Draft-12 compliant files 
 # loadubjson can not parse all UBJSON Specification (Draft 9) compliant \
 files, however, it can parse all UBJSON files produced by saveubjson.
 
@@ -542,6 +318,54 @@ V.  Acknowledgement
 
 This toolbox contains modified functions from the below toolboxes:
 
+=== loadjson.m ===
+
+The <tt>loadjson.m</tt> function was significantly modified from the earlier parsers 
+(BSD 3-clause licensed) written by the below authors
+
+* Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
+    created on 2009/11/02
+* François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
+    created on  2009/03/22
+* Joel Feenstra:
+    http://www.mathworks.com/matlabcentral/fileexchange/20565
+    created on 2008/07/03
+
+
+=== loadmsgpack.m ===
+
+* Author: Bastian Bechtold
+* URL: https://github.com/bastibe/matlab-msgpack/blob/master/parsemsgpack.m
+* License: BSD 3-clause license
+
+Copyright (c) 2014,2016 Bastian Bechtold
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, 
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this 
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, 
+  this list of conditions and the following disclaimer in the documentation 
+  and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its contributors 
+  may be used to endorse or promote products derived from this software without 
+  specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 == zlibdecode.m, zlibencode.m, gzipencode.m, gzipdecode.m, base64encode.m, base64decode.m ==
 
 * Author: Kota Yamaguchi
@@ -560,6 +384,7 @@ modification, are permitted provided that the following conditions are met:
 * Redistributions in binary form must reproduce the above copyright notice,
   this list of conditions and the following disclaimer in the documentation
   and/or other materials provided with the distribution
+
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE

@@ -17,20 +17,18 @@ function data = loadjson(fname,varargin)
 %         http://www.mathworks.com/matlabcentral/fileexchange/20565
 %            created on 2008/07/03
 %
-% $Id$
-%
 % input:
-%      fname: input file name, if fname contains "{}" or "[]", fname
+%      fname: input file name; if fname contains "{}" or "[]", fname
 %             will be interpreted as a JSON string
-%      opt: a struct to store parsing options, opt can be replaced by 
+%      opt: (optional) a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs - the param string is equivallent
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           opt.SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
+%           SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
-%           opt.FastArrayParser [1|0 or integer]: if set to 1, use a
+%           FastArrayParser [1|0 or integer]: if set to 1, use a
 %                         speed-optimized array parser when loading an 
 %                         array object. The fast array parser may 
 %                         collapse block arrays into a single large
@@ -44,17 +42,20 @@ function data = loadjson(fname,varargin)
 %                         arrays; setting to 3 will return to a 2D cell
 %                         array of 1D vectors; setting to 4 will return a
 %                         3D cell array.
-%           opt.ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
-%           opt.ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
+%           ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
+%           ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
 %                         (introduced in MATLAB R2016b) to char arrays; if set to 1,
 %                         loadjson skips this conversion.
-%           opt.FormatVersion [2|float]: set the JSONLab format version; since
+%           FormatVersion [2|float]: set the JSONLab format version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
-%           opt.Encoding ['']: json file encoding. Support all encodings of
+%           Encoding ['']: json file encoding. Support all encodings of
 %                         fopen() function
+%           JDataDecode [1|0]: if set to 1, call jdatadecode to decode
+%                        JData structures defined in the JData
+%                        Specification.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -424,7 +425,7 @@ function [object, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, 
         end
     end
     pos=parse_char(inputstr, pos, '}');
-    if(isstruct(object) && jsonopt('JDataDecode',1,varargin{:})==1)
+    if(jsonopt('JDataDecode',1,varargin{:})==1)
         varargin{:}.Recursive=0;
         object=jdatadecode(object,'Base64',1,varargin{:});
     end

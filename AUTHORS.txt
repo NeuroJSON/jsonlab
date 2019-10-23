@@ -13,7 +13,7 @@ URL: http://fanglab.org
 Email: <q.fang at neu.edu> and <fangqq at gmail.com>
 
 
-The script loadjson.m was built upon previous works by
+The script loadjson.m was built upon previous works (BSD 3-clause license) by
 
 - Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
        date: 2009/11/02
@@ -23,11 +23,15 @@ The script loadjson.m was built upon previous works by
        date: 2008/07/03
 
 The data compression/decompression utilities ({zlib,gzip,base64}{encode,decode}.m)
-were copied from 
+were copied from (BSD 2-clause license) 
 
 - "Byte encoding utilities" by Kota Yamaguchi
        https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
        date: 2013/01/04
+
+The loadmsgpack.m script was modified from 
+- parsemsgpack.m by Bastian Bechtold (BSD 3-clause license)
+  URL: https://github.com/bastibe/matlab-msgpack/blob/master/parsemsgpack.m
 
 
 This toolbox contains patches submitted by the following contributors:

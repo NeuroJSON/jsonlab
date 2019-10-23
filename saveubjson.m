@@ -1,7 +1,8 @@
 function json=saveubjson(rootname,obj,varargin)
 %
-% json=saveubjson(rootname,obj,filename)
+% json=saveubjson(obj)
 %    or
+% json=saveubjson(rootname,obj,filename)
 % json=saveubjson(rootname,obj,opt)
 % json=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
 %
@@ -9,59 +10,57 @@ function json=saveubjson(rootname,obj,varargin)
 % into a Universal Binary JSON (UBJSON) or a MessagePack binary stream
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
-% created on 2013/08/17
-%
-% $Id$
+% initially created on 2013/08/17
 %
 % input:
 %      rootname: the name of the root-object, when set to '', the root name
-%        is ignored, however, when opt.ForceRootName is set to 1 (see below),
-%        the MATLAB variable name will be used as the root name.
+%           is ignored, however, when opt.ForceRootName is set to 1 (see below),
+%           the MATLAB variable name will be used as the root name.
 %      obj: a MATLAB object (array, cell, cell array, struct, struct array,
-%        class instance)
+%           class instance)
 %      filename: a string for the file name to save the output UBJSON data
 %      opt: a struct for additional options, ignore to use default values.
-%        opt can have the following fields (first in [.|.] is the default)
+%           opt can have the following fields (first in [.|.] is the default)
 %
-%        opt.FileName [''|string]: a file name to save the output JSON data
-%        opt.ArrayToStruct[0|1]: when set to 0, saveubjson outputs 1D/2D
+%           FileName [''|string]: a file name to save the output JSON data
+%           ArrayToStruct[0|1]: when set to 0, saveubjson outputs 1D/2D
 %                         array in JSON array format; if sets to 1, an
 %                         array will be shown as a struct with fields
 %                         "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
 %                         sparse arrays, the non-zero elements will be
-%                         saved to _ArrayData_ field in triplet-format i.e.
-%                         (ix,iy,val) and "_ArrayIsSparse_" will be added
+%                         saved to "_ArrayData_" field in triplet-format i.e.
+%                         (ix,iy,val) and "_ArrayIsSparse_":true will be added
 %                         with a value of 1; for a complex array, the 
-%                         _ArrayData_ array will include two columns 
+%                         "_ArrayData_" array will include two rows 
 %                         (4 for sparse) to record the real and imaginary 
-%                         parts, and also "_ArrayIsComplex_":1 is added. 
-%        opt.NestArray    [0|1]: If set to 1, use nested array constructs
+%                         parts, and also "_ArrayIsComplex_":true is added. 
+%          NestArray    [0|1]: If set to 1, use nested array constructs
 %                         to store N-dimensional arrays (compatible with 
 %                         UBJSON specification Draft 12); if set to 0,
 %                         use the JData (v0.5) optimized N-D array header;
 %                         NestArray is automatically set to 1 when
 %                         MessagePack is set to 1
-%        opt.ParseLogical [1|0]: if this is set to 1, logical array elem
+%          ParseLogical [1|0]: if this is set to 1, logical array elem
 %                         will use true/false rather than 1/0.
-%        opt.SingletArray [0|1]: if this is set to 1, arrays with a single
+%          SingletArray [0|1]: if this is set to 1, arrays with a single
 %                         numerical element will be shown without a square
 %                         bracket, unless it is the root object; if 0, square
 %                         brackets are forced for any numerical arrays.
-%        opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
+%          SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
 %                         even it has only one element; if 0, brackets
 %                         are ignored when a cell has only 1 element.
-%        opt.ForceRootName [0|1]: when set to 1 and rootname is empty, saveubjson
+%          ForceRootName [0|1]: when set to 1 and rootname is empty, saveubjson
 %                         will use the name of the passed obj variable as the 
 %                         root object name; if obj is an expression and 
 %                         does not have a name, 'root' will be used; if this 
 %                         is set to 0 and rootname is empty, the root level 
 %                         will be merged down to the lower level.
-%        opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
+%          JSONP [''|string]: to generate a JSONP output (JSON with padding),
 %                         for example, if opt.JSON='foo', the JSON data is
 %                         wrapped inside a function call as 'foo(...);'
-%        opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
+%          UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
-%        opt.Compression  'zlib', 'gzip', 'lzma', 'lzip', 'lz4' or 'lz4hc': specify array 
+%          Compression  'zlib', 'gzip', 'lzma', 'lzip', 'lz4' or 'lz4hc': specify array 
 %                         compression method; currently only supports 6 methods. The
 %                         data compression only applicable to numerical arrays 
 %                         in 3D or higher dimensions, or when ArrayToStruct
@@ -76,17 +75,17 @@ function json=saveubjson(rootname,obj,varargin)
 %                         "_ArrayZipData_": the binary stream of
 %                            the compressed binary array data WITHOUT
 %                            'base64' encoding
-%        opt.CompressArraySize [100|int]: only to compress an array if the total 
+%          CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
-%        opt.MessagePack [0|1]: output MessagePack (https://msgpack.org/)
+%          MessagePack [0|1]: output MessagePack (https://msgpack.org/)
 %                         binary stream instead of UBJSON
-%        opt.FormatVersion [2|float]: set the JSONLab output version; since
-%                         v2.0, JSONLab uses JData specification Draft 1
+%          FormatVersion [2|float]: set the JSONLab output version; since
+%                         v2.0, JSONLab uses JData specification Draft 2
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
-%        opt.Debug [0|1]: output binary numbers in <%g> format for debugging
-%        opt.PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
+%          Debug [0|1]: output binary numbers in <%g> format for debugging
+%          PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
@@ -95,15 +94,15 @@ function json=saveubjson(rootname,obj,varargin)
 %      json: a binary string in the UBJSON format (see http://ubjson.org)
 %
 % examples:
-%      jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
-%               'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
-%               'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
+%      jsonmesh=struct('MeshVertex3',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
+%               'MeshTet4',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
+%               'MeshTri3',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
 %                          2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
 %               'MeshCreator','FangQ','MeshTitle','T6 Cube',...
 %               'SpecialData',[nan, inf, -inf]);
-%      saveubjson('jsonmesh',jsonmesh)
-%      saveubjson('jsonmesh',jsonmesh,'meshdata.ubj')
-%      saveubjson('jsonmesh',jsonmesh,'FileName','meshdata.msgpk','MessagePack',1)
+%      saveubjson(jsonmesh)
+%      saveubjson('',jsonmesh,'meshdata.ubj')
+%      saveubjson('mesh1',jsonmesh,'FileName','meshdata.msgpk','MessagePack',1)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -262,7 +261,7 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     item=reshape(item,dim(1),numel(item)/dim(1));
     dim=size(item);
 end
-bracketlevel=~jsonopt('singletcell',1,varargin{:});
+bracketlevel=~jsonopt('SingletCell',1,varargin{:});
 Zmarker=jsonopt('ZM_','Z',varargin{:});
 Imarker=jsonopt('IM_','UiIlL',varargin{:});
 Amarker=jsonopt('AM_',{'[',']'},varargin{:});

@@ -1,5 +1,9 @@
-%PARSEMSGPACK parses a msgpack byte buffer into Matlab data structures
-% PARSEMSGPACK(BYTES)
+function data = loadmsgpack(fname,varargin)
+%
+%   data = loadmsgpack(fname,varargin)
+%
+%LOADMSGPACK parses a msgpack byte buffer into Matlab data structures
+% LOADMSGPACK(BYTES)
 %    reads BYTES as msgpack data, and creates Matlab data structures
 %    from it.
 %    - strings are converted to strings
@@ -8,11 +12,16 @@
 %    - nil is converted to []
 %    - arrays are converted to cell arrays
 %    - maps are converted to containers.Map
-
+%
 % (c) 2016 Bastian Bechtold
-% This code is licensed under the BSD 3-clause license
+% modified by Qianqian Fang <q.fang at neu.edu>
+%
+% license:
+%     BSD 3-clause license or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+% -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
+%
 
-function data = loadmsgpack(fname,varargin)
     if(exist(fname,'file'))
        fid = fopen(fname,'rb');
        bytes = fread(fid,inf,'uint8=>char')';

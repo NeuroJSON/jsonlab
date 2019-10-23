@@ -7,9 +7,7 @@ function data = loadubjson(fname,varargin)
 % parse a JSON (JavaScript Object Notation) file or string
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
-% created on 2013/08/01
-%
-% $Id$
+% initially created on 2013/08/01
 %
 % input:
 %      fname: input file name, if fname contains "{}" or "[]", fname
@@ -19,19 +17,19 @@ function data = loadubjson(fname,varargin)
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           opt.SimplifyCell [0|1]: if set to 1, loadubjson will call cell2mat
+%           SimplifyCell [0|1]: if set to 1, loadubjson will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
-%           opt.IntEndian [B|L]: specify the endianness of the integer fields
+%           IntEndian [B|L]: specify the endianness of the integer fields
 %                         in the UBJSON input data. B - Big-Endian format for 
 %                         integers (as required in the UBJSON specification); 
 %                         L - input integer fields are in Little-Endian order.
-%           opt.NameIsString [0|1]: for UBJSON Specification Draft 8 or 
+%           NameIsString [0|1]: for UBJSON Specification Draft 8 or 
 %                         earlier versions (JSONLab 1.0 final or earlier), 
 %                         the "name" tag is treated as a string. To load 
 %                         these UBJSON data, you need to manually set this 
 %                         flag to 1.
-%           opt.FormatVersion [2|float]: set the JSONLab format version; since
+%           FormatVersion [2|float]: set the JSONLab format version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,

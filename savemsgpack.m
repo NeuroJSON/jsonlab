@@ -1,7 +1,8 @@
 function msgpk=savemsgpack(rootname,obj,varargin)
 %
-% msgpk=savemsgpack(rootname,obj,filename)
+% msgpk=savemsgpack(obj)
 %    or
+% msgpk=savemsgpack(rootname,obj,filename)
 % msgpk=savemsgpack(rootname,obj,opt)
 % msgpk=savemsgpack(rootname,obj,'param1',value1,'param2',value2,...)
 %
@@ -9,7 +10,7 @@ function msgpk=savemsgpack(rootname,obj,varargin)
 % into a MessagePack binary stream
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
-% created on 2019/05/20
+% initially created on 2019/05/20
 %
 % This function is the same as calling saveubjson(...,'MessagePack',1)
 %

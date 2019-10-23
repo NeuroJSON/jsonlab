@@ -1,49 +1,52 @@
 function jdata=jdataencode(data, varargin)
 %
-%    jdata=jdataencode(data)
-%       or
-%    jdata=jdataencode(data, options)
-%    jdata=jdataencode(data, 'Param1',value1, 'Param2',value2,...)
+% jdata=jdataencode(data)
+%    or
+% jdata=jdataencode(data, options)
+% jdata=jdataencode(data, 'Param1',value1, 'Param2',value2,...)
 %
-%    Serialize a MATLAB struct or cell array into a JData-compliant 
-%    structure as defined in the JData spec: http://github.com/fangq/jdata
+% Serialize a MATLAB struct or cell array into a JData-compliant 
+% structure as defined in the JData spec: http://github.com/fangq/jdata
 %
-%    author: Qianqian Fang (q.fang <at> neu.edu)
+% This function implements the JData Specification Draft 2a (Oct. 2019)
+% see http://github.com/fangq/jdata for details
 %
-%    input:
-%        data: a structure (array) or cell (array) to be encoded.
-%        options: (optional) a struct or Param/value pairs for user
-%                 specified options (first in [.|.] is the default)
-%            Base64: [0|1] if set to 1, _ArrayZipData_ is assumed to
-%                         be encoded with base64 format and need to be
-%                         decoded first. This is needed for JSON but not
-%                         UBJSON data
-%            Prefix: ['x0x5F'|'x'] for JData files loaded via loadjson/loadubjson, the
-%                         default JData keyword prefix is 'x0x5F'(default);
-%                         if the json file is loaded using matlab2018's
-%                         jsondecode(), the prefix is 'x'.
-%            UseArrayZipSize: [1|0] if set to 1, _ArrayZipSize_ will be added to 
-%                         store the "pre-processed" data dimensions, i.e.
-%                         the original data stored in _ArrayData_, and then flaten
-%                         _ArrayData_ into a row vector using row-major
-%                         order; if set to 0, a 2D _ArrayData_ will be used
-%            MapAsStruct: [0|1] if set to 1, convert containers.Map into
-%                         struct; otherwise, keep it as map
-%            Compression: ['zlib'|'gzip','lzma','lz4','lz4hc'] - use zlib method 
-%                         to compress data array
-%            CompressArraySize: [100|int]: only to compress an array if the  
-%                         total element count is larger than this number.
-%            FormatVersion [2|float]: set the JSONLab output version; since
-%                         v2.0, JSONLab uses JData specification Draft 1
-%                         for output format, it is incompatible with all
-%                         previous releases; if old output is desired,
-%                         please set FormatVersion to 1.9 or earlier.
+% author: Qianqian Fang (q.fang <at> neu.edu)
 %
-%    example:
-%        jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
+% input:
+%     data: a structure (array) or cell (array) to be encoded.
+%     options: (optional) a struct or Param/value pairs for user
+%              specified options (first in [.|.] is the default)
+%         Base64: [0|1] if set to 1, _ArrayZipData_ is assumed to
+%       	       be encoded with base64 format and need to be
+%       	       decoded first. This is needed for JSON but not
+%       	       UBJSON data
+%         Prefix: ['x0x5F'|'x'] for JData files loaded via loadjson/loadubjson, the
+%       	       default JData keyword prefix is 'x0x5F'(default);
+%       	       if the json file is loaded using matlab2018's
+%       	       jsondecode(), the prefix is 'x'.
+%         UseArrayZipSize: [1|0] if set to 1, _ArrayZipSize_ will be added to 
+%       	       store the "pre-processed" data dimensions, i.e.
+%       	       the original data stored in _ArrayData_, and then flaten
+%       	       _ArrayData_ into a row vector using row-major
+%       	       order; if set to 0, a 2D _ArrayData_ will be used
+%         MapAsStruct: [0|1] if set to 1, convert containers.Map into
+%       	       struct; otherwise, keep it as map
+%         Compression: ['zlib'|'gzip','lzma','lz4','lz4hc'] - use zlib method 
+%       	       to compress data array
+%         CompressArraySize: [100|int]: only to compress an array if the  
+%       	       total element count is larger than this number.
+%         FormatVersion [2|float]: set the JSONLab output version; since
+%       	       v2.0, JSONLab uses JData specification Draft 1
+%       	       for output format, it is incompatible with all
+%       	       previous releases; if old output is desired,
+%       	       please set FormatVersion to 1.9 or earlier.
 %
-%    license:
-%        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+% example:
+%     jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 %
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %

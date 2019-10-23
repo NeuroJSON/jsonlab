@@ -16,7 +16,7 @@ function s=mergestruct(s1,s2)
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 %
-% -- this function is part of jsonlab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
+% -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
 if(~isstruct(s1) || ~isstruct(s2))

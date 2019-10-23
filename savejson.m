@@ -1,7 +1,8 @@
 function json=savejson(rootname,obj,varargin)
 %
-% json=savejson(rootname,obj,filename)
+% json=savejson(obj)
 %    or
+% json=savejson(rootname,obj,filename)
 % json=savejson(rootname,obj,opt)
 % json=savejson(rootname,obj,'param1',value1,'param2',value2,...)
 %
@@ -9,26 +10,24 @@ function json=savejson(rootname,obj,varargin)
 % Object Notation) string
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
-% created on 2011/09/09
-%
-% $Id$
+% initially created on 2011/09/09
 %
 % input:
 %      rootname: the name of the root-object, when set to '', the root name
-%        is ignored, however, when opt.ForceRootName is set to 1 (see below),
-%        the MATLAB variable name will be used as the root name.
+%           is ignored, however, when opt.ForceRootName is set to 1 (see below),
+%           the MATLAB variable name will be used as the root name.
 %      obj: a MATLAB object (array, cell, cell array, struct, struct array,
-%      class instance).
+%           class instance).
 %      filename: a string for the file name to save the output JSON data.
 %      opt: a struct for additional options, ignore to use default values.
-%        opt can have the following fields (first in [.|.] is the default)
+%           opt can have the following fields (first in [.|.] is the default)
 %
-%        opt.FileName [''|string]: a file name to save the output JSON data
-%        opt.FloatFormat ['%.10g'|string]: format to show each numeric element
+%           FileName [''|string]: a file name to save the output JSON data
+%           FloatFormat ['%.10g'|string]: format to show each numeric element
 %                         of a 1D/2D array;
-%        opt.ArrayIndent [1|0]: if 1, output explicit data array with
+%           ArrayIndent [1|0]: if 1, output explicit data array with
 %                         precedent indentation; if 0, no indentation
-%        opt.ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
+%           ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
 %                         array in JSON array format; if sets to 1, an
 %                         array will be shown as a struct with fields
 %                         "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
@@ -39,35 +38,39 @@ function json=savejson(rootname,obj,varargin)
 %                         _ArrayData_ array will include two columns 
 %                         (4 for sparse) to record the real and imaginary 
 %                         parts, and also "_ArrayIsComplex_":1 is added. 
-%        opt.ParseLogical [0|1]: if this is set to 1, logical array elem
+%           NestArray    [0|1]: If set to 1, use nested array constructs
+%                         to store N-dimensional arrays; if set to 0,
+%                         use the annotated array format defined in the
+%                         JData Specification (Draft 1 or later).
+%           ParseLogical [0|1]: if this is set to 1, logical array elem
 %                         will use true/false rather than 1/0.
-%        opt.SingletArray [0|1]: if this is set to 1, arrays with a single
+%           SingletArray [0|1]: if this is set to 1, arrays with a single
 %                         numerical element will be shown without a square
 %                         bracket, unless it is the root object; if 0, square
 %                         brackets are forced for any numerical arrays.
-%        opt.SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
+%           SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
 %                         even it has only one element; if 0, brackets
 %                         are ignored when a cell has only 1 element.
-%        opt.ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
+%           ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
 %                         will use the name of the passed obj variable as the 
 %                         root object name; if obj is an expression and 
 %                         does not have a name, 'root' will be used; if this 
 %                         is set to 0 and rootname is empty, the root level 
 %                         will be merged down to the lower level.
-%        opt.Inf ['"$1_Inf_"'|string]: a customized regular expression pattern
+%           Inf ['"$1_Inf_"'|string]: a customized regular expression pattern
 %                         to represent +/-Inf. The matched pattern is '([-+]*)Inf'
 %                         and $1 represents the sign. For those who want to use
 %                         1e999 to represent Inf, they can set opt.Inf to '$11e999'
-%        opt.NaN ['"_NaN_"'|string]: a customized regular expression pattern
+%           NaN ['"_NaN_"'|string]: a customized regular expression pattern
 %                         to represent NaN
-%        opt.JSONP [''|string]: to generate a JSONP output (JSON with padding),
+%           JSONP [''|string]: to generate a JSONP output (JSON with padding),
 %                         for example, if opt.JSONP='foo', the JSON data is
 %                         wrapped inside a function call as 'foo(...);'
-%        opt.UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
+%           UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
-%        opt.SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
-%        opt.Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
-%        opt.Compression  'zlib', 'gzip', 'lzma', 'lzip', 'lz4' or 'lz4hc': specify array 
+%           SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
+%           Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
+%           Compression  'zlib', 'gzip', 'lzma', 'lzip', 'lz4' or 'lz4hc': specify array 
 %                         compression method; currently only supports 6 methods. The
 %                         data compression only applicable to numerical arrays 
 %                         in 3D or higher dimensions, or when ArrayToStruct
@@ -81,16 +84,16 @@ function json=savejson(rootname,obj,varargin)
 %                            array dimensions, and 
 %                         "_ArrayZipData_": the "base64" encoded
 %                             compressed binary array data. 
-%        opt.CompressArraySize [100|int]: only to compress an array if the total 
+%           CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
-%        opt.FormatVersion [2|float]: set the JSONLab output version; since
+%           FormatVersion [2|float]: set the JSONLab output version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
-%        opt.Encoding ['']: json file encoding. Support all encodings of
+%           Encoding ['']: json file encoding. Support all encodings of
 %                         fopen() function
-%        opt.PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
+%           PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
@@ -100,8 +103,8 @@ function json=savejson(rootname,obj,varargin)
 %
 % examples:
 %      jsonmesh=struct('MeshNode',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
-%               'MeshTetra',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
-%               'MeshTri',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
+%               'MeshElem',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
+%               'MeshSurf',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
 %                          2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
 %               'MeshCreator','FangQ','MeshTitle','T6 Cube',...
 %               'SpecialData',[nan, inf, -inf]);
@@ -267,7 +270,7 @@ ws=jsonopt('whitespaces_',struct('tab',sprintf('\t'),'newline',sprintf('\n'),'se
 padding0=repmat(ws.tab,1,level);
 padding2=repmat(ws.tab,1,level+1);
 nl=ws.newline;
-bracketlevel=~jsonopt('singletcell',1,varargin{:});
+bracketlevel=~jsonopt('SingletCell',1,varargin{:});
 if(len>bracketlevel)
     if(~isempty(name))
         txt={padding0, '"', decodevarname(name,varargin{:}),'": [', nl}; name=''; 
