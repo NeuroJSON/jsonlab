@@ -455,6 +455,12 @@ end
 %%-------------------------------------------------------------------------
 function newstr=unescapejsonstring(str)
     newstr=str;
+    if(iscell(str))
+        try
+            newstr=cell2mat(cellfun(@(x) cell2mat(x),str(:),'un',0));
+        catch
+        end
+    end
     if(~ischar(str))
         return;
     end

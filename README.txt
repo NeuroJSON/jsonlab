@@ -6,7 +6,7 @@
 * Copyright (C) 2011-2019  Qianqian Fang <q.fang at neu.edu>
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
 * Version: 1.9.8 (Magnus - beta)
-* JData Specification Version: Draft 2a (http://github.com/fangq/jdata)
+* JData Specification Version: Draft 2 (http://github.com/fangq/jdata)
 * URL: http://openjdata.org/jsonlab
 
 -------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ JSONLab v1.9.8 is the beta release of the next milestone - code named "Magnus".
 Starting from this release, JSONLab supports encoding/decoding MessagePack,
 a widely-used binary JSON-like data format. Via ZMat v0.9, JSONLab v1.9.8
 also supports LZMA/LZ4/LZ4HC data compression/decompression. More importantly,
-JSONLab is now the official reference implementation for JData Specification (Draft 2a)
+JSONLab is now the official reference implementation for JData Specification (Draft 2)
 as defined in http://github.com/fangq/jdata, the foundation for the OpenJData
 Project (http://openjdata.org).
 
@@ -60,7 +60,7 @@ with key features marked by *:
 * 2019-05-19*[c87e7d2] support containers.Map
 
 
-Please note that JSONLab v1.9.8 is compliant with JData Spec Draft 2a, while
+Please note that JSONLab v1.9.8 is compliant with JData Spec Draft 2, while
 v1.9 and previous releases are compatible with Draft 1. The main differences are
 
 * _ArrayCompressionMethod_, _ArrayCompressionSize_</tt> and <tt>_ArrayCompressedData_</tt> \

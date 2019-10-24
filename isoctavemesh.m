@@ -1,4 +1,4 @@
-function [isoctave verinfo]=isoctavemesh
+function [isoctave, verinfo]=isoctavemesh
 %
 % [isoctave verinfo]=isoctavemesh
 %

@@ -201,7 +201,7 @@ function [str, idx] = parsestring(len, bytes, idx)
     if(~isoctavemesh)
          str = native2unicode(bytes(idx:idx+len-1)', 'utf-8');
     else
-         str = bytes(idx:idx+len-1)';
+         str = char(bytes(idx:idx+len-1)');
     end
     idx = idx + len;
 end

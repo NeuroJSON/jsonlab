@@ -45,7 +45,7 @@
 % Serialize a MATLAB struct or cell array into a JData-compliant 
 % structure as defined in the JData spec: http://github.com/fangq/jdata
 %
-% This function implements the JData Specification Draft 2a (Oct. 2019)
+% This function implements the JData Specification Draft 2 (Oct. 2019)
 % see http://github.com/fangq/jdata for details
 %
 %
@@ -58,9 +58,11 @@
 %       	       decoded first. This is needed for JSON but not
 %       	       UBJSON data
 %         Prefix: ['x0x5F'|'x'] for JData files loaded via loadjson/loadubjson, the
-%       	       default JData keyword prefix is 'x0x5F'(default);
-%       	       if the json file is loaded using matlab2018's
-%       	       jsondecode(), the prefix is 'x'.
+%                      default JData keyword prefix is 'x0x5F'; if the
+%                      json file is loaded using matlab2018's
+%                      jsondecode(), the prefix is 'x'; this function
+%                      attempts to automatically determine the prefix;
+%                      for octave, the default value is an empty string ''.
 %         UseArrayZipSize: [1|0] if set to 1, _ArrayZipSize_ will be added to 
 %       	       store the "pre-processed" data dimensions, i.e.
 %       	       the original data stored in _ArrayData_, and then flaten
@@ -93,7 +95,7 @@
 % (accepts JData objects loaded from either loadjson/loadubjson or 
 % jsondecode for MATLAB R2018a or later)
 %
-% This function implements the JData Specification Draft 2a (Oct. 2019)
+% This function implements the JData Specification Draft 2 (Oct. 2019)
 % see http://github.com/fangq/jdata for details
 %
 %
@@ -117,7 +119,8 @@
 %                         default JData keyword prefix is 'x0x5F'; if the
 %                         json file is loaded using matlab2018's
 %                         jsondecode(), the prefix is 'x'; this function
-%                         attempts to automatically determine the prefix.
+%                         attempts to automatically determine the prefix;
+%                         for octave, the default value is an empty string ''.
 %               FormatVersion: [2|float]: set the JSONLab output version; 
 %                         since v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -235,6 +238,8 @@
 %
 %           FileName [''|string]: a file name to save the output JSON data
 %           FloatFormat ['%.10g'|string]: format to show each numeric element
+%                         of a 1D/2D array;
+%           IntFormat ['%d'|string]: format to display integer elements
 %                         of a 1D/2D array;
 %           ArrayIndent [1|0]: if 1, output explicit data array with
 %                         precedent indentation; if 0, no indentation
@@ -982,7 +987,7 @@
 %        newname: the restored original string
 %
 %    example:
-%        decodevarname('x0x5F_a)   % returns _a
+%        decodevarname('x0x5F_a')   % returns _a
 %        decodevarname('a_')   % returns a_ as it is a valid variable name
 %        decodevarname('x0xE58F98__0xE9878F_')  % returns '变量' 
 %

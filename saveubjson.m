@@ -140,7 +140,7 @@ opt.messagepack=jsonopt('MessagePack',0,opt);
 opt.num2cell_=0;
 
 if(jsonopt('PreEncode',1,opt))
-    obj=jdataencode(obj,'Base64',0,'UseArrayZipSize',jsonopt('MessagePack',0,opt),opt);
+    obj=jdataencode(obj,'Base64',0,'UseArrayZipSize',opt.messagepack,opt);
 end
 
 dozip=opt.compression;

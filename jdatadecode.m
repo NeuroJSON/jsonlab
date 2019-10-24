@@ -6,7 +6,7 @@ function newdata=jdatadecode(data,varargin)
 % (accepts JData objects loaded from either loadjson/loadubjson or 
 % jsondecode for MATLAB R2018a or later)
 %
-% This function implements the JData Specification Draft 2a (Oct. 2019)
+% This function implements the JData Specification Draft 2 (Oct. 2019)
 % see http://github.com/fangq/jdata for details
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
@@ -31,7 +31,8 @@ function newdata=jdatadecode(data,varargin)
 %                         default JData keyword prefix is 'x0x5F'; if the
 %                         json file is loaded using matlab2018's
 %                         jsondecode(), the prefix is 'x'; this function
-%                         attempts to automatically determine the prefix.
+%                         attempts to automatically determine the prefix;
+%                         for octave, the default value is an empty string ''.
 %               FormatVersion: [2|float]: set the JSONLab output version; 
 %                         since v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -80,7 +81,11 @@ function newdata=jdatadecode(data,varargin)
     len=length(data);
     needbase64=jsonopt('Base64',0,opt);
     format=jsonopt('FormatVersion',2,opt);
-    prefix=jsonopt('Prefix','x0x5F',opt);
+    if(isoctavemesh)
+        prefix=jsonopt('Prefix','',opt);
+    else
+        prefix=jsonopt('Prefix','x0x5F',opt);
+    end
     if(~isfield(data,N_('_ArrayType_')) && isfield(data,'x_ArrayType_'))
         prefix='x';
         opt.prefix='x';

@@ -8,7 +8,7 @@ function jdata=jdataencode(data, varargin)
 % Serialize a MATLAB struct or cell array into a JData-compliant 
 % structure as defined in the JData spec: http://github.com/fangq/jdata
 %
-% This function implements the JData Specification Draft 2a (Oct. 2019)
+% This function implements the JData Specification Draft 2 (Oct. 2019)
 % see http://github.com/fangq/jdata for details
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
@@ -22,9 +22,11 @@ function jdata=jdataencode(data, varargin)
 %       	       decoded first. This is needed for JSON but not
 %       	       UBJSON data
 %         Prefix: ['x0x5F'|'x'] for JData files loaded via loadjson/loadubjson, the
-%       	       default JData keyword prefix is 'x0x5F'(default);
-%       	       if the json file is loaded using matlab2018's
-%       	       jsondecode(), the prefix is 'x'.
+%                      default JData keyword prefix is 'x0x5F'; if the
+%                      json file is loaded using matlab2018's
+%                      jsondecode(), the prefix is 'x'; this function
+%                      attempts to automatically determine the prefix;
+%                      for octave, the default value is an empty string ''.
 %         UseArrayZipSize: [1|0] if set to 1, _ArrayZipSize_ will be added to 
 %       	       store the "pre-processed" data dimensions, i.e.
 %       	       the original data stored in _ArrayData_, and then flaten
@@ -58,6 +60,20 @@ if(nargin==0)
 end
 
 opt=varargin2struct(varargin{:});
+if(isoctavemesh)
+    opt.prefix=jsonopt('Prefix','',opt);
+else
+    opt.prefix=jsonopt('Prefix',sprintf('x0x%X','_'+0),opt);
+end
+opt.compression=jsonopt('Compression','',opt);
+opt.nestarray=jsonopt('NestArray',0,opt);
+opt.formatversion=jsonopt('FormatVersion',2,opt);
+opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
+opt.base64=jsonopt('Base64',0,opt);
+opt.mapasstruct=jsonopt('MapAsStruct',0,opt);
+opt.usearrayzipsize=jsonopt('UseArrayZipSize',1,opt);
+opt.messagepack=jsonopt('MessagePack',0,opt);
+
 jdata=obj2jd(data,opt);
 
 %%-------------------------------------------------------------------------
@@ -114,7 +130,7 @@ end
 function newitem=map2jd(item,varargin)
 
 names=item.keys;
-if(jsonopt('MapAsStruct',0,varargin{:}))  % convert a map to struct
+if(varargin{1}.mapasstruct)  % convert a map to struct
     newitem=struct;
     if(~strcmp(item.KeyType,'char'))
         data=num2cell(reshape([names, item.values],length(names),2),2);
@@ -136,15 +152,16 @@ end
 %%-------------------------------------------------------------------------
 function newitem=mat2jd(item,varargin)
 
-if(isempty(item) || isa(item,'string') || ischar(item) || ...
-        ((isvector(item) || ismatrix(item)) && isreal(item) && ~issparse(item)) || ...
-        jsonopt('NestArray',0,varargin{:}))
+if(isempty(item) || isa(item,'string') || ischar(item) || varargin{1}.nestarray || ...
+        ((isvector(item) || ismatrix(item)) && isreal(item) && ~issparse(item)))
     newitem=item;
-    return;
+    if(~(varargin{1}.messagepack && size(item,1)>1))
+        return;
+    end
 end
 
-zipmethod=jsonopt('Compression','',varargin{:});
-minsize=jsonopt('CompressArraySize',100,varargin{:});
+zipmethod=varargin{1}.compression;
+minsize=varargin{1}.compressarraysize;
 
 if(isa(item,'logical'))
     item=uint8(item);
@@ -166,7 +183,7 @@ if(isreal(item))
 	        newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)', fulldata(:)'];
 	end
     else
-        if(jsonopt('FormatVersion',2,varargin{:})>1.9)
+        if(varargin{1}.formatversion>1.9)
                 item=permute(item,ndims(item):-1:1);
         end
 	newitem.(N('_ArrayData_'))=item(:)';
@@ -184,7 +201,7 @@ else
             newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)' , real(fulldata(:))', imag(fulldata(:))'];
 	end
     else
-        if(jsonopt('FormatVersion',2,varargin{:})>1.9)
+        if(varargin{1}.formatversion>1.9)
                 item=permute(item,ndims(item):-1:1);
         end
         newitem.(N('_ArrayZipSize_'))=[2,numel(item)];
@@ -192,11 +209,11 @@ else
     end
 end
 
-if(jsonopt('UseArrayZipSize',1,varargin{:})==0 && isfield(newitem,N('_ArrayZipSize_')))
+if(varargin{1}.usearrayzipsize==0 && isfield(newitem,N('_ArrayZipSize_')))
     data=newitem.(N('_ArrayData_'));
     data=reshape(data,fliplr(newitem.(N('_ArrayZipSize_'))));
     newitem.(N('_ArrayData_'))=permute(data,ndims(data):-1:1);
-    newitem=rmfield(newitem,N_('_ArrayZipSize_'));
+    newitem=rmfield(newitem,N('_ArrayZipSize_'));
 end
 
 if(~isempty(zipmethod) && numel(item)>minsize)
@@ -204,14 +221,14 @@ if(~isempty(zipmethod) && numel(item)>minsize)
     newitem.(N('_ArrayZipType_'))=lower(zipmethod);
     newitem.(N('_ArrayZipSize_'))=size(newitem.(N('_ArrayData_')));
     newitem.(N('_ArrayZipData_'))=compfun(typecast(newitem.(N('_ArrayData_')),'uint8'));
-    newitem=rmfield(newitem,N_('_ArrayData_'));
-    if(jsonopt('Base64',0,varargin{:}))
+    newitem=rmfield(newitem,N('_ArrayData_'));
+    if(varargin{1}.base64)
         newitem.(N('_ArrayZipData_'))=char(base64encode(newitem.(N('_ArrayZipData_'))));
     end
 end
 
-if(isfield(newitem,N('_ArrayData_')) && isempty(newitem.(N_('_ArrayData_'))))
-    newitem.(N_('_ArrayData_'))=[];
+if(isfield(newitem,N('_ArrayData_')) && isempty(newitem.(N('_ArrayData_'))))
+    newitem.(N('_ArrayData_'))=[];
 end
 
 %%-------------------------------------------------------------------------
@@ -240,7 +257,7 @@ if(isfield(edgedata,'EndNodes'))
 end
 edgenodes(:,3)=num2cell(edgedata);
 if(isa(item,'graph'))
-    if(strcmp(jsonopt('Prefix',sprintf('x0x%X','_'+0),varargin{:}),'x'))
+    if(strcmp(varargin{1}.prefix,'x'))
         newitem.(genvarname('_GraphEdges0_'))=edgenodes;
     else
         newitem.(encodevarname('_GraphEdges0_'))=edgenodes;
@@ -274,12 +291,11 @@ function newitem=any2jd(item,varargin)
 N=@(x) N_(x,varargin{:});
 newitem.(N('_DataInfo_'))=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));
 newitem.(N('_ByteStream_'))=getByteStreamFromArray(item);  % use undocumented matlab function
-if(jsonopt('Base64',0,varargin{:}))
+if(varargin{1}.base64)
     newitem.(N('_ByteStream_'))=char(base64encode(newitem.(N('_ByteStream_'))));
 end
 
 %%-------------------------------------------------------------------------
 function newname=N_(name,varargin)
 
-prefix=jsonopt('Prefix',sprintf('x0x%X','_'+0),varargin{:});
-newname=[prefix name];
+newname=[varargin{1}.prefix name];

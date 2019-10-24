@@ -135,7 +135,7 @@ else
    opt=varargin2struct(varargin{:});
 end
 
-opt.IsOctave=isoctavemesh;
+opt.isoctave=isoctavemesh;
 
 opt.compression=jsonopt('Compression','',opt);
 opt.nestarray=jsonopt('NestArray',0,opt);
@@ -148,6 +148,8 @@ opt.intformat=jsonopt('IntFormat','%d',opt);
 opt.floatformat=jsonopt('FloatFormat','%.10g',opt);
 opt.unpackhex=jsonopt('UnpackHex',1,opt);
 opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
+opt.parselogical=jsonopt('ParseLogical',0,opt);
+opt.arrayindent=jsonopt('ArrayIndent',1,opt);
 opt.num2cell_=0;
 
 if(jsonopt('PreEncode',1,opt))
@@ -418,7 +420,11 @@ if(~strcmp(item.KeyType,'char'))
         txt=obj2json('_MapData_',mm,level+1,varargin{:});
     else
         temp=struct(name,struct());
-        temp.(name).('x0x5F_MapData_')=mm;
+	if(varargin{1}.isoctave)
+            temp.(name).('_MapData_')=mm;
+	else
+	    temp.(name).('x0x5F_MapData_')=mm;
+	end
         txt=obj2json(name,temp.(name),level,varargin{:});
     end
     return;
@@ -490,7 +496,7 @@ else
     end
 end
 for e=1:len
-    val=escapejsonstring(item(e,:));
+    val=escapejsonstring(item(e,:),varargin{:});
     if(len==1)
         obj=['"' decodevarname(name,varargin{1}.unpackhex) '": ' '"',val,'"'];
         if(isempty(name))
@@ -548,6 +554,7 @@ else
     end
     return;
 end
+
 dataformat='%s%s%s%s%s';
 
 if(issparse(item))
@@ -621,6 +628,7 @@ else
         end
     end
 end
+
 txt=sprintf('%s%s%s',txt,padding1,'}');
 
 %%-------------------------------------------------------------------------
@@ -706,13 +714,13 @@ if(numel(mat)==1 && varargin{1}.singletarray==0 && level>0)
 else
     formatstr=['[' repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf('],%s',nl)]];
 end
-if(nargin>=2 && size(mat,1)>1 && jsonopt('ArrayIndent',1,varargin{:})==1)
+if(nargin>=2 && size(mat,1)>1 && varargin{1}.arrayindent==1)
     formatstr=[repmat(tab,1,level) formatstr];
 end
 
 txt=sprintf(formatstr,mat');
 txt(end-length(nl):end)=[];
-if(islogical(mat) && (numel(mat)==1 || jsonopt('ParseLogical',0,varargin{:})==1))
+if(islogical(mat) && (numel(mat)==1 || varargin{1}.parselogical==1))
    txt=regexprep(txt,'1','true');
    txt=regexprep(txt,'0','false');
 end
@@ -728,7 +736,7 @@ end
 %%-------------------------------------------------------------------------
 function txt=any2json(name,item,level,varargin)
 st=containers.Map();
-st('_DataInfo_')=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));
+st('_DataInfo_')=struct('MATLABObjectName',name, 'MATLABObjectClass',class(item),'MATLABObjectSize',size(item));
 st('_ByteStream_')=char(base64encode(getByteStreamFromArray(item)));
 
 if(isempty(name))
@@ -740,9 +748,9 @@ else
 end
 
 %%-------------------------------------------------------------------------
-function newstr=escapejsonstring(str)
+function newstr=escapejsonstring(str,varargin)
 newstr=str;
-isoct=isoctavemesh;
+isoct=varargin{1}.isoctave;
 if(isoct)
    vv=sscanf(OCTAVE_VERSION,'%f');
    if(vv(1)>=3.8)

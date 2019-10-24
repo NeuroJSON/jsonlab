@@ -37,6 +37,9 @@ fprintf(1,'%%=================================================\n\n')
 data2json=1:3
 savejson('',data2json)
 json2data=loadjson(ans)
+if(~isequaln(json2data,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a simple column vector \n')
@@ -45,6 +48,9 @@ fprintf(1,'%%=================================================\n\n')
 data2json=(1:3)'
 savejson('',data2json)
 json2data=loadjson(ans)
+if(~isequaln(json2data,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a string array \n')
@@ -69,6 +75,9 @@ fprintf(1,'%%=================================================\n\n')
 data2json={'a',true,[2;3]}
 savejson('',data2json)
 json2data=loadjson(ans)
+if(~isequaln(json2data,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a 3-D array in nested array form\n')
@@ -77,7 +86,7 @@ fprintf(1,'%%=================================================\n\n')
 data2json=reshape(1:(2*4*6),[2,4,6]);
 savejson('',data2json,'NestArray',1)
 json2data=loadjson(ans)
-if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
+if(~isequaln(json2data,data2json))
     warning('conversion does not preserve original data');
 end
 
@@ -88,7 +97,7 @@ fprintf(1,'%%=================================================\n\n')
 data2json=reshape(1:(2*4*6),[2,4,6]);
 savejson('',data2json,'NestArray',0)
 json2data=loadjson(ans)
-if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
+if(~isequaln(json2data,data2json))
     warning('conversion does not preserve original data');
 end
 
@@ -99,7 +108,7 @@ fprintf(1,'%%=================================================\n\n')
 data2json=reshape(1:(2*4*3*2),[2,4,3,2]);
 savejson('',data2json,'NestArray',0)  % nestarray for 4-D or above is not working
 json2data=loadjson(ans)
-if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
+if(~isequaln(json2data,data2json))
     warning('conversion does not preserve original data');
 end
 
@@ -110,7 +119,7 @@ fprintf(1,'%%=================================================\n\n')
 data2json=reshape(1:(2*4*6),[2,4,6]);
 savejson('',data2json,'NestArray',1,'FormatVersion',1.8)
 json2data=loadjson(ans,'FormatVersion',1.8)
-if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
+if(~isequaln(json2data,data2json))
     warning('conversion does not preserve original data');
 end
 
@@ -121,7 +130,7 @@ fprintf(1,'%%=================================================\n\n')
 data2json=reshape(1:(2*4*6),[2,4,6]);
 savejson('',data2json,'NestArray',0,'FormatVersion',1.8)
 json2data=loadjson(ans,'FormatVersion',1.8)
-if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
+if(~isequaln(json2data,data2json))
     warning('conversion does not preserve original data');
 end
 
@@ -132,6 +141,9 @@ fprintf(1,'%%=================================================\n\n')
 data2json=1+2i
 savejson('',data2json)
 json2data=loadjson(ans) 
+if(~isequaln(json2data,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a complex matrix\n')
@@ -141,6 +153,9 @@ data2json=magic(6);
 data2json=data2json(:,1:3)+data2json(:,4:6)*1i
 savejson('',data2json)
 json2data=loadjson(ans)
+if(~isequaln(json2data,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  MATLAB special constants\n')
@@ -149,22 +164,32 @@ fprintf(1,'%%=================================================\n\n')
 data2json=[NaN Inf -Inf]
 savejson('specials',data2json)
 json2data=loadjson(ans)
+if(~isequaln(json2data.specials,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a real sparse matrix\n')
 fprintf(1,'%%=================================================\n\n')
 
 data2json=sprand(10,10,0.1)
-savejson('sparse',data2json)
+savejson('sparse',data2json,'FloatFormat','%.18g')
 json2data=loadjson(ans)
+if(~isequaln(json2data.sparse,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a complex sparse matrix\n')
 fprintf(1,'%%=================================================\n\n')
 
+data2json=sprand(10,10,0.1);
 data2json=data2json-data2json*1i
-savejson('complex_sparse',data2json)
+savejson('complex_sparse',data2json,'FloatFormat','%.18g')
 json2data=loadjson(ans)
+if(~isequaln(json2data.complex_sparse,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  an all-zero sparse matrix\n')
@@ -173,6 +198,9 @@ fprintf(1,'%%=================================================\n\n')
 data2json=sparse(2,3);
 savejson('all_zero_sparse',data2json)
 json2data=loadjson(ans)
+if(~isequaln(json2data.all_zero_sparse,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  an empty sparse matrix\n')
@@ -181,6 +209,9 @@ fprintf(1,'%%=================================================\n\n')
 data2json=sparse([]);
 savejson('empty_sparse',data2json)
 json2data=loadjson(ans)
+if(~isequaln(json2data.empty_sparse,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  an empty 0-by-0 real matrix\n')
@@ -197,6 +228,9 @@ fprintf(1,'%%=================================================\n\n')
 data2json=zeros(0,3);
 savejson('empty_0by3_real',data2json)
 json2data=loadjson(ans)
+if(~isequaln(json2data.empty_0by3_real,data2json))
+    warning('conversion does not preserve original data');
+end
 
 fprintf(1,'\n%%=================================================\n')
 fprintf(1,'%%  a sparse real column vector\n')
@@ -338,7 +372,7 @@ try
     data2json(20,1)=1;
     savejson('',data2json,'Compression','zlib','CompressionSize',0)  % nestarray for 4-D or above is not working
     json2data=loadjson(ans)
-    if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
+    if(~isequaln(json2data,data2json))
         warning('conversion does not preserve original data');
     end
 catch

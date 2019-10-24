@@ -1,13 +1,16 @@
 
                             < M A T L A B (R) >
-                  Copyright 1984-2010 The MathWorks, Inc.
-                Version 7.11.0.584 (R2010b) 64-bit (glnxa64)
-                              August 16, 2010
+                  Copyright 1984-2016 The MathWorks, Inc.
+                   R2016a (9.0.0.341360) 64-bit (glnxa64)
+                             February 11, 2016
 
  
-  To get started, type one of these: helpwin, helpdesk, or demo.
-  For product information, visit www.mathworks.com.
+For online documentation, see http://www.mathworks.com/support
+For product information, visit www.mathworks.com.
  
+
+	Academic License
+
 >> >> >> >> >> ===============================================
 >> example1.json
 {
@@ -150,5 +153,5 @@ GlossEntry{UIDSUSGMLUSortAsSUSGMLU	GlossTermSU$Standard Generalized Markup L
 CloseDoc()}]}}}}
 ===============================================
 >> example4.json
-{Udata[{Usample{UrhoU}}{Usample{UrhoU}}[[$U#U[$U#U[$U#U][SUPaperSUScissorsSUStone][CaSUb\SUc"SUd\"SUe"[SUf\"[SUg[\SUh[\"]]}
+{Udata[{Usample{UrhoU}}{Usample{UrhoU}}[[$U#U [$U#U[$U#U][SUPaperSUScissorsSUStone][CaSUb\SUc"SUd\"SUe"[SUf\"[SUg[\SUh[\"]]}
 >> 

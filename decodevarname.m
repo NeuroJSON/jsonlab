@@ -21,7 +21,7 @@ function newname = decodevarname(name,varargin)
 %        newname: the restored original string
 %
 %    example:
-%        decodevarname('x0x5F_a)   % returns _a
+%        decodevarname('x0x5F_a')   % returns _a
 %        decodevarname('a_')   % returns a_ as it is a valid variable name
 %        decodevarname('x0xE58F98__0xE9878F_')  % returns '变量' 
 %
