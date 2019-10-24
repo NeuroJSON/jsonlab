@@ -132,13 +132,25 @@ if(length(varargin)==1 && ischar(varargin{1}))
 else
    opt=varargin2struct(varargin{:});
 end
+
 opt.IsOctave=isoctavemesh;
+
+opt.compression=jsonopt('Compression','',opt);
+opt.nestarray=jsonopt('NestArray',0,opt);
+opt.compact=jsonopt('Compact',0,opt);
+opt.singletcell=jsonopt('SingletCell',1,opt);
+opt.singletarray=jsonopt('SingletArray',0,opt);
+opt.formatversion=jsonopt('FormatVersion',2,opt);
+opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
+opt.intformat=jsonopt('IntFormat','%d',opt);
+opt.floatformat=jsonopt('FloatFormat','%.10g',opt);
+opt.unpackhex=jsonopt('UnpackHex',1,opt);
 
 if(jsonopt('PreEncode',1,opt))
     obj=jdataencode(obj,'Base64',1,'UseArrayZipSize',0,opt);
 end
 
-dozip=jsonopt('Compression','',opt);
+dozip=opt.compression;
 if(~isempty(dozip))
     if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
         error('compression method "%s" is not supported',dozip);
@@ -178,7 +190,7 @@ if((isstruct(obj) || iscell(obj))&& isempty(rootname) && forceroot)
 end
 
 whitespaces=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
-if(jsonopt('Compact',0,opt)==1)
+if(opt.compact==1)
     whitespaces=struct('tab','','newline','','sep',',');
 end
 if(~isfield(opt,'whitespaces_'))
@@ -188,6 +200,7 @@ end
 nl=whitespaces.newline;
 
 json=obj2json(rootname,obj,rootlevel,opt);
+
 if(rootisarray)
     json=sprintf('%s%s',json,nl);
 else
@@ -254,7 +267,7 @@ isnum2cell=jsonopt('num2cell_',0,varargin{:});
 if(isnum2cell)
     item=squeeze(item);
 else
-    format=jsonopt('FormatVersion',2,varargin{:});
+    format=varargin{1}.formatversion;
     if(format>1.9 && ~isvector(item))
         item=permute(item,ndims(item):-1:1);
     end
@@ -266,20 +279,20 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     dim=size(item);
 end
 len=numel(item);
-ws=jsonopt('whitespaces_',struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n')),varargin{:});
+ws=varargin{1}.whitespaces_;
 padding0=repmat(ws.tab,1,level);
 padding2=repmat(ws.tab,1,level+1);
 nl=ws.newline;
-bracketlevel=~jsonopt('SingletCell',1,varargin{:});
+bracketlevel=~varargin{1}.singletcell;
 if(len>bracketlevel)
     if(~isempty(name))
-        txt={padding0, '"', decodevarname(name,varargin{:}),'": [', nl}; name=''; 
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": [', nl}; name=''; 
     else
         txt={padding0, '[', nl};
     end
 elseif(len==0)
     if(~isempty(name))
-        txt={padding0, '"' decodevarname(name,varargin{:}) '": []'}; name=''; 
+        txt={padding0, '"' decodevarname(name,varargin{1}.unpackhex) '": []'}; name=''; 
     else
         txt={padding0, '[]'};
     end
@@ -319,9 +332,8 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     dim=size(item);
 end
 len=numel(item);
-forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
-ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'));
-ws=jsonopt('whitespaces_',ws,varargin{:});
+forcearray= (len>1 || (varargin{1}.singletarray==1 && level>0));
+ws=varargin{1}.whitespaces_;
 padding0=repmat(ws.tab,1,level);
 padding2=repmat(ws.tab,1,level+1);
 padding1=repmat(ws.tab,1,level+(dim(1)>1)+forcearray);
@@ -329,7 +341,7 @@ nl=ws.newline;
 
 if(isempty(item)) 
     if(~isempty(name)) 
-        txt={padding0, '"', decodevarname(name,varargin{:}),'": []'};
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": []'};
     else
         txt={padding0, '[]'};
     end
@@ -338,7 +350,7 @@ if(isempty(item))
 end
 if(~isempty(name))
     if(forcearray)
-        txt={padding0, '"', decodevarname(name,varargin{:}),'": [', nl};
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": [', nl};
     end
 else
     if(forcearray)
@@ -352,7 +364,7 @@ for j=1:dim(2)
   for i=1:dim(1)
     names = fieldnames(item(i,j));
     if(~isempty(name) && len==1 && ~forcearray)
-        txt(end+1:end+5)={padding1, '"', decodevarname(name,varargin{:}),'": {', nl};
+        txt(end+1:end+5)={padding1, '"', decodevarname(name,varargin{1}.unpackhex),'": {', nl};
     else
         txt(end+1:end+3)={padding1, '{', nl};
     end
@@ -409,15 +421,14 @@ if(~strcmp(item.KeyType,'char'))
 end
 
 len=prod(dim);
-forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
-ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'));
-ws=jsonopt('whitespaces_',ws,varargin{:});
+forcearray= (len>1 || (varargin{1}.singletarray==1 && level>0));
+ws=varargin{1}.whitespaces_;
 padding0=repmat(ws.tab,1,level);
 nl=ws.newline;
 
 if(isempty(item)) 
     if(~isempty(name)) 
-        txt={padding0, '"', decodevarname(name,varargin{:}),'": []'};
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": []'};
     else
         txt={padding0, '[]'};
     end
@@ -426,7 +437,7 @@ if(isempty(item))
 end
 if(~isempty(name)) 
     if(forcearray)
-        txt={padding0, '"', decodevarname(name,varargin{:}),'": {', nl};
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": {', nl};
     end
 else
     if(forcearray)
@@ -459,8 +470,7 @@ if(~ischar(item))
 end
 item=reshape(item, max(size(item),[1 0]));
 len=size(item,1);
-ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
-ws=jsonopt('whitespaces_',ws,varargin{:});
+ws=varargin{1}.whitespaces_;
 padding1=repmat(ws.tab,1,level);
 padding0=repmat(ws.tab,1,level+1);
 nl=ws.newline;
@@ -468,7 +478,7 @@ sep=ws.sep;
 
 if(~isempty(name)) 
     if(len>1)
-        txt={padding1, '"', decodevarname(name,varargin{:}),'": [', nl};
+        txt={padding1, '"', decodevarname(name,varargin{1}.unpackhex),'": [', nl};
     end
 else
     if(len>1)
@@ -478,7 +488,7 @@ end
 for e=1:len
     val=escapejsonstring(item(e,:));
     if(len==1)
-        obj=['"' decodevarname(name,varargin{:}) '": ' '"',val,'"'];
+        obj=['"' decodevarname(name,varargin{1}.unpackhex) '": ' '"',val,'"'];
         if(isempty(name))
             obj=['"',val,'"'];
         end
@@ -501,39 +511,35 @@ function txt=mat2json(name,item,level,varargin)
 if(~isnumeric(item) && ~islogical(item))
         error('input is not an array');
 end
-ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
-ws=jsonopt('whitespaces_',ws,varargin{:});
+ws=varargin{1}.whitespaces_;
 padding1=repmat(ws.tab,1,level);
 padding0=repmat(ws.tab,1,level+1);
 nl=ws.newline;
 sep=ws.sep;
 
-dozip=jsonopt('Compression','',varargin{:});
-zipsize=jsonopt('CompressArraySize',100,varargin{:});
-format=jsonopt('FormatVersion',2,varargin{:});
+dozip=varargin{1}.compression;
+zipsize=varargin{1}.compressarraysize;
+format=varargin{1}.formatversion;
+isnest=varargin{1}.nestarray;
 
-if(((jsonopt('NestArray',0,varargin{:})==0) && length(size(item))>2) || issparse(item) || ~isreal(item) || ...
+if(((isnest==0) && length(size(item))>2) || issparse(item) || ~isreal(item) || ...
    (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
     if(isempty(name))
     	txt=sprintf('%s{%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
               padding1,nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     else
     	txt=sprintf('%s"%s": {%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
-              padding1,decodevarname(name,varargin{:}),nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
+              padding1,decodevarname(name,varargin{1}.unpackhex),nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     end
 else
-    if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0 && level>0)
-        numtxt=regexprep(regexprep(matdata2json(item,level+1,varargin{:}),'^\[',''),']$','');
-    else
-        numtxt=matdata2json(item,level+1,varargin{:});
-    end
+    numtxt=matdata2json(item,level+1,varargin{:});   
     if(isempty(name))
     	txt=sprintf('%s%s',padding1,numtxt);
     else
-        if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0)
-           	txt=sprintf('%s"%s": %s',padding1,decodevarname(name,varargin{:}),numtxt);
+        if(numel(item)==1 && varargin{1}.singletarray==0)
+           	txt=sprintf('%s"%s": %s',padding1,decodevarname(name,varargin{1}.unpackhex),numtxt);
         else
-    	    txt=sprintf('%s"%s": %s',padding1,decodevarname(name,varargin{:}),numtxt);
+    	    txt=sprintf('%s"%s": %s',padding1,decodevarname(name,varargin{1}.unpackhex),numtxt);
         end
     end
     return;
@@ -651,12 +657,11 @@ end
 %%-------------------------------------------------------------------------
 function txt=matdata2json(mat,level,varargin)
 
-ws=struct('tab',sprintf('\t'),'newline',sprintf('\n'),'sep',sprintf(',\n'));
-ws=jsonopt('whitespaces_',ws,varargin{:});
+ws=varargin{1}.whitespaces_;
 tab=ws.tab;
 nl=ws.newline;
-isnest=jsonopt('NestArray',0,varargin{:});
-format=jsonopt('FormatVersion',2,varargin{:});
+isnest=varargin{1}.nestarray;
+format=varargin{1}.formatversion;
 isnum2cell=jsonopt('num2cell_',0,varargin{:});
 
 if(~isvector(mat) && isnest==1)
@@ -688,12 +693,15 @@ if(isempty(mat))
     return;
 end
 if(isinteger(mat))
-  floatformat=jsonopt('FloatFormat','%d',varargin{:});
+  floatformat=varargin{1}.intformat;
 else
-  floatformat=jsonopt('FloatFormat','%.10g',varargin{:});
+  floatformat=varargin{1}.floatformat;
 end
-formatstr=['[' repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf('],%s',nl)]];
-
+if(numel(mat)==1 && varargin{1}.singletarray==0 && level>0)
+    formatstr=[repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf(',%s',nl)]];
+else
+    formatstr=['[' repmat([floatformat ','],1,size(mat,2)-1) [floatformat sprintf('],%s',nl)]];
+end
 if(nargin>=2 && size(mat,1)>1 && jsonopt('ArrayIndent',1,varargin{:})==1)
     formatstr=[repmat(tab,1,level) formatstr];
 end
@@ -739,14 +747,15 @@ if(isoct)
 end
 if(isoct)
   escapechars={'\\','\"','\/','\a','\f','\n','\r','\t','\v'};
-  for i=1:length(escapechars);
+  for i=1:length(escapechars)
     newstr=regexprep(newstr,escapechars{i},escapechars{i});
   end
   newstr=regexprep(newstr,'\\\\(u[0-9a-fA-F]{4}[^0-9a-fA-F]*)','\$1');
 else
   escapechars={'\\','\"','\/','\a','\b','\f','\n','\r','\t','\v'};
-  for i=1:length(escapechars);
-    newstr=regexprep(newstr,escapechars{i},regexprep(escapechars{i},'\\','\\\\'));
+  esc={'\\\\','\\"','\\/','\\a','\\b','\\f','\\n','\\r','\\t','\\v'};
+  for i=1:length(escapechars)
+    newstr=regexprep(newstr,escapechars{i},esc{i});
   end
   newstr=regexprep(newstr,'\\\\(u[0-9a-fA-F]{4}[^0-9a-fA-F]*)','\\$1');
 end

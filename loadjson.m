@@ -130,6 +130,10 @@ function data = loadjson(fname,varargin)
         data=data{1};
     end
 
+    if(jsonopt('JDataDecode',1,varargin{:})==1)
+        data=jdatadecode(data,'Base64',1,'Recursive',1,varargin{:});
+    end
+    
     if(isfield(opt,'progressbar_'))
         close(opt.progressbar_);
     end
@@ -425,10 +429,6 @@ function [object, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, 
         end
     end
     pos=parse_char(inputstr, pos, '}');
-    if(jsonopt('JDataDecode',1,varargin{:})==1)
-        varargin{:}.Recursive=0;
-        object=jdatadecode(object,'Base64',1,varargin{:});
-    end
 end
 
 %%-------------------------------------------------------------------------

@@ -30,12 +30,18 @@ function newname = decodevarname(name,varargin)
 %    License: GPLv3 or 3-clause BSD license, see https://github.com/fangq/easyh5 for details
 %
 
-isunpack=jsonopt('UnpackHex',1,varargin{:});
 newname=name;
-if(isempty(regexp(name,'0x([0-9a-fA-F]+)_','once')))
-    return
+isunpack=1;
+if(nargin==2 && ~isstruct(varargin{1}))
+    isunpack=varargin{1};
+elseif(nargin>1)
+    isunpack=jsonopt('UnpackHex',1,varargin{:});
 end
+
 if(isunpack)
+    if(isempty(regexp(name,'0x([0-9a-fA-F]+)_','once')))
+        return
+    end
     if(exist('native2unicode','builtin'))
         h2u=@hex2unicode;
         newname=regexprep(name,'(^x|_){1}0x([0-9a-fA-F]+)_','${h2u($2)}');

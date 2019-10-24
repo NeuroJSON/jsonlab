@@ -25,11 +25,12 @@ val=default;
 if(nargin<=2)
     return;
 end
+key0=lower(key);
 opt=varargin{1};
 if(isstruct(opt))
-    if(isfield(opt,key))
+    if(isfield(opt,key0))
+       val=opt.(key0);
+    elseif(isfield(opt,key))
        val=opt.(key);
-    elseif(isfield(opt,lower(key)))
-       val=opt.(lower(key));
     end
 end

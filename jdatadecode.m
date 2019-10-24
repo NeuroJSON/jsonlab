@@ -54,7 +54,12 @@ function newdata=jdatadecode(data,varargin)
 %
 
     newdata=data;
-    opt=varargin2struct(varargin{:});
+    opt=struct;
+    if(nargin==2)
+        opt=varargin{1};
+    elseif(nargin>2)
+        opt=varargin2struct(varargin{:});
+    end
 
     %% process non-structure inputs
     if(~isstruct(data))
@@ -75,8 +80,8 @@ function newdata=jdatadecode(data,varargin)
     len=length(data);
     needbase64=jsonopt('Base64',0,opt);
     format=jsonopt('FormatVersion',2,opt);
-    prefix=jsonopt('Prefix',sprintf('x0x%X','_'+0),opt);
-    if(~any(ismember(N_('_ArrayType_'),fn)) && any(ismember('x_ArrayType_',fn)))
+    prefix=jsonopt('Prefix','x0x5F',opt);
+    if(~isfield(data,N_('_ArrayType_')) && isfield(data,'x_ArrayType_'))
         prefix='x';
         opt.prefix='x';
     end
@@ -95,15 +100,15 @@ function newdata=jdatadecode(data,varargin)
     end
 
     %% handle array data
-    if(any(ismember(N_('_ArrayType_'),fn)) && (any(ismember(N_('_ArrayData_'),fn)) || any(ismember(N_('_ArrayZipData_'),fn))))
+    if(isfield(data,N_('_ArrayType_')) && (isfield(data,N_('_ArrayData_')) || isfield(data,N_('_ArrayZipData_'))))
       newdata=cell(len,1);
       for j=1:len
-        if(any(ismember(N_('_ArrayZipSize_'),fn)) && any(ismember(N_('_ArrayZipData_'),fn)))
+        if(isfield(data,N_('_ArrayZipSize_')) && isfield(data,N_('_ArrayZipData_')))
             zipmethod='zip';
-            if(any(ismember(N_('_ArrayZipType_'),fn)))
+            if(isfield(data,N_('_ArrayZipType_')))
                 zipmethod=data(j).(N_('_ArrayZipType_'));
             end
-            if(any(ismember(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
+            if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
                 decompfun=str2func([zipmethod 'decode']);
                 if(needbase64)
                     ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_'))(:)');
@@ -119,18 +124,18 @@ function newdata=jdatadecode(data,varargin)
             end
             ndata=cast(data(j).(N_('_ArrayData_')),char(data(j).(N_('_ArrayType_'))));
         end
-        if(any(ismember(N_('_ArrayZipSize_'),fn)))
+        if(isfield(data,N_('_ArrayZipSize_')))
             ndata=reshape(ndata(:),fliplr(data(j).(N_('_ArrayZipSize_'))(:)'));
             ndata=permute(ndata,ndims(ndata):-1:1);
         end
         iscpx=0;
-        if(any(ismember(N_('_ArrayIsComplex_'),fn)))
+        if(isfield(data,N_('_ArrayIsComplex_')))
             if(data(j).(N_('_ArrayIsComplex_')))
                iscpx=1;
             end
         end
-        if(any(ismember(N_('_ArrayIsSparse_'),fn)) && data(j).(N_('_ArrayIsSparse_')))
-                if(any(ismember(N_('_ArraySize_'),fn)))
+        if(isfield(data,N_('_ArrayIsSparse_')) && data(j).(N_('_ArrayIsSparse_')))
+                if(isfield(data,N_('_ArraySize_')))
                     dim=double(data(j).(N_('_ArraySize_'))(:)');
                     if(iscpx)
                         ndata(end-1,:)=complex(ndata(end-1,:),ndata(end,:));
@@ -154,7 +159,7 @@ function newdata=jdatadecode(data,varargin)
                     end
                     ndata=sparse(ndata(1,:),ndata(2,:),ndata(3,:));
                 end
-        elseif(any(ismember(N_('_ArraySize_'),fn)))
+        elseif(isfield(data,N_('_ArraySize_')))
             if(iscpx)
                 ndata=complex(ndata(1,:),ndata(2,:));
             end
@@ -175,7 +180,7 @@ function newdata=jdatadecode(data,varargin)
     end
 
     %% handle table data
-    if(any(ismember(N_('_TableRecords_'),fn)))
+    if(isfield(data,N_('_TableRecords_')))
         newdata=cell(len,1);
         for j=1:len
             ndata=data(j).(N_('_TableRecords_'));
@@ -205,7 +210,7 @@ function newdata=jdatadecode(data,varargin)
     end
 
     %% handle map data
-    if(any(ismember(N_('_MapData_'),fn)))
+    if(isfield(data,N_('_MapData_')))
         newdata=cell(len,1);
         for j=1:len
             key=cell(1,length(data(j).(N_('_MapData_'))));
@@ -223,7 +228,7 @@ function newdata=jdatadecode(data,varargin)
     end
 
     %% handle graph data
-    if(any(ismember(N_('_GraphNodes_'),fn)) && exist('graph','file') && exist('digraph','file'))
+    if(isfield(data,N_('_GraphNodes_')) && exist('graph','file') && exist('digraph','file'))
         newdata=cell(len,1);
         isdirected=1;
         for j=1:len
@@ -241,12 +246,12 @@ function newdata=jdatadecode(data,varargin)
                 nodetable=table;
             end
 
-            if(any(ismember(N_('_GraphEdges_'),fn)))
+            if(isfield(data,N_('_GraphEdges_')))
                 edgedata=data(j).(N_('_GraphEdges_'));
-            elseif(any(ismember(N_('_GraphEdges0_'),fn)))
+            elseif(isfield(data,N_('_GraphEdges0_')))
                 edgedata=data(j).(N_('_GraphEdges0_'));
                 isdirected=0;
-            elseif(any(ismember(N_('_GraphMatrix_'),fn)))
+            elseif(isfield(data,N_('_GraphMatrix_')))
                 edgedata=jdatadecode(data(j).(N_('_GraphMatrix_')),varargin{:});
             end
 
@@ -273,7 +278,7 @@ function newdata=jdatadecode(data,varargin)
     end
 
     %% handle bytestream and arbitrary matlab objects
-    if(sum(ismember({N_('_ByteStream_'),N_('_DataInfo_')},fn))==2)
+    if(isfield(data,N_('_ByteStream_')) && isfield(data,N_('_DataInfo_'))==2)
         newdata=cell(len,1);
         for j=1:len
             if(isfield(data(j).(N_('_DataInfo_')),'MATLABObjectClass'))

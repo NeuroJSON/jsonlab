@@ -92,6 +92,10 @@ function data = loadubjson(fname,varargin)
     if(jsoncount==1 && iscell(data))
         data=data{1};
     end
+
+    if(jsonopt('JDataDecode',1,varargin{:})==1)
+        data=jdatadecode(data,'Base64',0,'Recursive',1,varargin{:});
+    end
 end
 
 %%-------------------------------------------------------------------------
@@ -337,9 +341,6 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
     end
     if(count==-1)
         pos=parse_char(inputstr, pos, '}');
-    end
-    if(isstruct(object))
-        object=jdatadecode(object,'Recursive',0, 'Base64',0,varargin{:});
     end
 end
 

@@ -37,7 +37,7 @@ function str = encodevarname(str,varargin)
 %    License: GPLv3 or 3-clause BSD license, see https://github.com/fangq/easyh5 for details
 %
 
-    if(~isempty(regexp(str,'^[^A-Za-z]','once')))
+    if(~isvarname(str(1)))
         if(exist('unicode2native','builtin'))
             str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
         else
