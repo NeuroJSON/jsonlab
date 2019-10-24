@@ -25,6 +25,8 @@ function json=savejson(rootname,obj,varargin)
 %           FileName [''|string]: a file name to save the output JSON data
 %           FloatFormat ['%.10g'|string]: format to show each numeric element
 %                         of a 1D/2D array;
+%           IntFormat ['%d'|string]: format to display integer elements
+%                         of a 1D/2D array;
 %           ArrayIndent [1|0]: if 1, output explicit data array with
 %                         precedent indentation; if 0, no indentation
 %           ArrayToStruct[0|1]: when set to 0, savejson outputs 1D/2D
@@ -145,6 +147,8 @@ opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
 opt.intformat=jsonopt('IntFormat','%d',opt);
 opt.floatformat=jsonopt('FloatFormat','%.10g',opt);
 opt.unpackhex=jsonopt('UnpackHex',1,opt);
+opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
+opt.num2cell_=0;
 
 if(jsonopt('PreEncode',1,opt))
     obj=jdataencode(obj,'Base64',1,'UseArrayZipSize',0,opt);
@@ -263,7 +267,7 @@ txt={};
 if(~iscell(item) && ~isa(item,'string'))
         error('input is not a cell or string array');
 end
-isnum2cell=jsonopt('num2cell_',0,varargin{:});
+isnum2cell=varargin{1}.num2cell_;
 if(isnum2cell)
     item=squeeze(item);
 else
@@ -523,7 +527,7 @@ format=varargin{1}.formatversion;
 isnest=varargin{1}.nestarray;
 
 if(((isnest==0) && length(size(item))>2) || issparse(item) || ~isreal(item) || ...
-   (isempty(item) && any(size(item))) ||jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
+   (isempty(item) && any(size(item))) || varargin{1}.arraytostruct || (~isempty(dozip) && numel(item)>zipsize))
     if(isempty(name))
     	txt=sprintf('%s{%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
               padding1,nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
@@ -662,13 +666,13 @@ tab=ws.tab;
 nl=ws.newline;
 isnest=varargin{1}.nestarray;
 format=varargin{1}.formatversion;
-isnum2cell=jsonopt('num2cell_',0,varargin{:});
+isnum2cell=varargin{1}.num2cell_;
 
 if(~isvector(mat) && isnest==1)
    if(format>1.9 && isnum2cell==0)
         mat=permute(mat,ndims(mat):-1:1);
    end
-   varargin{:}.num2cell_=1;
+   varargin{1}.num2cell_=1;
    txt=cell2json('',num2cell(mat,1),level-1,varargin{:});
    return;
 else

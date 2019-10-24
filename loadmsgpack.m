@@ -29,10 +29,14 @@ function data = loadmsgpack(fname,varargin)
     else
        bytes=fname;
     end
+    
+    opt=varargin2struct(varargin{:});
+    opt.simplifycell=jsonopt('SimplifyCell',0,opt);
+
     jsoncount=1;
     idx=0;
     while idx <= length(bytes)
-        [obj, idx] = parse(uint8(bytes(:)), 1);
+        [obj, idx] = parse(uint8(bytes(:)), 1, opt);
         data{jsoncount}=obj;
         jsoncount=jsoncount+1;
     end
@@ -44,11 +48,11 @@ function data = loadmsgpack(fname,varargin)
     if(iscell(data))
         data=cellfun(@(x) jdatadecode(x),data,'UniformOutput',false);
     elseif(isstruct(data))
-        data=jdatadecode(data,'Base64',0);
+        data=jdatadecode(data,'Base64',0, opt);
     end
 end
 
-function [obj, idx] = parse(bytes, idx)
+function [obj, idx] = parse(bytes, idx, varargin)
     % masks:
     b10000000 = 128;
     b01111111 = 127;
@@ -78,12 +82,12 @@ function [obj, idx] = parse(bytes, idx)
     elseif bitand(b11110000, currentbyte) == b10000000
         % decode fixmap
         len = double(bitand(b00001111, currentbyte));
-        [obj, idx] = parsemap(len, bytes, idx+1);
+        [obj, idx] = parsemap(len, bytes, idx+1, varargin{:});
         return
     elseif bitand(b11110000, currentbyte) == b10010000
         % decode fixarray
         len = double(bitand(b00001111, currentbyte));
-        [obj, idx] = parsearray(len, bytes, idx+1);
+        [obj, idx] = parsearray(len, bytes, idx+1, varargin{:});
         return
     elseif bitand(b11100000, currentbyte) == b10100000
         % decode fixstr
@@ -172,16 +176,16 @@ function [obj, idx] = parse(bytes, idx)
             [obj, idx] = parsestring(len, bytes, idx+5);
         case 220 % array16
             len = double(bytes2scalar(bytes(idx+1:idx+2), 'uint16'));
-            [obj, idx] = parsearray(len, bytes, idx+3);
+            [obj, idx] = parsearray(len, bytes, idx+3, varargin{:});
         case 221 % array32
             len = double(bytes2scalar(bytes(idx+1:idx+4), 'uint32'));
-            [obj, idx] = parsearray(len, bytes, idx+5);
+            [obj, idx] = parsearray(len, bytes, idx+5, varargin{:});
         case 222 % map16
             len = double(bytes2scalar(bytes(idx+1:idx+2), 'uint16'));
-            [obj, idx] = parsemap(len, bytes, idx+3);
+            [obj, idx] = parsemap(len, bytes, idx+3, varargin{:});
         case 223 % map32
             len = double(bytes2scalar(bytes(idx+1:idx+4), 'uint32'));
-            [obj, idx] = parsemap(len, bytes, idx+5);
+            [obj, idx] = parsemap(len, bytes, idx+5, varargin{:});
         otherwise
             error('transplant:parsemsgpack:unknowntype', ...
                   ['Unknown type "' dec2bin(currentbyte) '"']);
@@ -213,10 +217,10 @@ function [out, idx] = parseext(len, bytes, idx)
     idx = idx + len + 1;
 end
 
-function [out, idx] = parsearray(len, bytes, idx)
-    out = cell(1, len);
+function [out, idx] = parsearray(len, bytes, idx, varargin)
+    out = cell(len,1);
     for n=1:len
-        [out{n}, idx] = parse(bytes, idx);
+        [out{n}, idx] = parse(bytes, idx, varargin{:});
     end
     if(isnumeric(out{1}))
       try
@@ -232,10 +236,10 @@ function [out, idx] = parsearray(len, bytes, idx)
     end
 end
 
-function [out, idx] = parsemap(len, bytes, idx)
+function [out, idx] = parsemap(len, bytes, idx, varargin)
     out = struct();
     for n=1:len
-        [key, idx] = parse(bytes, idx);
-        [out.(encodevarname(char(key))), idx] = parse(bytes, idx);
+        [key, idx] = parse(bytes, idx, varargin{:});
+        [out.(encodevarname(char(key))), idx] = parse(bytes, idx, varargin{:});
     end
 end

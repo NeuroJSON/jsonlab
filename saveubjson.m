@@ -128,11 +128,22 @@ else
 end
 opt.IsOctave=isoctavemesh;
 
+opt.compression=jsonopt('Compression','',opt);
+opt.nestarray=jsonopt('NestArray',0,opt);
+opt.formatversion=jsonopt('FormatVersion',2,opt);
+opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
+opt.singletcell=jsonopt('SingletCell',1,opt);
+opt.singletarray=jsonopt('SingletArray',0,opt);
+opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
+opt.debug=jsonopt('Debug',0,opt);
+opt.messagepack=jsonopt('MessagePack',0,opt);
+opt.num2cell_=0;
+
 if(jsonopt('PreEncode',1,opt))
     obj=jdataencode(obj,'Base64',0,'UseArrayZipSize',jsonopt('MessagePack',0,opt),opt);
 end
 
-dozip=jsonopt('Compression','',opt);
+dozip=opt.compression;
 if(~isempty(dozip))
     if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
         error('compression method "%s" is not supported',dozip);
@@ -149,10 +160,10 @@ if(~isempty(dozip))
             error('java-based compression is not supported');
         end
     end    
-    opt.Compression=dozip;
 end
 
-ismsgpack=jsonopt('MessagePack',0,opt) + bitshift(jsonopt('Debug',0,opt),1);
+ismsgpack=opt.messagepack + bitshift(opt.debug,1);
+opt.messagepack=ismsgpack;
 
 if(~bitget(ismsgpack, 1))
     opt.IM_='UiIlL';
@@ -246,11 +257,11 @@ txt='';
 if(~iscell(item))
         error('input is not a cell');
 end
-isnum2cell=jsonopt('num2cell_',0,varargin{:});
+isnum2cell=varargin{1}.num2cell_;
 if(isnum2cell)
     item=squeeze(item);
 else
-    format=jsonopt('FormatVersion',2,varargin{:});
+    format=varargin{1}.formatversion;
     if(format>1.9 && ~isvector(item))
         item=permute(item,ndims(item):-1:1);
     end
@@ -261,10 +272,11 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     item=reshape(item,dim(1),numel(item)/dim(1));
     dim=size(item);
 end
-bracketlevel=~jsonopt('SingletCell',1,varargin{:});
-Zmarker=jsonopt('ZM_','Z',varargin{:});
-Imarker=jsonopt('IM_','UiIlL',varargin{:});
-Amarker=jsonopt('AM_',{'[',']'},varargin{:});
+bracketlevel=~varargin{1}.singletcell;
+Zmarker=varargin{1}.ZM_;
+Imarker=varargin{1}.IM_;
+Amarker=varargin{1}.AM_;
+
 if(~strcmp(Amarker{1},'['))
     am0=Imsgpk_(dim(2),Imarker,220,144);
 else
@@ -314,10 +326,10 @@ if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
     dim=size(item);
 end
 len=numel(item);
-forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
-Imarker=jsonopt('IM_','UiIlL',varargin{:});
-Amarker=jsonopt('AM_',{'[',']'},varargin{:});
-Omarker=jsonopt('OM_',{'{','}'},varargin{:});
+forcearray= (len>1 || (varargin{1}.singletarray==1 && level>0));
+Imarker=varargin{1}.IM_;
+Amarker=varargin{1}.AM_;
+Omarker=varargin{1}.OM_;
 
 if(~strcmp(Amarker{1},'['))
     am0=Imsgpk_(dim(2),Imarker,220,144);
@@ -378,15 +390,16 @@ end
 dim=size(item);
 names = keys(item);
 val= values(item);
-Omarker=jsonopt('OM_',{'{','}'},varargin{:});
-Imarker=jsonopt('IM_','UiIlL',varargin{:});
+Omarker=varargin{1}.OM_;
+Imarker=varargin{1}.IM_;
+
 if(~strcmp(Omarker{1},'{'))
     om0=Imsgpk_(length(names),Imarker,222,128);
 else
     om0=Omarker{1};
 end
 len=prod(dim);
-forcearray= (len>1 || (jsonopt('SingletArray',0,varargin{:})==1 && level>0));
+forcearray= (len>1 || (varargin{1}.singletarray==1 && level>0));
 
 if(~isempty(name)) 
     if(forcearray)
@@ -415,8 +428,8 @@ if(~ischar(item))
 end
 item=reshape(item, max(size(item),[1 0]));
 len=size(item,1);
-Amarker=jsonopt('AM_',{'[',']'},varargin{:});
-Imarker=jsonopt('IM_','UiIlL',varargin{:});
+Amarker=varargin{1}.AM_;
+Imarker=varargin{1}.IM_;
 
 if(~strcmp(Amarker{1},'['))
     am0=Imsgpk_(len,Imarker,220,144);
@@ -454,21 +467,22 @@ if(~isnumeric(item) && ~islogical(item))
         error('input is not an array');
 end
 
-dozip=jsonopt('Compression','',varargin{:});
-zipsize=jsonopt('CompressArraySize',100,varargin{:});
-format=jsonopt('FormatVersion',2,varargin{:});
+dozip=varargin{1}.compression;
+zipsize=varargin{1}.compressarraysize;
+format=varargin{1}.formatversion;
 
-Zmarker=jsonopt('ZM_','Z',varargin{:});
-FTmarker=jsonopt('FTM_','FT',varargin{:});
-Imarker=jsonopt('IM_','UiIlL',varargin{:});
-Omarker=jsonopt('OM_',{'{','}'},varargin{:});
-isnest=jsonopt('NestArray',0,varargin{:});
-ismsgpack=jsonopt('MessagePack',0,varargin{:});
+Zmarker=varargin{1}.ZM_;
+FTmarker=varargin{1}.FTM_;
+Imarker=varargin{1}.IM_;
+Omarker=varargin{1}.OM_;
+isnest=varargin{1}.nestarray;
+ismsgpack=varargin{1}.messagepack;
+
 if(ismsgpack)
     isnest=1;
 end
 if((length(size(item))>2 && isnest==0)  || issparse(item) || ~isreal(item) || ...
-   jsonopt('ArrayToStruct',0,varargin{:}) || (~isempty(dozip) && numel(item)>zipsize))
+       varargin{1}.arraytostruct || (~isempty(dozip) && numel(item)>zipsize))
       cid=I_(uint32(max(size(item))),Imarker,varargin{:});
       if(isempty(name))
     	txt=[Omarker{1} N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker,varargin{:}) ];
@@ -485,7 +499,7 @@ else
     if(isempty(name))
     	txt=matdata2ubjson(item,level+1,varargin{:});
     else
-        if(numel(item)==1 && jsonopt('SingletArray',0,varargin{:})==0)
+        if(numel(item)==1 && varargin{1}.singletarray==0)
             numtxt=regexprep(regexprep(matdata2ubjson(item,level+1,varargin{:}),'^\[',''),']$','');
            	txt=[N_(decodevarname(name,varargin{:})) numtxt];
         else
@@ -631,19 +645,24 @@ end
 
 %%-------------------------------------------------------------------------
 function txt=matdata2ubjson(mat,level,varargin)
-Zmarker=jsonopt('ZM_','Z',varargin{:});
+Zmarker=varargin{1}.ZM_;
 if(isempty(mat))
     txt=Zmarker;
     return;
 end
-FTmarker=jsonopt('FTM_','FT',varargin{:});
-Imarker=jsonopt('IM_','UiIlL',varargin{:});
-Fmarker=jsonopt('FM_','dD',varargin{:});
-Amarker=jsonopt('AM_',{'[',']'},varargin{:});
-isnest=jsonopt('NestArray',0,varargin{:});
-ismsgpack=jsonopt('MessagePack',0,varargin{:});
-format=jsonopt('FormatVersion',2,varargin{:});
-isnum2cell=jsonopt('num2cell_',0,varargin{:});
+dozip=varargin{1}.compression;
+zipsize=varargin{1}.compressarraysize;
+
+FTmarker=varargin{1}.FTM_;
+Imarker=varargin{1}.IM_;
+Omarker=varargin{1}.OM_;
+Fmarker=varargin{1}.FM_;
+Amarker=varargin{1}.AM_;
+
+isnest=varargin{:}.nestarray;
+ismsgpack=varargin{1}.messagepack;
+format=varargin{1}.formatversion;
+isnum2cell=varargin{1}.num2cell_;
 
 if(ismsgpack)
     isnest=1;
@@ -653,7 +672,7 @@ if(~isvector(mat) && isnest==1)
    if(format>1.9 && isnum2cell==0)
         mat=permute(mat,ndims(mat):-1:1);
    end
-   varargin{:}.num2cell_=1;
+   varargin{1}.num2cell_=1;
 end
 
 type='';
@@ -680,8 +699,10 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
     end
     if(~isvector(mat) && isnest==1)
         txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
-    else
+    elseif(~ismsgpack || size(mat,1)==1)
         txt=I_a(mat(:),type,Imarker,size(mat),varargin{:});
+    else
+        txt=cell2ubjson('',num2cell(mat,2),level,varargin{:});
     end
 elseif(islogical(mat))
     logicalval=FTmarker;
@@ -714,7 +735,7 @@ end
 function val=N_(str)
 global ismsgpack
 if(~bitget(ismsgpack, 1))
-    val=[I_(int32(length(str)),'UiIlL',struct('Debug',bitget(ismsgpack,2))) str];
+    val=[I_(int32(length(str)),'UiIlL',struct('debug',bitget(ismsgpack,2))) str];
 else
     val=S_(str);
 end
@@ -734,7 +755,7 @@ else
     if(bitget(ismsgpack, 1))
         val=[Imsgpk_(length(str),Imarker,218,160) str];
     else
-        val=['S' I_(int32(length(str)),Imarker,struct('Debug',bitget(ismsgpack,2))) str];
+        val=['S' I_(int32(length(str)),Imarker,struct('debug',bitget(ismsgpack,2))) str];
     end
 end
 
@@ -763,7 +784,10 @@ Imarker='UiIlL';
 if(nargin>=2)
     Imarker=markers;
 end
-isdebug=jsonopt('Debug',0,varargin{:});
+isdebug=0;
+if(nargin>=3)
+    isdebug=varargin{1}.debug;
+end
 
 if(Imarker(1)~='U')
     if(num>=0 && num<127)
@@ -806,7 +830,7 @@ function val=D_(num, markers, varargin)
 if(~isfloat(num))
     error('input is not a float');
 end
-isdebug=jsonopt('Debug',0,varargin{:});
+isdebug=varargin{1}.debug;
 if(isdebug)
     output=sprintf('<%g>',num);
 else
@@ -859,8 +883,8 @@ if(isstruct(dim))
     varargin={dim};
 end
 
-isnest=jsonopt('NestArray',0,varargin{:});
-isdebug=jsonopt('Debug',0,varargin{:});
+isnest=varargin{1}.nestarray;
+isdebug=varargin{1}.debug;
 if(isdebug)
     output=sprintf('<%g>',num);
 else
@@ -869,7 +893,7 @@ end
 
 if(isnest==0 && numel(num)>1 && Imarker(1)=='U')
   if(nargin>=4 && ~isstruct(dim) && (length(dim)==1 || (length(dim)>=2 && prod(dim)~=dim(2))))
-      cid=I_(uint32(max(dim)));
+      cid=I_(uint32(max(dim)),Imarker,varargin{:});
       data=['$' type '#' I_a(dim,cid(1),Imarker,varargin{:}) output(:)'];
   else
       data=['$' type '#' I_(int32(numel(data)/blen),Imarker,varargin{:}) output(:)'];
@@ -910,8 +934,8 @@ elseif(id==2)
   data=data2byte(swapbytes(double(num)),'uint8');
 end
 
-isnest=jsonopt('NestArray',0,varargin{:});
-isdebug=jsonopt('Debug',0,varargin{:});
+isnest=varargin{1}.nestarray;
+isdebug=varargin{1}.debug;
 if(isdebug)
     output=sprintf('<%g>',num);
 else
