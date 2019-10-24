@@ -129,9 +129,9 @@
 %               structure; otherwise, the same as the input.
 %
 % examples:
-%      obj=struct('_ArrayType_','double','_ArraySize_',[2 3],...
-%                 '_ArrayIsSparse_',1 ,'_ArrayData_',null);
-%      jdata=jdatadecode(obj);
+%      obj={[],{'test'},true,struct('sparse',sparse(2,3),'magic',uint8(magic(5)))}
+%      jdata=jdatadecode(jdataencode(obj))
+%      isequaln(obj,jdata)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
