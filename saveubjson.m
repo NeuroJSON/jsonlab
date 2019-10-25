@@ -482,7 +482,8 @@ if(ismsgpack)
     isnest=1;
 end
 if((length(size(item))>2 && isnest==0)  || issparse(item) || ~isreal(item) || ...
-       varargin{1}.arraytostruct || (~isempty(dozip) && numel(item)>zipsize))
+       varargin{1}.arraytostruct || (~isempty(dozip) && numel(item)>zipsize ...
+       && strcmp('_ArrayZipData_',decodevarname(name,varargin{:}))==0))
       cid=I_(uint32(max(size(item))),Imarker,varargin{:});
       if(isempty(name))
     	txt=[Omarker{1} N_('_ArrayType_'),S_(class(item)),N_('_ArraySize_'),I_a(size(item),cid(1),Imarker,varargin{:}) ];

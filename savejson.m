@@ -496,7 +496,11 @@ else
     end
 end
 for e=1:len
-    val=escapejsonstring(item(e,:),varargin{:});
+    if(strcmp('_ArrayZipData_',decodevarname(name,varargin{1}.unpackhex))==0)
+        val=escapejsonstring(item(e,:),varargin{:});
+    else
+        val=item(e,:);
+    end
     if(len==1)
         obj=['"' decodevarname(name,varargin{1}.unpackhex) '": ' '"',val,'"'];
         if(isempty(name))
@@ -533,7 +537,8 @@ format=varargin{1}.formatversion;
 isnest=varargin{1}.nestarray;
 
 if(((isnest==0) && length(size(item))>2) || issparse(item) || ~isreal(item) || ...
-   (isempty(item) && any(size(item))) || varargin{1}.arraytostruct || (~isempty(dozip) && numel(item)>zipsize))
+   (isempty(item) && any(size(item))) || varargin{1}.arraytostruct || ...
+   (~isempty(dozip) && numel(item)>zipsize && strcmp('_ArrayZipData_',decodevarname(name,varargin{1}.unpackhex))==0))
     if(isempty(name))
     	txt=sprintf('%s{%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
               padding1,nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
@@ -750,6 +755,9 @@ end
 %%-------------------------------------------------------------------------
 function newstr=escapejsonstring(str,varargin)
 newstr=str;
+if(isempty(str) || isempty(regexp(str,'\W', 'once')))
+    return;
+end
 isoct=varargin{1}.isoctave;
 if(isoct)
    vv=sscanf(OCTAVE_VERSION,'%f');
