@@ -680,7 +680,7 @@ type='';
 
 if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) == 0)))
     if(~any(mat<0))
-       if(max(mat(:))<=2^8)
+       if(max(mat(:))<2^8)
            type=Imarker(1);
        end
     end
