@@ -110,15 +110,19 @@ function newdata=jdatadecode(data,varargin)
       for j=1:len
         if(isfield(data,N_('_ArrayZipSize_')) && isfield(data,N_('_ArrayZipData_')))
             zipmethod='zip';
+	    dims=data(j).(N_('_ArrayZipSize_'))(:)';
+            if(length(dims)==1)
+                 dims=[1 dims];
+            end
             if(isfield(data,N_('_ArrayZipType_')))
                 zipmethod=data(j).(N_('_ArrayZipType_'));
             end
             if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
                 decompfun=str2func([zipmethod 'decode']);
                 if(needbase64)
-                    ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_'))(:)');
+                    ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),data(j).(N_('_ArrayType_'))),dims);
                 else
-                    ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayZipData_'))),data(j).(N_('_ArrayType_'))),data(j).(N_('_ArrayZipSize_'))(:)');
+                    ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayZipData_'))),data(j).(N_('_ArrayType_'))),dims);
                 end
             else
                 error('compression method is not supported');
@@ -130,7 +134,11 @@ function newdata=jdatadecode(data,varargin)
             ndata=cast(data(j).(N_('_ArrayData_')),char(data(j).(N_('_ArrayType_'))));
         end
         if(isfield(data,N_('_ArrayZipSize_')))
-            ndata=reshape(ndata(:),fliplr(data(j).(N_('_ArrayZipSize_'))(:)'));
+	    dims=data(j).(N_('_ArrayZipSize_'))(:)';
+            if(length(dims)==1)
+                 dims=[1 dims];
+            end
+            ndata=reshape(ndata(:),fliplr(dims));
             ndata=permute(ndata,ndims(ndata):-1:1);
         end
         iscpx=0;
@@ -142,6 +150,9 @@ function newdata=jdatadecode(data,varargin)
         if(isfield(data,N_('_ArrayIsSparse_')) && data(j).(N_('_ArrayIsSparse_')))
                 if(isfield(data,N_('_ArraySize_')))
                     dim=double(data(j).(N_('_ArraySize_'))(:)');
+		    if(length(dim)==1)
+			dim=[1 dim];
+		    end
                     if(iscpx)
                         ndata(end-1,:)=complex(ndata(end-1,:),ndata(end,:));
                     end
@@ -172,6 +183,9 @@ function newdata=jdatadecode(data,varargin)
                 data(j).(N_('_ArraySize_'))=data(j).(N_('_ArraySize_'))(end:-1:1);
             end
             dims=data(j).(N_('_ArraySize_'))(:)';
+	    if(length(dims)==1)
+		dims=[1 dims];
+	    end
             ndata=reshape(ndata(:),dims(:)');
             if(format>1.9)
                 ndata=permute(ndata,ndims(ndata):-1:1);
