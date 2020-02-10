@@ -29,6 +29,8 @@ function data = loadubjson(fname,varargin)
 %                         the "name" tag is treated as a string. To load 
 %                         these UBJSON data, you need to manually set this 
 %                         flag to 1.
+%           UseMap [0|1]: if set to 1, loadjson uses a containers.Map to 
+%                         store map objects; otherwise use a struct object
 %           FormatVersion [2|float]: set the JSONLab format version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -304,7 +306,12 @@ end
 %%-------------------------------------------------------------------------
 function [object, pos] = parse_object(inputstr, pos, varargin)
     pos=parse_char(inputstr,pos,'{');
-    object = [];
+    usemap=jsonopt('UseMap',0,varargin{:});
+    if(usemap)
+	object = containers.Map();
+    else
+	object = [];
+    end
     type='';
     count=-1;
     [cc, pos]=next_char(inputstr,pos);
@@ -332,7 +339,11 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
             end
             [val, pos] = parse_value(inputstr, pos, varargin{:});
             num=num+1;
-            object.(encodevarname(str,varargin{:}))=val;
+            if(usemap)
+		object(str)=val;
+	    else
+		object.(encodevarname(str,varargin{:}))=val;
+	    end
             [cc, pos]=next_char(inputstr,pos);
             if cc == '}' || (count>=0 && num>=count)
                 break;

@@ -42,6 +42,8 @@ function data = loadjson(fname,varargin)
 %                         arrays; setting to 3 will return to a 2D cell
 %                         array of 1D vectors; setting to 4 will return a
 %                         3D cell array.
+%           UseMap [0|1]: if set to 1, loadjson uses a containers.Map to 
+%                         store map objects; otherwise use a struct object
 %           ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
 %           ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
 %                         (introduced in MATLAB R2016b) to char arrays; if set to 1,
@@ -410,7 +412,12 @@ end
 %%-------------------------------------------------------------------------
 function [object, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, varargin)
     pos=parse_char(inputstr, pos, '{');
-    object = [];
+    usemap=jsonopt('UseMap',0,varargin{:});
+    if(usemap)
+	object = containers.Map();
+    else
+	object = [];
+    end
     [cc,pos]=next_char(inputstr,pos);
     if cc ~= '}'
         while 1
@@ -420,7 +427,11 @@ function [object, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, 
             end
             pos=parse_char(inputstr, pos, ':');
             [val, pos,index_esc] = parse_value(inputstr, pos, esc, index_esc, varargin{:});
-            object.(encodevarname(str,varargin{:}))=val;
+            if(usemap)
+		object(str)=val;
+	    else
+		object.(encodevarname(str,varargin{:}))=val;
+	    end
             [cc,pos]=next_char(inputstr,pos);
             if cc == '}'
                 break;
