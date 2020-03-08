@@ -13,7 +13,7 @@
     "url": "git+https://github.com/fangq/jsonlab.git"
   },
   "author": "Qianqian Fang <q.fang at neu.edu>",
-  "license": "GPL-3.0",
+  "license": "GPL-3.0-only OR BSD-3-Clause",
   "bugs": {
     "url": "https://github.com/fangq/jsonlab/issues"
   },
