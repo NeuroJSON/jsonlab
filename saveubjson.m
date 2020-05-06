@@ -152,7 +152,7 @@ opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
 opt.debug=jsonopt('Debug',0,opt);
 opt.messagepack=jsonopt('MessagePack',0,opt);
 opt.num2cell_=0;
-opt.ubjson=bitand(jsonopt('UBJSON',0,opt),opt.messagepack);
+opt.ubjson=bitand(jsonopt('UBJSON',0,opt), ~opt.messagepack);
 
 if(jsonopt('PreEncode',1,opt))
     obj=jdataencode(obj,'Base64',0,'UseArrayZipSize',opt.messagepack,opt);
