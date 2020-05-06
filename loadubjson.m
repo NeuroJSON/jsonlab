@@ -108,7 +108,7 @@ function [data, adv]=parse_block(inputstr, pos, type,count,varargin)
     [cid,len]=elem_info(inputstr, pos, type);
     datastr=inputstr(pos:pos+len*count-1);
     newdata=uint8(datastr);
-    id=strfind('iUIlLdD',type);
+    %id=strfind('iUIulmLMhdD',type);
     if(jsonopt('flipendian_',1,varargin{:}))
         newdata=swapbytes(typecast(newdata,cid));
     end
@@ -245,12 +245,15 @@ end
 %%-------------------------------------------------------------------------
 
 function [num, pos] = parse_number(inputstr, pos, varargin)
-    id=strfind('iUIlLdD',inputstr(pos));
+    id=strfind('iUIulmLMhdD',inputstr(pos));
     if(isempty(id))
         error_pos('expecting a number at position %d',inputstr, pos);
     end
-    type={'int8','uint8','int16','int32','int64','single','double'};
-    bytelen=[1,1,2,4,8,4,8];
+    type={'int8','uint8','int16','uint16','int32','uint32','int64','uint64','half','single','double'};
+    bytelen=[1,1,2,2,4,4,8,8,2,4,8];
+    if(~exist('half','builtin'))
+        type{9}='uint16';
+    end
     datastr=inputstr(pos+1:pos+bytelen(id));
     newdata=uint8(datastr);
     if(jsonopt('flipendian_',1,varargin{:}))
@@ -273,7 +276,7 @@ function [val, pos] = parse_value(inputstr, pos, varargin)
         case '{'
             [val, pos] = parse_object(inputstr, pos, varargin{:});
             return;
-        case {'i','U','I','l','L','d','D'}
+        case {'i','U','I','u','l','m','L','M','h','d','D'}
             [val, pos] = parse_number(inputstr, pos, varargin{:});
             return;
         case 'T'
@@ -312,11 +315,9 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
     else
 	object = [];
     end
-    type='';
     count=-1;
     [cc, pos]=next_char(inputstr,pos);
     if(cc == '$')
-        type=inputstr(pos+1); % TODO
         pos=pos+2;
     end
     [cc, pos]=next_char(inputstr,pos);
@@ -340,10 +341,10 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
             [val, pos] = parse_value(inputstr, pos, varargin{:});
             num=num+1;
             if(usemap)
-		object(str)=val;
-	    else
-		object.(encodevarname(str,varargin{:}))=val;
-	    end
+                object(str)=val;
+            else
+                object.(encodevarname(str,varargin{:}))=val;
+            end
             [cc, pos]=next_char(inputstr,pos);
             if cc == '}' || (count>=0 && num>=count)
                 break;
@@ -357,11 +358,14 @@ end
 
 %%-------------------------------------------------------------------------
 function [cid,len]=elem_info(inputstr, pos, type)
-    id=strfind('iUIlLdD',type);
-    dataclass={'int8','uint8','int16','int32','int64','single','double'};
-    bytelen=[1,1,2,4,8,4,8];
+    id=strfind('iUIulmLMhdD',type);
+    type={'int8','uint8','int16','uint16','int32','uint32','int64','uint64','half','single','double'};
+    bytelen=[1,1,2,2,4,4,8,8,2,4,8];
+    if(~exist('half','builtin'))
+        type{9}='uint16';
+    end
     if(id>0)
-        cid=dataclass{id};
+        cid=type{id};
         len=bytelen(id);
     else
         error_pos('unsupported type at position %d',inputstr, pos);
