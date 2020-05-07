@@ -704,19 +704,31 @@ if(~isvector(mat) && isnest==1)
 end
 
 if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) == 0)))
-    if(~any(mat<0))
-        id=find(find(max(double(mat(:)))>=[-eps 2^8 2^16 2^32 2^64]),1,'last');
-        key=Imarker(1:2:end);
-        type=key(id);
-    else
-        id=find(find(-min(double(mat(:)))>[0 2^7 2^15 2^31 2^63]),1,'last');
-        id=[id,find(find(max(double(mat(:)))>[-eps 2^7 2^15 2^31 2^63]),1,'last')];
-        key=Imarker(2:2:end);
-        type=key(min(id));
-    end
     if(~isvector(mat) && isnest==1)
         txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
     elseif(~ismsgpack || size(mat,1)==1)
+        if(~any(mat<0))
+            cid=varargin{1}.IType_;
+            type=Imarker(end);
+            maxdata=max(double(mat(:)));
+            for i=1:length(cid)
+              if(maxdata==cast(maxdata,cid{i}))
+                  type=Imarker(i);
+                  break;
+              end
+            end
+        else
+            cid=varargin{1}.IType_;
+            type=Imarker(end);
+            mindata=min(double(mat(:)));
+            maxdata=max(double(mat(:)));
+            for i=1:length(cid)
+              if(maxdata==cast(maxdata,cid{i}) && mindata==cast(mindata,cid{i}))
+                  type=Imarker(i);
+                  break;
+              end
+            end
+        end
         txt=I_a(mat(:),type,size(mat),varargin{:});
     else
         txt=cell2ubjson('',num2cell(mat,2),level,varargin{:});
