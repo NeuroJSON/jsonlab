@@ -133,8 +133,13 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
         pos=pos+1;
         [cc,pos]=next_char(inputstr,pos);
         if(cc=='[')
+            if(isfield(varargin{1},'noembedding_') && varargin{1}.noembedding_==1)
+                error('ND array size specifier does not support embedding');
+            end
+            varargin{1}.noembedding_=1;
             [dim, pos]=parse_array(inputstr, pos, varargin{:});
             count=prod(double(dim));
+            varargin{1}.noembedding_=0;
         else
             [val,pos]=parse_number(inputstr,pos, varargin{:});
             count=double(val);
