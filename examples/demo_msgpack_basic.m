@@ -256,7 +256,7 @@ if(exist('containers.Map'))
     fprintf(1,'%%  a container.Maps object \n')
     fprintf(1,'%%=================================================\n\n')
 
-    data2json=containers.Map({'Andy','William','Om'},[21,21,22])
+    data2json=containers.Map({'Andy','William','Om'},{21,21,22})
     savemsgpack('',data2json)
     json2data=loadmsgpack(ans)
 end

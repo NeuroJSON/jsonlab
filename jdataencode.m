@@ -144,7 +144,11 @@ if(varargin{1}.mapasstruct)  % convert a map to struct
         end
     end
 else   % keep as a map and only encode its values
-    newitem=containers.Map('KeyType',item.KeyType,'ValueType','any');
+    if(strcmp(item.KeyType,'char'))
+        newitem=containers.Map();
+    else
+        newitem=containers.Map('KeyType',item.KeyType,'ValueType','any');
+    end
     for i=1:length(names)
         newitem(names{i})=obj2jd(item(names{i}),varargin{:});
     end
@@ -153,7 +157,7 @@ end
 function newitem=mat2jd(item,varargin)
 
 if(isempty(item) || isa(item,'string') || ischar(item) || varargin{1}.nestarray || ...
-        ((isvector(item) || ismatrix(item)) && isreal(item) && ~issparse(item)))
+        ((isvector(item) || ndims(item)==2) && isreal(item) && ~issparse(item)))
     newitem=item;
     if(~(varargin{1}.messagepack && size(item,1)>1))
         return;
