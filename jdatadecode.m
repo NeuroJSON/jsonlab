@@ -33,6 +33,8 @@ function newdata=jdatadecode(data,varargin)
 %                         jsondecode(), the prefix is 'x'; this function
 %                         attempts to automatically determine the prefix;
 %                         for octave, the default value is an empty string ''.
+%               FullArrayShape: [0|1] if set to 1, converting _ArrayShape_ 
+%                         objects to full matrices, otherwise, stay sparse
 %               FormatVersion: [2|float]: set the JSONLab output version; 
 %                         since v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -61,6 +63,7 @@ function newdata=jdatadecode(data,varargin)
     elseif(nargin>2)
         opt=varargin2struct(varargin{:});
     end
+    opt.fullarrayshape=jsonopt('FullArrayShape',0,opt);
 
     %% process non-structure inputs
     if(~isstruct(data))
@@ -128,6 +131,9 @@ function newdata=jdatadecode(data,varargin)
                 error('compression method is not supported');
             end
         else
+            if(isstruct(data(j).(N_('_ArrayData_'))) && isfield(data(j).(N_('_ArrayData_')),N_('_ArrayType_')))
+                data(j).(N_('_ArrayData_'))=jdatadecode(data(j).(N_('_ArrayData_')),varargin{:});
+            end
             if(iscell(data(j).(N_('_ArrayData_'))))
                 data(j).(N_('_ArrayData_'))=cell2mat(cellfun(@(x) double(x(:)),data(j).(N_('_ArrayData_')),'uniformoutput',0)).';
             end
@@ -142,10 +148,8 @@ function newdata=jdatadecode(data,varargin)
             ndata=permute(ndata,ndims(ndata):-1:1);
         end
         iscpx=0;
-        if(isfield(data,N_('_ArrayIsComplex_')))
-            if(data(j).(N_('_ArrayIsComplex_')))
-               iscpx=1;
-            end
+        if(isfield(data,N_('_ArrayIsComplex_')) && data(j).(N_('_ArrayIsComplex_')) )
+                iscpx=1;
         end
         if(isfield(data,N_('_ArrayIsSparse_')) && data(j).(N_('_ArrayIsSparse_')))
                 if(isfield(data,N_('_ArraySize_')))
@@ -174,6 +178,76 @@ function newdata=jdatadecode(data,varargin)
                         ndata(3,:)=complex(ndata(3,:),ndata(4,:));
                     end
                     ndata=sparse(ndata(1,:),ndata(2,:),ndata(3,:));
+                end
+        elseif(isfield(data,N_('_ArrayShape_')))
+                if(iscpx)
+                    if(size(ndata,1)==2)
+                        dim=size(ndata);
+                        dim(end+1)=1;
+                        arraydata=reshape(complex(ndata(1,:),ndata(2,:)),dim(2:end)).';
+                    else
+                        error('The first dimension must be 2 for complex-valued arrays');
+                    end
+                else
+                    arraydata=data.(N_('_ArrayData_'));
+                end
+                shapeid=data.(N_('_ArrayShape_'));
+                if(isfield(data,N_('_ArrayZipSize_')))
+                        datasize=data.(N_('_ArrayZipSize_'));
+                        if(iscpx)
+                            datasize=datasize(2:end);
+                        end
+                else
+                        datasize=size(arraydata);
+                end
+                arraysize=data.(N_('_ArraySize_'));
+                if(ischar(shapeid))
+                        shapeid={shapeid};
+                end
+                if(strcmp(shapeid{1},'diag'))
+                        ndata=spdiags(arraydata(:),0,arraysize(1),arraysize(2));
+                elseif(strcmp(shapeid{1},'upper') || strcmp(shapeid{1},'uppersymm'))
+                        ndata=zeros(arraysize);
+                        ndata(triu(true(size(ndata)))')=arraydata(:);
+                        if(strcmp(shapeid{1},'uppersymm'))
+                            ndata(triu(true(size(ndata))))=arraydata(:);
+                        end
+                        ndata=ndata.';
+                elseif(strcmp(shapeid{1},'lower') || strcmp(shapeid{1},'lowersymm'))
+                        ndata=zeros(arraysize);
+                        ndata(tril(true(size(ndata)))')=arraydata(:);
+                        if(strcmp(shapeid{1},'lowersymm'))
+                            ndata(tril(true(size(ndata))))=arraydata(:);
+                        end
+                        ndata=ndata.';
+                elseif(strcmp(shapeid{1},'upperband') || strcmp(shapeid{1},'uppersymmband'))
+                        if(length(shapeid)>1 && isvector(arraydata))
+                            datasize=[shapeid{2}+1, prod(datasize)/(shapeid{2}+1)];
+                        end
+                        ndata=spdiags(reshape(arraydata,min(arraysize),datasize(1)),-datasize(1)+1:0,arraysize(2),arraysize(1)).';
+                        if(strcmp(shapeid{1},'uppersymmband'))
+                            diagonal=diag(ndata);
+                            ndata=ndata+ndata.';
+                            ndata(1:arraysize(1)+1:end)=diagonal;
+                        end
+                elseif(strcmp(shapeid{1},'lowerband') || strcmp(shapeid{1},'lowersymmband'))
+                        if(length(shapeid)>1 && isvector(arraydata))
+                            datasize=[shapeid{2}+1, prod(datasize)/(shapeid{2}+1)];
+                        end
+                        ndata=spdiags(reshape(arraydata,min(arraysize),datasize(1)),0:datasize(1)-1,arraysize(2),arraysize(1)).';
+                        if(strcmp(shapeid{1},'lowersymmband'))
+                            diagonal=diag(ndata);
+                            ndata=ndata+ndata.';
+                            ndata(1:arraysize(1)+1:end)=diagonal;
+                        end
+                elseif(strcmp(shapeid{1},'band'))
+                        if(length(shapeid)>1 && isvector(arraydata))
+                            datasize=[shapeid{2}+shapeid{3}+1, prod(datasize)/(shapeid{2}+shapeid{3}+1)];
+                        end
+                        ndata=spdiags(reshape(arraydata,min(arraysize),datasize(1)),shapeid{2}:-1:-shapeid{3},arraysize(1),arraysize(2));
+                end
+                if(opt.fullarrayshape && issparse(ndata))
+                        ndata=cast(full(ndata),data(j).(N_('_ArrayType_')));
                 end
         elseif(isfield(data,N_('_ArraySize_')))
             if(iscpx)

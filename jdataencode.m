@@ -32,6 +32,9 @@ function jdata=jdataencode(data, varargin)
 %       	       the original data stored in _ArrayData_, and then flaten
 %       	       _ArrayData_ into a row vector using row-major
 %       	       order; if set to 0, a 2D _ArrayData_ will be used
+%         UseArrayShape: [0|1] if set to 1, a matrix will be tested by
+%                  to determine if it is diagonal, triangular, banded or
+%                  toeplitz, and use _ArrayShape_ to encode the matrix
 %         MapAsStruct: [0|1] if set to 1, convert containers.Map into
 %       	       struct; otherwise, keep it as map
 %         Compression: ['zlib'|'gzip','lzma','lz4','lz4hc'] - use zlib method 
@@ -73,6 +76,7 @@ opt.base64=jsonopt('Base64',0,opt);
 opt.mapasstruct=jsonopt('MapAsStruct',0,opt);
 opt.usearrayzipsize=jsonopt('UseArrayZipSize',1,opt);
 opt.messagepack=jsonopt('MessagePack',0,opt);
+opt.usearrayshape=jsonopt('UseArrayShape',0,opt) && exist('bandwidth');
 
 jdata=obj2jd(data,opt);
 
@@ -156,12 +160,72 @@ end
 %%-------------------------------------------------------------------------
 function newitem=mat2jd(item,varargin)
 
+N=@(x) N_(x,varargin{:});
+
+% no encoding for char arrays or non-sparse real vectors
 if(isempty(item) || isa(item,'string') || ischar(item) || varargin{1}.nestarray || ...
-        ((isvector(item) || ndims(item)==2) && isreal(item) && ~issparse(item)))
+        (isvector(item) && isreal(item) && ~issparse(item))) 
     newitem=item;
-    if(~(varargin{1}.messagepack && size(item,1)>1))
-        return;
+    return;
+% 2d numerical (real/complex/sparse) arrays with _ArrayShape_ encoding enabled
+elseif(varargin{1}.usearrayshape && ndims(item)==2 && ~isvector(item))
+    newitem=struct(N('_ArrayType_'),class(item),N('_ArraySize_'),size(item));
+    newitem.(N('_ArrayIsComplex_'))=~isreal(item);
+    symmtag='';
+    if(isreal(item) && issymmetric(double(item)))
+        symmtag='symm';
+        item=tril(item);
+    elseif(~isreal(item) && ishermitian(double(item)))
+        symmtag='herm';
+        item=tril(item);
     end
+    [lband,uband]=bandwidth(double(item));
+    newitem.(N('_ArrayZipSize_'))=[lband+uband+1, min(size(item,1),size(item,2))];
+    if(lband+uband==0) % isdiag
+        newitem.(N('_ArrayShape_'))='diag';
+        newitem.(N('_ArrayData_'))=diag(item).';
+    elseif(uband==0 && lband==size(item,1)-1) % lower triangular
+        newitem.(N('_ArrayShape_'))=['lower' symmtag];
+        item=item.';
+        newitem.(N('_ArrayData_'))=item(triu(true(size(item)))).';
+    elseif(lband==0 && uband==size(item,2)-1) % upper triangular
+        newitem.(N('_ArrayShape_'))='upper';
+        item=item.';
+        newitem.(N('_ArrayData_'))=item(tril(true(size(item)))).';
+    elseif(lband==0) % upper band
+        newitem.(N('_ArrayShape_'))={'upperband',uband};
+        newitem.(N('_ArrayData_'))=spdiags(item.',-uband:lband).';
+    elseif(uband==0) % lower band
+        newitem.(N('_ArrayShape_'))={sprintf('lower%sband',symmtag),lband};
+        newitem.(N('_ArrayData_'))=spdiags(item.',-uband:lband).';
+    elseif(uband<size(item,2)-1 || lband<size(item,1)-1) % band
+        newitem.(N('_ArrayShape_'))={'band',uband,lband};
+        newitem.(N('_ArrayData_'))=spdiags(item.',-uband:lband).';
+    else  % full matrix
+        newitem=item;
+    end
+
+    % serialize complex data at last
+    if(isstruct(newitem) && ~isreal(newitem.(N('_ArrayData_'))))
+        item=squeeze(zeros([2, size(newitem.(N('_ArrayData_')))]));
+        item(1,:)=real(newitem.(N('_ArrayData_'))(:));
+        item(2,:)=imag(newitem.(N('_ArrayData_'))(:));
+        newitem.(N('_ArrayZipSize_'))=size(item);
+        newitem.(N('_ArrayData_'))=item;
+    end
+
+    % wrap _ArrayData_ into a single row vector, and store preprocessed
+    % size to _ArrayZipSize_ (force varargin{1}.usearrayzipsize=true)
+    if(isstruct(newitem) && ~isvector(newitem.(N('_ArrayData_'))))
+        item=newitem.(N('_ArrayData_'));
+        item=permute(item,ndims(item):-1:1);
+        newitem.(N('_ArrayData_'))=item(:).';
+    else
+        newitem=rmfield(newitem,N('_ArrayZipSize_'));
+    end
+    
+    newitem.(N('_ArrayData_'))=full(newitem.(N('_ArrayData_')));
+    return;
 end
 
 zipmethod=varargin{1}.compression;
@@ -170,8 +234,6 @@ minsize=varargin{1}.compressarraysize;
 if(isa(item,'logical'))
     item=uint8(item);
 end
-
-N=@(x) N_(x,varargin{:});
 
 newitem=struct(N('_ArrayType_'),class(item),N('_ArraySize_'),size(item));
 

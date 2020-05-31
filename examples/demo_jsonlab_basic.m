@@ -366,6 +366,33 @@ if(exist('istable'))
     json2data=loadjson(ans)
 end
 
+if(exist('bandwidth'))
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  use _ArrayShape_ \n')
+    fprintf(1,'%%=================================================\n\n')
+
+    lband=2;
+    uband=3;
+    data2json=spdiags(true(8,lband+uband+1),-uband:lband,5,8);
+    data2json=full(double(data2json));
+    data2json(data2json~=0)=find(data2json)
+
+    savejson('',data2json,'usearrayshape',1)
+    json2data=loadjson(ans,'fullarrayshape',1)
+    
+    savejson('',tril(data2json),'usearrayshape',1)
+    json2data=loadjson(ans,'fullarrayshape',1)
+    
+    savejson('',triu(data2json+1i*data2json),'usearrayshape',1)
+    json2data=loadjson(ans,'fullarrayshape',1)
+    
+    savejson('',tril(triu(int8(data2json))),'usearrayshape',1)
+    json2data=loadjson(ans,'fullarrayshape',1)
+    
+    savejson('',data2json(:,1:5)+data2json(:,1:5)','usearrayshape',1)
+    json2data=loadjson(ans,'fullarrayshape',1)
+end
+
 try
     val=zlibencode('test');
     fprintf(1,'\n%%=================================================\n')
