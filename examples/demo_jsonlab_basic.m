@@ -401,7 +401,7 @@ try
 
     data2json=eye(10);
     data2json(20,1)=1;
-    savejson('',data2json,'Compression','zlib','CompressionSize',0)  % nestarray for 4-D or above is not working
+    savejson('',data2json,'Compression','zlib','CompressArraySize',0)  % nestarray for 4-D or above is not working
     json2data=loadjson(ans)
     if(~isequaln(json2data,data2json))
         warning('conversion does not preserve original data');

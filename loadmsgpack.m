@@ -31,7 +31,8 @@ function data = loadmsgpack(fname,varargin)
     end
     
     opt=varargin2struct(varargin{:});
-    opt.simplifycell=jsonopt('SimplifyCell',0,opt);
+    opt.simplifycell=jsonopt('SimplifyCell',1,opt);
+    opt.simplifycellarray=jsonopt('SimplifyCellArray',0,opt);
 
     jsoncount=1;
     idx=0;
@@ -218,21 +219,26 @@ function [out, idx] = parseext(len, bytes, idx)
 end
 
 function [out, idx] = parsearray(len, bytes, idx, varargin)
-    out = cell(len,1);
+    out = cell(1,len);
     for n=1:len
         [out{n}, idx] = parse(bytes, idx, varargin{:});
     end
-    if(~isempty(out) && isnumeric(out{1}))
-      try
-        oldobj=out;
-        out=cell2mat(out);
-        if(iscell(oldobj) && isstruct(out) && numel(out)>1 && jsonopt('SimplifyCellArray',1,varargin{:})==0)
-            out=oldobj;
-        elseif(size(out,1)>1 && ismatrix(out))
-            out=out';
+    if(len==1 && iscell(out{1}))
+        out=out{1};
+    end
+    if(varargin{1}.simplifycell)
+        if(~isempty(out) && isnumeric(out{1}))
+          try
+            oldobj=out;
+            out=cell2mat(out);
+            if(iscell(oldobj) && isstruct(out) && numel(out)>1 && varargin{1}.simplifycellarray==0)
+                out=oldobj;
+            elseif(size(out,2)>1 && ndims(out)==2)
+                out=out';
+            end
+          catch
+          end
         end
-      catch
-      end
     end
 end
 

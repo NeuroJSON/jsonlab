@@ -151,6 +151,7 @@ opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
 opt.parselogical=jsonopt('ParseLogical',0,opt);
 opt.arrayindent=jsonopt('ArrayIndent',1,opt);
 opt.num2cell_=0;
+opt.nosubstruct_=0;
 
 if(jsonopt('PreEncode',1,opt))
     obj=jdataencode(obj,'Base64',1,'UseArrayZipSize',0,opt);
@@ -344,6 +345,9 @@ padding0=repmat(ws.tab,1,level);
 padding2=repmat(ws.tab,1,level+1);
 padding1=repmat(ws.tab,1,level+(dim(1)>1)+forcearray);
 nl=ws.newline;
+if(isfield(item,encodevarname('_ArrayType_',varargin{1}.unpackhex)))
+    varargin{1}.nosubstruct_=1;
+end
 
 if(isempty(item)) 
     if(~isempty(name)) 
@@ -536,9 +540,8 @@ zipsize=varargin{1}.compressarraysize;
 format=varargin{1}.formatversion;
 isnest=varargin{1}.nestarray;
 
-if(((isnest==0) && length(size(item))>2) || issparse(item) || ~isreal(item) || ...
-   (isempty(item) && any(size(item))) || varargin{1}.arraytostruct || ...
-   (~isempty(dozip) && numel(item)>zipsize && strcmp('_ArrayZipData_',decodevarname(name,varargin{1}.unpackhex))==0))
+if(~varargin{1}.nosubstruct_ && ( ((isnest==0) && length(size(item))>2) || issparse(item) || ~isreal(item) || ...
+   (isempty(item) && any(size(item))) || varargin{1}.arraytostruct || (~isempty(dozip) && numel(item)>zipsize)))
     if(isempty(name))
     	txt=sprintf('%s{%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
               padding1,nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
@@ -723,7 +726,7 @@ if(nargin>=2 && size(mat,1)>1 && varargin{1}.arrayindent==1)
     formatstr=[repmat(tab,1,level) formatstr];
 end
 
-txt=sprintf(formatstr,mat');
+txt=sprintf(formatstr,permute(mat,ndims(mat):-1:1));
 txt(end-length(nl):end)=[];
 if(islogical(mat) && (numel(mat)==1 || varargin{1}.parselogical==1))
    txt=regexprep(txt,'1','true');

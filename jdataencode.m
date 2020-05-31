@@ -161,16 +161,22 @@ end
 function newitem=mat2jd(item,varargin)
 
 N=@(x) N_(x,varargin{:});
+newitem=struct(N('_ArrayType_'),class(item),N('_ArraySize_'),size(item));
+
+zipmethod=varargin{1}.compression;
+minsize=varargin{1}.compressarraysize;
 
 % no encoding for char arrays or non-sparse real vectors
 if(isempty(item) || isa(item,'string') || ischar(item) || varargin{1}.nestarray || ...
-        (isvector(item) && isreal(item) && ~issparse(item))) 
+        ((isvector(item) || (ndims(item)==2 && ~varargin{1}.usearrayshape)) ... 
+         && isreal(item) && ~issparse(item))) 
     newitem=item;
     return;
 % 2d numerical (real/complex/sparse) arrays with _ArrayShape_ encoding enabled
 elseif(varargin{1}.usearrayshape && ndims(item)==2 && ~isvector(item))
-    newitem=struct(N('_ArrayType_'),class(item),N('_ArraySize_'),size(item));
-    newitem.(N('_ArrayIsComplex_'))=~isreal(item);
+    if(~isreal(item))
+        newitem.(N('_ArrayIsComplex_'))=true;
+    end
     symmtag='';
     if(isreal(item) && issymmetric(double(item)))
         symmtag='symm';
@@ -225,67 +231,63 @@ elseif(varargin{1}.usearrayshape && ndims(item)==2 && ~isvector(item))
     end
     
     newitem.(N('_ArrayData_'))=full(newitem.(N('_ArrayData_')));
-    return;
-end
-
-zipmethod=varargin{1}.compression;
-minsize=varargin{1}.compressarraysize;
-
-if(isa(item,'logical'))
-    item=uint8(item);
-end
-
-newitem=struct(N('_ArrayType_'),class(item),N('_ArraySize_'),size(item));
-
-if(isreal(item))
-    if(issparse(item))
-	fulldata=full(item(find(item)));
-        newitem.(N('_ArrayIsSparse_'))=true;
-	newitem.(N('_ArrayZipSize_'))=[2+(~isvector(item)),length(fulldata)];
-        if(isvector(item))
-            newitem.(N('_ArrayData_'))=[find(item(:))', fulldata(:)'];
-        else
-            [ix,iy]=find(item);
-	        newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)', fulldata(:)'];
-	end
-    else
-        if(varargin{1}.formatversion>1.9)
-                item=permute(item,ndims(item):-1:1);
-        end
-	newitem.(N('_ArrayData_'))=item(:)';
-    end
 else
-    newitem.(N('_ArrayIsComplex_'))=true;
-    if(issparse(item))
-	fulldata=full(item(find(item)));
-        newitem.(N('_ArrayIsSparse_'))=true;
-	newitem.(N('_ArrayZipSize_'))=[3+(~isvector(item)),length(fulldata)];
-        if(isvector(item))
-            newitem.(N('_ArrayData_'))=[find(item(:))', real(fulldata(:))', imag(fulldata(:))'];
-        else
-            [ix,iy]=find(item);
-            newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)' , real(fulldata(:))', imag(fulldata(:))'];
-	end
-    else
-        if(varargin{1}.formatversion>1.9)
-                item=permute(item,ndims(item):-1:1);
-        end
-        newitem.(N('_ArrayZipSize_'))=[2,numel(item)];
-	newitem.(N('_ArrayData_'))=[real(item(:))', imag(item(:))'];
+    if(isa(item,'logical'))
+        item=uint8(item);
     end
-end
 
-if(varargin{1}.usearrayzipsize==0 && isfield(newitem,N('_ArrayZipSize_')))
-    data=newitem.(N('_ArrayData_'));
-    data=reshape(data,fliplr(newitem.(N('_ArrayZipSize_'))));
-    newitem.(N('_ArrayData_'))=permute(data,ndims(data):-1:1);
-    newitem=rmfield(newitem,N('_ArrayZipSize_'));
+    if(isreal(item))
+        if(issparse(item))
+            fulldata=full(item(find(item)));
+            newitem.(N('_ArrayIsSparse_'))=true;
+            newitem.(N('_ArrayZipSize_'))=[2+(~isvector(item)),length(fulldata)];
+            if(isvector(item))
+                newitem.(N('_ArrayData_'))=[find(item(:))', fulldata(:)'];
+            else
+                [ix,iy]=find(item);
+                    newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)', fulldata(:)'];
+            end
+        else
+            if(varargin{1}.formatversion>1.9)
+                    item=permute(item,ndims(item):-1:1);
+            end
+            newitem.(N('_ArrayData_'))=item(:)';
+        end
+    else
+        newitem.(N('_ArrayIsComplex_'))=true;
+        if(issparse(item))
+            fulldata=full(item(find(item)));
+            newitem.(N('_ArrayIsSparse_'))=true;
+            newitem.(N('_ArrayZipSize_'))=[3+(~isvector(item)),length(fulldata)];
+            if(isvector(item))
+                newitem.(N('_ArrayData_'))=[find(item(:))', real(fulldata(:))', imag(fulldata(:))'];
+            else
+                [ix,iy]=find(item);
+                newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)' , real(fulldata(:))', imag(fulldata(:))'];
+            end
+        else
+            if(varargin{1}.formatversion>1.9)
+                    item=permute(item,ndims(item):-1:1);
+            end
+            newitem.(N('_ArrayZipSize_'))=[2,numel(item)];
+            newitem.(N('_ArrayData_'))=[real(item(:))', imag(item(:))'];
+        end
+    end
+
+    if(varargin{1}.usearrayzipsize==0 && isfield(newitem,N('_ArrayZipSize_')))
+        data=newitem.(N('_ArrayData_'));
+        data=reshape(data,fliplr(newitem.(N('_ArrayZipSize_'))));
+        newitem.(N('_ArrayData_'))=permute(data,ndims(data):-1:1);
+        newitem=rmfield(newitem,N('_ArrayZipSize_'));
+    end
 end
 
 if(~isempty(zipmethod) && numel(item)>minsize)
     compfun=str2func([zipmethod 'encode']);
     newitem.(N('_ArrayZipType_'))=lower(zipmethod);
-    newitem.(N('_ArrayZipSize_'))=size(newitem.(N('_ArrayData_')));
+    if(~isfield(newitem,N('_ArrayZipSize_')))
+        newitem.(N('_ArrayZipSize_'))=size(newitem.(N('_ArrayData_')));
+    end
     newitem.(N('_ArrayZipData_'))=compfun(typecast(newitem.(N('_ArrayData_')),'uint8'));
     newitem=rmfield(newitem,N('_ArrayData_'));
     if(varargin{1}.base64)

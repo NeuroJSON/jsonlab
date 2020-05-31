@@ -17,7 +17,7 @@ function data = loadubjson(fname,varargin)
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           SimplifyCell [0|1]: if set to 1, loadubjson will call cell2mat
+%           SimplifyCell [1|0]: if set to 1, loadubjson will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
 %           IntEndian [B|L]: specify the endianness of the integer fields
@@ -72,6 +72,8 @@ function data = loadubjson(fname,varargin)
 
     opt=varargin2struct(varargin{:});
     opt.arraytoken_=arraytoken;
+    opt.simplifycell=jsonopt('SimplifyCell',1,opt);
+    opt.simplifycellarray=jsonopt('SimplifyCellArray',0,opt);
 
     [os,maxelem,systemendian]=computer;
     opt.flipendian_=(systemendian ~= upper(jsonopt('IntEndian','B',opt)));
@@ -174,13 +176,13 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
             end
          end
     end
-    if(jsonopt('SimplifyCell',0,varargin{:})==1)
+    if(varargin{1}.simplifycell)
       try
         oldobj=object;
         object=cell2mat(object')';
-        if(iscell(oldobj) && isstruct(object) && numel(object)>1 && jsonopt('SimplifyCellArray',1,varargin{:})==0)
+        if(iscell(oldobj) && isstruct(object) && numel(object)>1 && varargin{1}.simplifycellarray==0)
             object=oldobj;
-        elseif(size(object,1)>1 && ismatrix(object))
+        elseif(size(object,1)>1 && ndims(object)==2)
             object=object';
         end
       catch

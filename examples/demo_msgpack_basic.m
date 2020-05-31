@@ -273,5 +273,48 @@ if(exist('istable'))
     json2data=loadmsgpack(ans)
 end
 
+if(exist('bandwidth'))
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  use _ArrayShape_ \n')
+    fprintf(1,'%%=================================================\n\n')
+
+    lband=2;
+    uband=3;
+    data2json=spdiags(true(8,lband+uband+1),-uband:lband,5,8);
+    data2json=full(double(data2json));
+    data2json(data2json~=0)=find(data2json)
+
+    savemsgpack('',data2json,'usearrayshape',1)
+    json2data=loadmsgpack(ans,'fullarrayshape',1)
+    
+    savemsgpack('',tril(data2json),'usearrayshape',1)
+    json2data=loadmsgpack(ans,'fullarrayshape',1)
+    
+    savemsgpack('',triu(data2json+1i*data2json),'usearrayshape',1)
+    json2data=loadmsgpack(ans,'fullarrayshape',1)
+    
+    savemsgpack('',tril(triu(int8(data2json))),'usearrayshape',1)
+    json2data=loadmsgpack(ans,'fullarrayshape',1)
+    
+    savemsgpack('',data2json(:,1:5)+data2json(:,1:5)','usearrayshape',1)
+    json2data=loadmsgpack(ans,'fullarrayshape',1)
+end
+
+try
+    val=zlibencode('test');
+    fprintf(1,'\n%%=================================================\n')
+    fprintf(1,'%%  a 2-D array in compressed array format\n')
+    fprintf(1,'%%=================================================\n\n')
+
+    data2json=eye(10);
+    data2json(20,1)=1;
+    savemsgpack('',data2json,'Compression','zlib','CompressArraySize',0)  % nestarray for 4-D or above is not working
+    json2data=loadmsgpack(ans)
+    if(any(json2data(:)~=data2json(:)) || any(size(json2data)~=size(data2json)))
+        warning('conversion does not preserve original data');
+    end
+catch
+end
+
 rand ('state',rngstate);
 

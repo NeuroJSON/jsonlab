@@ -153,6 +153,7 @@ opt.debug=jsonopt('Debug',0,opt);
 opt.messagepack=jsonopt('MessagePack',0,opt);
 opt.num2cell_=0;
 opt.ubjson=bitand(jsonopt('UBJSON',0,opt), ~opt.messagepack);
+opt.nosubstruct_=0;
 
 if(jsonopt('PreEncode',1,opt))
     obj=jdataencode(obj,'Base64',0,'UseArrayZipSize',opt.messagepack,opt);
@@ -361,6 +362,10 @@ Imarker=varargin{1}.IM_;
 Amarker=varargin{1}.AM_;
 Omarker=varargin{1}.OM_;
 
+if(isfield(item,N_('_ArrayType_',varargin{:})))
+    varargin{1}.nosubstruct_=1;
+end
+
 if(~strcmp(Amarker{1},'['))
     am0=Imsgpk_(dim(2),220,144,varargin{:});
 else
@@ -511,9 +516,9 @@ opt=varargin{1};
 if(ismsgpack)
     isnest=1;
 end
-if((length(size(item))>2 && isnest==0)  || issparse(item) || ~isreal(item) || ...
-       varargin{1}.arraytostruct || (~isempty(dozip) && numel(item)>zipsize ...
-       && strcmp('_ArrayZipData_',decodevarname(name,varargin{:}))==0))
+if(~varargin{1}.nosubstruct_ && ((length(size(item))>2 && isnest==0)  || ...
+       issparse(item) || ~isreal(item) || varargin{1}.arraytostruct || ...
+       (~isempty(dozip) && numel(item)>zipsize)) )
       cid=I_(uint32(max(size(item))),varargin{:});
       if(isempty(name))
     	txt=[Omarker{1} N_('_ArrayType_',opt),S_(class(item),opt),N_('_ArraySize_',opt),I_a(size(item),cid(1),varargin{:}) ];
@@ -531,8 +536,8 @@ else
     	txt=matdata2ubjson(item,level+1,varargin{:});
     else
         if(numel(item)==1 && varargin{1}.singletarray==0)
-            numtxt=regexprep(regexprep(matdata2ubjson(item,level+1,varargin{:}),'^\[',''),']$','');
-           	txt=[N_(decodevarname(name,varargin{:}),opt) numtxt];
+            numtxt=matdata2ubjson(item,level+1,varargin{:});
+            txt=[N_(decodevarname(name,varargin{:}),opt) numtxt];
         else
     	    txt=[N_(decodevarname(name,varargin{:}),opt),matdata2ubjson(item,level+1,varargin{:})];
         end
@@ -729,7 +734,11 @@ if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) ==
               end
             end
         end
-        txt=I_a(mat(:),type,size(mat),varargin{:});
+        if(numel(mat)==1)
+            txt=I_(int64(mat),varargin{:});
+        else
+            txt=I_a(mat(:),type,size(mat),varargin{:});
+        end
     else
         txt=cell2ubjson('',num2cell(mat,2),level,varargin{:});
     end
