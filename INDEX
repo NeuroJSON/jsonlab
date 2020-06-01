@@ -8,6 +8,9 @@ UBJSON
 MessagePack
  loadmsgpack
  savemsgpack
+JData Workspace
+ jload
+ jsave
 JData Specificaton
  jdatadecode
  jdataencode

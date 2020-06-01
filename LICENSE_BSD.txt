@@ -1,4 +1,4 @@
-Copyright (c) 2011-2019 Qianqian Fang <q.fang at neu.edu>
+Copyright (c) 2011-2020 Qianqian Fang <q.fang at neu.edu>
 Copyright (c) 2014,2016 Bastian Bechtold
 Copyright (c) 2012, Kota Yamaguchi
 Copyright (c) 2009, Nedialko Krouchev
