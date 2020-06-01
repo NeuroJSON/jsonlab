@@ -150,6 +150,8 @@ opt.unpackhex=jsonopt('UnpackHex',1,opt);
 opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
 opt.parselogical=jsonopt('ParseLogical',0,opt);
 opt.arrayindent=jsonopt('ArrayIndent',1,opt);
+opt.inf=jsonopt('Inf','"$1_Inf_"',opt);
+opt.nan=jsonopt('NaN','"_NaN_"',opt);
 opt.num2cell_=0;
 opt.nosubstruct_=0;
 
@@ -740,10 +742,10 @@ end
 
 txt=[pre txt post];
 if(any(isinf(mat(:))))
-    txt=regexprep(txt,'([-+]*)Inf',jsonopt('Inf','"$1_Inf_"',varargin{:}));
+    txt=regexprep(txt,'([-+]*)Inf',varargin{1}.inf);
 end
 if(any(isnan(mat(:))))
-    txt=regexprep(txt,'NaN',jsonopt('NaN','"_NaN_"',varargin{:}));
+    txt=regexprep(txt,'NaN',varargin{1}.nan);
 end
 
 %%-------------------------------------------------------------------------

@@ -74,6 +74,8 @@ function data = loadubjson(fname,varargin)
     opt.arraytoken_=arraytoken;
     opt.simplifycell=jsonopt('SimplifyCell',1,opt);
     opt.simplifycellarray=jsonopt('SimplifyCellArray',0,opt);
+    opt.usemap=jsonopt('UseMap',0,opt);
+    opt.nameisstring=jsonopt('NameIsString',0,opt);
 
     [os,maxelem,systemendian]=computer;
     opt.flipendian_=(systemendian ~= upper(jsonopt('IntEndian','B',opt)));
@@ -124,7 +126,7 @@ function [data, adv]=parse_block(inputstr, pos, type,count,varargin)
     datastr=inputstr(pos:pos+len*count-1);
     newdata=uint8(datastr);
     %id=strfind('iUIulmLMhdD',type);
-    if(jsonopt('flipendian_',1,varargin{:}))
+    if(varargin{1}.flipendian_)
         newdata=swapbytes(typecast(newdata,cid));
     end
     data=typecast(newdata,cid);
@@ -192,10 +194,17 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
     if(varargin{1}.simplifycell)
       try
         oldobj=object;
-        object=cell2mat(object')';
+        if(iscell(object) && length(object)>1 && ndims(object{1})>=2)
+            catdim=size(object{1});
+            catdim=ndims(object{1})-(catdim(end)==1)+1;
+            object=cat(catdim,object{:});
+            object=permute(object,ndims(object):-1:1);
+        else
+            object=cell2mat(object')';
+        end
         if(iscell(oldobj) && isstruct(object) && numel(object)>1 && varargin{1}.simplifycellarray==0)
             object=oldobj;
-        elseif(size(object,1)>1 && ndims(object)==2)
+        elseif(~iscell(object) && size(object,1)>1 && ndims(object)==2)
             object=object';
         end
       catch
@@ -276,7 +285,7 @@ function [num, pos] = parse_number(inputstr, pos, varargin)
     end
     datastr=inputstr(pos+1:pos+bytelen(id));
     newdata=uint8(datastr);
-    if(jsonopt('flipendian_',1,varargin{:}))
+    if(varargin{1}.flipendian_)
         newdata=swapbytes(typecast(newdata,type{id}));
     end
     num=typecast(newdata,type{id});
@@ -329,7 +338,7 @@ end
 %%-------------------------------------------------------------------------
 function [object, pos] = parse_object(inputstr, pos, varargin)
     pos=parse_char(inputstr,pos,'{');
-    usemap=jsonopt('UseMap',0,varargin{:});
+    usemap=varargin{1}.usemap;
     if(usemap)
 	object = containers.Map();
     else
@@ -350,7 +359,7 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
     if cc ~= '}'
         num=0;
         while 1
-            if(jsonopt('NameIsString',0,varargin{:}))
+            if(varargin{1}.nameisstring)
                 [str, pos] = parseStr(inputstr, pos, varargin{:});
             else
                 [str, pos] = parse_name(inputstr, pos, varargin{:});

@@ -89,7 +89,7 @@ fprintf(1,'%%=================================================\n\n')
 
 data2json=reshape(1:(2*4*6),[2,4,6]);
 savejson('',data2json,'NestArray',1)
-json2data=loadjson(ans)
+json2data=loadjson(ans,'fastarrayparser',0)
 if(~isequaln(json2data,data2json))
     warning('conversion does not preserve original data');
 end

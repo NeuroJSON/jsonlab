@@ -230,10 +230,17 @@ function [out, idx] = parsearray(len, bytes, idx, varargin)
         if(~isempty(out) && isnumeric(out{1}))
           try
             oldobj=out;
-            out=cell2mat(out);
+            if(iscell(out) && length(out)>1 && ndims(out{1})>=2)
+                catdim=size(out{1});
+                catdim=ndims(out{1})-(catdim(end)==1)+1;
+                out=cat(catdim,out{:});
+                out=permute(out,ndims(out):-1:1);
+            else
+                out=cell2mat(out')';
+            end
             if(iscell(oldobj) && isstruct(out) && numel(out)>1 && varargin{1}.simplifycellarray==0)
                 out=oldobj;
-            elseif(size(out,2)>1 && ndims(out)==2)
+            elseif(~iscell(object) && size(out,2)>1 && ndims(out)==2)
                 out=out';
             end
           catch

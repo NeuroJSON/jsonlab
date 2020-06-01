@@ -113,6 +113,13 @@ function data = loadjson(fname,varargin)
 
     opt.arraytoken_=arraytoken;
     opt.arraytokenidx_=arraytokenidx;
+    opt.simplifycell=jsonopt('SimplifyCell',1,opt);
+    opt.simplifycellarray=jsonopt('SimplifyCellArray',0,opt);
+    opt.formatversion=jsonopt('FormatVersion',2,opt);
+    opt.fastarrayparser=jsonopt('FastArrayParser',1,opt);
+    opt.parsestringarray=jsonopt('ParseStringArray',0,opt);
+    opt.usemap=jsonopt('UseMap',0,opt);
+    opt.arraydepth_=1;
 
     if(jsonopt('ShowProgress',0,opt)==1)
         opt.progressbar_=waitbar(0,'loading ...');
@@ -166,17 +173,18 @@ end
 function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, varargin) % JSON array is written in row-major order
     pos=parse_char(inputstr, pos, '[');
     object = cell(0, 1);
-    arraydepth=jsonopt('arraydepth_',1,varargin{:});
+    arraydepth=varargin{1}.arraydepth_;
     pbar=-1;
     if(isfield(varargin{1},'progressbar_'))
         pbar=varargin{1}.progressbar_;
     end
-    format=jsonopt('FormatVersion',2,varargin{:});
+    format=varargin{1}.formatversion;
     [cc,pos]=next_char(inputstr,pos);
+    endpos=[];
     
     if cc ~= ']'
         try
-            if(jsonopt('FastArrayParser',1,varargin{:})>=1 && arraydepth>=jsonopt('FastArrayParser',1,varargin{:}))
+            if((varargin{1}.fastarrayparser)>=1 && arraydepth>=varargin{1}.fastarrayparser)
                 [endpos, maxlevel]=fast_match_bracket(varargin{1}.arraytoken_,varargin{1}.arraytokenidx_,pos);
                 if(~isempty(endpos))
                     arraystr=['[' inputstr(pos:endpos)];
@@ -247,7 +255,7 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
             if(isempty(regexp(arraystr,':','once')))
                 arraystr=regexprep(arraystr,'\[','{');
                 arraystr=regexprep(arraystr,'\]','}');
-                if(jsonopt('ParseStringArray',0,varargin{:})==0)
+                if(varargin{1}.parsestringarray==0)
                     arraystr=regexprep(arraystr,'\"','''');
                 end
                 object=eval(arraystr);
@@ -260,8 +268,8 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
         end
         if(isempty(endpos) || pos~=endpos)
             while 1
-                newopt=varargin2struct(varargin{:},'arraydepth_',arraydepth+1);
-                [val, pos,index_esc] = parse_value(inputstr, pos, esc, index_esc,newopt);
+                varargin{1}.arraydepth_=arraydepth+1;
+                [val, pos,index_esc] = parse_value(inputstr, pos, esc, index_esc,varargin{:});
                 object{end+1} = val;
                 [cc,pos]=next_char(inputstr,pos);
                 if cc == ']'
@@ -272,13 +280,20 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
         end
     end
 
-    if(jsonopt('SimplifyCell',0,varargin{:})==1)
+    if(varargin{1}.simplifycell)
       try
         oldobj=object;
-        object=cell2mat(object')';
-        if(iscell(oldobj) && isstruct(object) && numel(object)>1 && jsonopt('SimplifyCellArray',1,varargin{:})==0)
+        if(iscell(object) && length(object)>1 && ndims(object{1})>=2)
+            catdim=size(object{1});
+            catdim=ndims(object{1})-(catdim(end)==1)+1;
+            object=cat(catdim,object{:});
+            object=permute(object,ndims(object):-1:1);
+        else
+            object=cell2mat(object')';
+        end
+        if(iscell(oldobj) && isstruct(object) && numel(object)>1 && varargin{1}.simplifycellarray==0)
             object=oldobj;
-        elseif(size(object,1)>1 && ndims(object)==2)
+        elseif(~iscell(object) && size(object,1)>1 && ndims(object)==2)
             object=object';
         end
       catch
@@ -430,7 +445,7 @@ end
 %%-------------------------------------------------------------------------
 function [object, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, varargin)
     pos=parse_char(inputstr, pos, '{');
-    usemap=jsonopt('UseMap',0,varargin{:});
+    usemap=varargin{1}.usemap;
     if(usemap)
 	object = containers.Map();
     else

@@ -297,15 +297,19 @@ function newdata=jdatadecode(data,varargin)
         for j=1:len
             ndata=data(j).(N_('_TableRecords_'));
             if(iscell(ndata))
-                rownum=length(ndata);
-                colnum=length(ndata{1});
-                nd=cell(rownum, colnum);
-                for i1=1:rownum;
-                    for i2=1:colnum
-                        nd{i1,i2}=ndata{i1}{i2};
+                if(iscell(ndata{1}))
+                    rownum=length(ndata);
+                    colnum=length(ndata{1});
+                    nd=cell(rownum, colnum);
+                    for i1=1:rownum
+                        for i2=1:colnum
+                            nd{i1,i2}=ndata{i1}{i2};
+                        end
                     end
+                    newdata{j}=cell2table(nd);
+                else
+                    newdata{j}=cell2table(ndata);
                 end
-                newdata{j}=cell2table(nd);
             else
                 newdata{j}=array2table(ndata);
             end
