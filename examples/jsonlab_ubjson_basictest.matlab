@@ -27,9 +27,9 @@ ans =
 [D@	!ûTD-]
 
 >> 
-json2data = 
+json2data =
 
-    [3.1416]
+    3.1416
 
 >> >> 
 %=================================================
@@ -133,9 +133,10 @@ ans =
 [SUACSUEG]
 
 >> 
-json2data = 
+json2data =
 
-    'AC'    'EG'
+AC
+EG
 
 >> >> 
 %=================================================
@@ -191,9 +192,16 @@ ans =
 UUU"U*][UUUUU$U,][UUUUU&U.][UUUU U(U0]]]
 
 >> 
-json2data = 
+json2data =
 
-    {1x4 cell}    {1x4 cell}
+    1    9   17   25   33   41
+    3   11   19   27   35   43
+    5   13   21   29   37   45
+    7   15   23   31   39   47
+    2   10   18   26   34   42
+    4   12   20   28   36   44
+    6   14   22   30   38   46
+    8   16   24   32   40   48
 
 >> >> >> >> >> 
 %=================================================
@@ -579,7 +587,7 @@ data2json =
 >> 
 ans =
 
-{Uastruct{UnameSUThink DifferentUyearIÍUmagic[$U#[$U#U	Umisfits[$D#Uð      ÿø      Uembedded{UleftTUrightF}}}
+{Uastruct{UnameSUThink DifferentUyearuÍUmagic[$U#[$U#U	Umisfits[$D#Uð      ÿø      Uembedded{UleftTUrightF}}}
 
 >> 
 json2data = 
@@ -621,7 +629,7 @@ data2json =
 >> 
 ans =
 
-{Udebian[[{UbuzzD?ñUrexD?ó333333UboD?ôÌÌÌÌÌÍUhammUUslinkD@ ÌÌÌÌÌÍUpotatoD@UwoodyUUsargeD@ÌÌÌÌÌÍUetchUUlennyUUsqueezeUUwheezyU}{UUbuntu[SUKubuntuSUXubuntuSULubuntu]}[$D#U@$záG®@$333333@&záG®@&333333]]}
+{Udebian[[{Ubuzz[D?ñ]Urex[D?ó333333]Ubo[D?ôÌÌÌÌÌÍ]UhammUUslink[D@ ÌÌÌÌÌÍ]Upotato[D@]UwoodyUUsarge[D@ÌÌÌÌÌÍ]UetchUUlennyUUsqueezeUUwheezyU}{UUbuntu[SUKubuntuSUXubuntuSULubuntu]}[$D#U@$záG®@$333333@&záG®@&333333]]}
 
 >> 
 json2data = 
@@ -669,8 +677,8 @@ json2data =
 >> >> >> 
 ans =
 
-{U	data2json[[[[U][[U][U]]][[U][U]][[U]]][[[U]][[U][U	]][[U
-]]]]}
+{U	data2json[[[U[UU]][UU][U]][[U][UU	][U
+]]]}
 
 >> 
 json2data = 
@@ -713,7 +721,7 @@ data2json =
 
 ans =
 
-[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthUUDayUUHourU UMinuteU USecondU USystemTimeZoneSUAmerica/New_York}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearIßUMonthUUDayU	UHourU UMinuteU USecondU USystemTimeZoneSUAmerica/New_York}]
+[{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearußUMonthUUDayUUHourU UMinuteU USecondU USystemTimeZoneSUAmerica/New_York}{UFormatSUdd-MMM-uuuuUTimeZoneSU UYearußUMonthUUDayU	UHourU UMinuteU USecondU USystemTimeZoneSUAmerica/New_York}]
 
 
 json2data = 
@@ -764,12 +772,109 @@ data2json =
 
 ans =
 
-{Utable{U_TableCols_[SUNamesSUAge]U_TableRows_ZU_TableRecords_[[SUAndy[U]][SUWilliam[U]][SUOm[U]]]}}
+{Utable{U_TableCols_[SUNamesSUAge]U_TableRows_ZU_TableRecords_[[SUAndyU][SUWilliamU][SUOmU]]}}
 
 
 json2data = 
 
     table: [3x2 table]
+
+>> >> 
+%=================================================
+%  use _ArrayShape_ 
+%=================================================
+
+
+data2json =
+
+     1     6    11     0     0     0     0     0
+     2     7    12    17     0     0     0     0
+     3     8    13    18    23     0     0     0
+     4     9    14    19    24    29     0     0
+     0    10    15    20    25    30    35     0
+
+
+ans =
+
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayZipSize_[$U#UU_ArrayShape_[SUbandUU]U_ArrayData_[$U#U#   	   
+}
+
+
+json2data =
+
+     1     6    11     0     0     0     0     0
+     2     7    12    17     0     0     0     0
+     3     8    13    18    23     0     0     0
+     4     9    14    19    24    29     0     0
+     0    10    15    20    25    30    35     0
+
+
+ans =
+
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayZipSize_[$U#UU_ArrayShape_[SU	lowerbandU]U_ArrayData_[$U#U   	   
+}
+
+
+json2data =
+
+     1     0     0     0     0     0     0     0
+     2     7     0     0     0     0     0     0
+     3     8    13     0     0     0     0     0
+     4     9    14    19     0     0     0     0
+     0    10    15    20    25     0     0     0
+
+
+ans =
+
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayIsComplex_TU_ArrayZipSize_[$U#UU_ArrayShape_[SU	upperbandU]U_ArrayData_[$U#U##}
+
+
+json2data =
+
+  Columns 1 through 4
+
+   1.0000 + 1.0000i   6.0000 + 6.0000i  11.0000 +11.0000i   0.0000 + 0.0000i
+   0.0000 + 0.0000i   7.0000 + 7.0000i  12.0000 +12.0000i  17.0000 +17.0000i
+   0.0000 + 0.0000i   0.0000 + 0.0000i  13.0000 +13.0000i  18.0000 +18.0000i
+   0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i  19.0000 +19.0000i
+   0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i
+
+  Columns 5 through 8
+
+   0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i
+   0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i
+  23.0000 +23.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i
+  24.0000 +24.0000i  29.0000 +29.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i
+  25.0000 +25.0000i  30.0000 +30.0000i  35.0000 +35.0000i   0.0000 + 0.0000i
+
+
+ans =
+
+{U_ArrayType_SUint8U_ArraySize_[$U#UU_ArrayShape_SUdiagU_ArrayData_[$U#U}
+
+
+json2data =
+
+    1    0    0    0    0    0    0    0
+    0    7    0    0    0    0    0    0
+    0    0   13    0    0    0    0    0
+    0    0    0   19    0    0    0    0
+    0    0    0    0   25    0    0    0
+
+
+ans =
+
+{U_ArrayType_SUdoubleU_ArraySize_[$U#UU_ArrayZipSize_[$U#UU_ArrayShape_[SUlowersymmbandU]U_ArrayData_[$U#U&2  ,  &   
+}
+
+
+json2data =
+
+     2     8    14     4     0
+     8    14    20    26    10
+    14    20    26    32    38
+     4    26    32    38    44
+     0    10    38    44    50
 
 >> >> 
 %=================================================

@@ -6,6 +6,27 @@
 
 JSONlab ChangeLog (key features marked by *):
 
+== JSONlab 2.0 (codename: Magnus Prime), FangQ <q.fang (at) neu.edu> ==
+
+ 2020-05-31*[fc0b285] adding support to _ArrayShape_ to record special matrices
+ 2020-05-15*[d88d454] jsonlab is compatible with matlab R2008
+ 2020-05-13 [86efe89] flag to prevent embedding ND array size specifier
+ 2020-05-07 [a189a50] use more robust integer type testing
+ 2020-05-06*[82f5249] saveubjson now implments BJData spec Draft1,https://github.com/fangq/bjdata
+ 2020-05-03 [34bca22] add prj file to compile a matlab package, close #60
+ 2020-05-03 [82dfdcc] handle empty array in loadmsgpack, fix #63, patch by stfnp
+ 2020-03-08 [7499bd8] Merge pull request #61 from j2L4e/patch-1
+ 2020-02-09*[6984111] add UseMap option to avoid key name conversion
+ 2019-11-16 [e46221a] if _ArraySize_ has a single length, treat as a row vector
+ 2019-11-01 [f2bfb65] fix a uint8 upper bound bug
+ 2019-10-24 [cc4491d] avoid escaping base64 str, avoid double processing preencoded arrayzipdata
+ 2019-10-24 [4dc76ef] make example script compatible with matlab R2010
+ 2019-10-24 [ad8be26] disable underscore escaping in octave,update all tests and outputs
+ 2019-10-24 [d4275c6] reduce jsonopt calls to speed up encoding and decoding
+ 2019-10-23 [82c9e91] fix invalid jdatadecode example
+ 2019-10-23 [398539d] reoptimize for speed
+ 2019-10-22*[650b5ec] enable jdataencode in savejson and saveubjson
+
 == JSONlab 1.9.8 (codename: Magnus - beta), FangQ <q.fang (at) neu.edu> ==
 
  2019-10-22*[650b5ec] enable preencode by default for savejson and saveubjson

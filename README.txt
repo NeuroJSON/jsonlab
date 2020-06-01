@@ -3,10 +3,10 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-* Copyright (C) 2011-2019  Qianqian Fang <q.fang at neu.edu>
+* Copyright (C) 2011-2020  Qianqian Fang <q.fang at neu.edu>
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-* Version: 1.9.8 (Magnus - beta)
-* JData Specification Version: Draft 2 (http://github.com/fangq/jdata)
+* Version: 2.0 (Magnus Prime)
+* JData Specification Version: Draft 3 (http://github.com/fangq/jdata)
 * URL: http://openjdata.org/jsonlab
 
 -------------------------------------------------------------------------------
@@ -25,51 +25,57 @@ V.  Acknowledgement
 
 0. What's New
 
-JSONLab v1.9.8 is the beta release of the next milestone - code named "Magnus".
+JSONLab v2.0 - code named "Magnus Prime" - is a stable release of JSONLab and
+a new milestone towards a stable, complete reference implementation for the 
+JData Specification (http://openjdata.org) for portable scientific data storage.
 
-Starting from this release, JSONLab supports encoding/decoding MessagePack,
-a widely-used binary JSON-like data format. Via ZMat v0.9, JSONLab v1.9.8
-also supports LZMA/LZ4/LZ4HC data compression/decompression. More importantly,
-JSONLab is now the official reference implementation for JData Specification (Draft 2)
-as defined in http://github.com/fangq/jdata, the foundation for the OpenJData
-Project (http://openjdata.org).
-
-There have been numerous major updates to this toolbox since the previous 
-release v1.9 in May 2019. A list of the major changes are summarized below
+There have been many major updates added to this release since the previous 
+release v1.9.8 in Oct. 2019. A list of the major changes are summarized below
 with key features marked by *:
 
-* 2019-10-22*[650b5ec] enable preencode by default for savejson and saveubjson
-* 2019-10-21*[874945f] decode graph data, encode non-char-keyed map data
-* 2019-10-18 [11712b7] add any2jd, pass opt to name check, add more options
-* 2019-10-18*[f97de9b] extract name encoding/decoding to separate function, like in easyh5
-* 2019-10-17*[9d0fd4a] rewrite jdataencode
-* 2019-10-15 [23f14d6] minor updates to make msgpack to work on octave
-* 2019-09-16*[689cb40] support lz4 and lz4hc compression via zmat v0.9
-* 2019-07-11*[06d33aa] update zmat test to support zmat v0.8 mox-the-fox
-* 2019-06-24*[eba4078] saving table objects with new syntax
-* 2019-06-12 [3eb6d56] change ArrayCompression keywords to ArrayZip to be short
-* 2019-06-12*[e5f2ffb] complete saveubjson debug mode, add compression example
-* 2019-06-11 [ebbcfd2] pass formatversion tag to jdatadecode
-* 2019-06-10*[95b2eb0] add jdataencode and jdatadecode
-* 2019-06-10*[f86219d] major update: use row-major for N-D array, incompatible with old JSONLab
-* 2019-05-31*[0c467ee] support lzma and lzip compression decompression via zmat toolbox (http://github.com/fangq/zmat)
-* 2019-05-31 [599ee4c] support categorical data
-* 2019-05-30*[d47be45] fast bracket matching
-* 2019-05-24*[0ec2d01] rewriting fastarrayparser, 10x faster for Octave, close #4 with fast bracket matching
-* 2019-05-22*[d8c19b8] add support to MessagePack, close #53, add NestArray option, close #6
-* 2019-05-19*[c87e7d2] support containers.Map
+* 2020-05-31*[fc0b285] adding support to _ArrayShape_ to record special matrices
+* 2020-05-15*[d88d454] jsonlab is compatible with matlab R2008
+* 2020-05-13 [86efe89] flag to prevent embedding ND array size specifier
+* 2020-05-07 [a189a50] use more robust integer type testing
+* 2020-05-06*[82f5249] saveubjson now implments BJData spec Draft1,https://github.com/fangq/bjdata
+* 2020-05-03 [34bca22] add prj file to compile a matlab package, close #60
+* 2020-05-03 [82dfdcc] handle empty array in loadmsgpack, fix #63, patch by stfnp
+* 2020-03-08 [7499bd8] Merge pull request #61 from j2L4e/patch-1
+* 2020-02-09*[6984111] add UseMap option to avoid key name conversion
+* 2019-11-16 [e46221a] if _ArraySize_ has a single length, treat as a row vector
+* 2019-11-01 [f2bfb65] fix a uint8 upper bound bug
+* 2019-10-24 [cc4491d] avoid escaping base64 str, avoid double processing preencoded arrayzipdata
+* 2019-10-24 [4dc76ef] make example script compatible with matlab R2010
+* 2019-10-24 [ad8be26] disable underscore escaping in octave,update all tests and outputs
+* 2019-10-24 [d4275c6] reduce jsonopt calls to speed up encoding and decoding
+* 2019-10-23 [82c9e91] fix invalid jdatadecode example
+* 2019-10-23 [398539d] reoptimize for speed
+* 2019-10-22*[650b5ec] enable jdataencode in savejson and saveubjson
 
 
-Please note that JSONLab v1.9.8 is compliant with JData Spec Draft 2, while
-v1.9 and previous releases are compatible with Draft 1. The main differences are
+Please note that JSONLab v2.0 is now compliant with JData Spec Draft 3, in 
+comparison v1.9.8 is compatible with Draft 2; v1.9 and previous releases are 
+compatible with Draft 1. JSONLab v2.0 can read all data files generated by 
+v1.9.8, but v1.9.8 can not read the new UBJSON markers introduced in v2.0.
 
-* _ArrayCompressionMethod_, _ArrayCompressionSize_</tt> and <tt>_ArrayCompressedData_</tt> \
- are replaced by <tt>_ArrayZipType_``, <tt>_ArrayZipSize_</tt> and <tt>_ArrayZipData_``, respectively
-* The serialization of N-D array data stored in <tt>_ArrayData_``is changed from \
- column-major to row-major
+The saveubjson/loadubjson now supports Binary JData specification (BJData)
+Draft 1 (https://github.com/fangq/bjdata). The BJData spec is largely compatible
+with UBJSON spec Draft 12, with the following differences (we are working with
+the UBJSON maintainer to merge these two specifications):
+
+* BJData adds 4 new numeric data types: `uint16 [u]`, `uint32 [m]`, `uint64 [M]` 
+  and `float16 [h]` ('''new in JSONLab v2.0''')
+* BJData supports an optimized ND array container (supported in JSONLab since 2013)
+* BJData does not convert NaN/Inf/-Inf to null (supported in JSONLab since 2013)
+
+To avoid using the new type markers, one should attach `'UBJSON',1` in the saveubjson
+command as
+
+   saveubjson('',data,'FileName','myfile.ubj','UBJSON',1);
 
 To read data files generated by JSONLab v1.9 or older versions, you need to attach
-option <tt>'FormatVersion', 1.9</tt> in all the loadjson/savejson function calls. 
+option `'FormatVersion', 1.9` in all the loadjson/savejson function calls.
+ 
 To convert an older file (JSON/UBJSON) to the new format, you should run
 
    data=loadjson('my_old_data_file.json','FormatVersion',1.9)
@@ -107,9 +113,9 @@ to UBJSON.
 
 We envision that both JSON and its binary counterparts will play important 
 roles as mainstream data-exchange formats for scientific research.
-It has both the flexibility and generality as offered by other popular 
-general-purpose file specifications, such as [http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5] 
-but with significantly reduced complexity and excellent readability.
+It has both the flexibility and generality as in other general-purpose 
+file specifications, such as [http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5] 
+but has significantly reduced complexity and excellent readability.
 
 Towards this goal, we have developed the JData Specification (http://github.com/fangq/jdata) 
 to standardize serializations of complex scientific data structures, such as
@@ -118,11 +124,11 @@ JSON/binary JSON constructs. The text and binary formatted JData files are
 syntactically compatible with JSON/UBJSON formats, and can be readily parsed 
 using existing JSON and UBJSON parsers.
 
-Please note that data files produced by <tt>saveubjson</tt> may utilize a special
-"optimized header" to store N-D (N>1) arrays, as defined in the JData Specification Draft 2.
+Please note that data files produced by `saveubjson` may utilize a special
+"optimized header" to store N-D (N>1) arrays, as defined in the JData Specification Draft 3.
 This feature is not supported by UBJSON Specification Draft 12. To produce 
 UBJSON files that can be parsed by UBJSON-Draft-12 compliant parsers, you must
-add the option <tt>'NestArray',1</tt> in the call to <tt>saveubjson``.
+add the option `'NestArray',1` in the call to `saveubjson``.
 
 -------------------------------------------------------------------------------
 
@@ -146,9 +152,9 @@ best way to add path is to type
    mkdir ~/matlab/
    nano ~/matlab/startup.m
 
-and type addpath('/path/to/jsonlab') in this file, save and quit the editor.
+and type `addpath('/path/to/jsonlab')` in this file, save and exit the editor.
 MATLAB will execute this file every time it starts. For Octave, the file
-you need to edit is ~/.octaverc , where "~" is your home directory.
+you need to edit is `~/.octaverc` , where `"~"` represents your home directory.
 
 === Install JSONLab on Fedora 24 or later ===
 
@@ -157,7 +163,7 @@ install it directly using the below command
 
    sudo dnf install octave-jsonlab
 
-To enable data compression/decompression, you are encouraged to install <tt>octave-zmat</tt> using
+To enable data compression/decompression, you are encouraged to install `octave-zmat` using
 
    sudo dnf install octave-zmat
 
@@ -171,13 +177,13 @@ JSONLab is also available on Arch Linux. You may install it using the below comm
 
 III.Using JSONLab
 
-JSONLab provides two functions, <tt>loadjson</tt> -- a MATLAB->JSON decoder, 
-and <tt>savejson</tt> -- a MATLAB->JSON encoder, for the text-based JSON, and 
-two equivallent function pairs -- <tt>loadubjson</tt> and <tt>saveubjson</tt> for binary 
-JSON and <tt>loadmsgpack</tt> and <tt>savemsgpack</tt> for MessagePack. The <tt>load</tt> functions 
+JSONLab provides two functions, `loadjson` -- a MATLAB->JSON decoder, 
+and `savejson` -- a MATLAB->JSON encoder, for the text-based JSON, and 
+two equivallent function pairs -- `loadubjson` and `saveubjson` for binary 
+JSON and `loadmsgpack` and `savemsgpack` for MessagePack. The `load` functions 
 for the 3 supported data formats share almost the same input parameters; 
-similarly for the 3 <tt>save</tt> functions (``savejson/saveubjson/savemsgpack``)
-The detailed help information can be found in the <tt>Contents.m</tt> file. 
+similarly for the 3 `save` functions (``savejson/saveubjson/savemsgpack``)
+The detailed help information can be found in the `Contents.m` file. 
 
 In the below section, we simply provide a few examples on how to use
 each of the core functions for encoding/decoding JSON/UBJSON/MessagePack data
@@ -261,10 +267,10 @@ Here are the known issues:
 # When processing names containing multi-byte characters, Octave and MATLAB \
 can give different field-names; you can use feature('DefaultCharacterSet','latin1') \
 in MATLAB to get consistant results
-# <tt>savejson</tt> can only export the properties from MATLAB classes, but not the methods
+# `savejson` can only export the properties from MATLAB classes, but not the methods
 # saveubjson converts a logical array into a uint8 ([U]) array
 # a special N-D array format, as defined in the JData specification, is implemented in \
-<tt>saveubjson</tt>. You may use <tt>saveubjson(...,'NestArray',1)</tt> to create UBJSON \
+`saveubjson`. You may use `saveubjson(...,'NestArray',1)` to create UBJSON \
 Draft-12 compliant files 
 # loadubjson can not parse all UBJSON Specification (Draft 9) compliant \
 files, however, it can parse all UBJSON files produced by saveubjson.
@@ -320,7 +326,7 @@ This toolbox contains modified functions from the below toolboxes:
 
 === loadjson.m ===
 
-The <tt>loadjson.m</tt> function was significantly modified from the earlier parsers 
+The `loadjson.m` function was significantly modified from the earlier parsers 
 (BSD 3-clause licensed) written by the below authors
 
 * Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713

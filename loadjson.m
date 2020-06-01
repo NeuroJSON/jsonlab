@@ -55,9 +55,13 @@ function data = loadjson(fname,varargin)
 %                         please set FormatVersion to 1.9 or earlier.
 %           Encoding ['']: json file encoding. Support all encodings of
 %                         fopen() function
+%           ObjectID [0|interger or list]: if set to a positive number, 
+%                         it returns the specified JSON object by index 
+%                         in a multi-JSON document; if set to a vector,
+%                         it returns a list of specified objects.
 %           JDataDecode [1|0]: if set to 1, call jdatadecode to decode
-%                        JData structures defined in the JData
-%                        Specification.
+%                         JData structures defined in the JData
+%                         Specification.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -113,6 +117,13 @@ function data = loadjson(fname,varargin)
     if(jsonopt('ShowProgress',0,opt)==1)
         opt.progressbar_=waitbar(0,'loading ...');
     end
+
+    objid=jsonopt('ObjectID',0,opt);
+    maxobjid=max(objid);
+    if(maxobjid==0)
+        maxobjid=inf;
+    end
+
     jsoncount=1;
     while pos <= inputlen
         [cc,pos]=next_char(inputstr, pos);
@@ -124,8 +135,15 @@ function data = loadjson(fname,varargin)
             otherwise
                 pos=error_pos('Outer level structure must be an object or an array',inputstr,pos);
         end
+	if(jsoncount>=maxobjid)
+	    break;
+	end
         jsoncount=jsoncount+1;
     end % while
+
+    if(length(objid)>1 || min(objid)>1)
+        data=data(objid(objid<=length(data)));
+    end
 
     jsoncount=length(data);
     if(jsoncount==1 && iscell(data))

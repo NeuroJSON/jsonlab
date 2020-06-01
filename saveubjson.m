@@ -250,7 +250,13 @@ end
 % save to a file if FileName is set, suggested by Patrick Rapin
 filename=jsonopt('FileName','',opt);
 if(~isempty(filename))
-    fid = fopen(filename, 'wb');
+    encoding = jsonopt('Encoding','',opt);
+    endian = jsonopt('Endian','n',opt);
+    if(jsonopt('Append',0,opt))
+        fid = fopen(filename, 'a',endian,encoding);
+    else
+        fid = fopen(filename, 'w',endian,encoding);
+    end
     fwrite(fid,json);
     fclose(fid);
 end
@@ -335,7 +341,7 @@ for j=1:dim(2)
         txt=[txt am0];
     end
     for i=1:dim(1)
-       txt=[txt obj2ubjson(name,item{i,j},level+(len>bracketlevel),varargin{:})];
+       txt=[txt char(obj2ubjson(name,item{i,j},level+(len>bracketlevel),varargin{:}))];
     end
     if(dim(1)>1)
         txt=[txt Amarker{2}];
@@ -537,9 +543,9 @@ else
     else
         if(numel(item)==1 && varargin{1}.singletarray==0)
             numtxt=matdata2ubjson(item,level+1,varargin{:});
-            txt=[N_(decodevarname(name,varargin{:}),opt) numtxt];
+            txt=[N_(decodevarname(name,varargin{:}),opt) char(numtxt)];
         else
-    	    txt=[N_(decodevarname(name,varargin{:}),opt),matdata2ubjson(item,level+1,varargin{:})];
+    	    txt=[N_(decodevarname(name,varargin{:}),opt),char(matdata2ubjson(item,level+1,varargin{:}))];
         end
     end
     return;
@@ -748,7 +754,7 @@ elseif(islogical(mat))
         txt=logicalval(mat+1);
     else
         if(~isvector(mat) && isnest==1)
-            txt=cell2ubjson('',num2cell(uint8(mat,1),level,varargin{:}));
+            txt=cell2ubjson('',num2cell(uint8(mat),1),level,varargin{:});
         else
             txt=I_a(uint8(mat(:)),Imarker(1),size(mat),varargin{:});
         end

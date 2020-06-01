@@ -222,15 +222,20 @@ end
 % save to a file if FileName is set, suggested by Patrick Rapin
 filename=jsonopt('FileName','',opt);
 if(~isempty(filename))
+    encoding = jsonopt('Encoding','',opt);
+    endian = jsonopt('Endian','n',opt);
+    mode = 'w';
+    if(jsonopt('Append',0,opt))
+        mode='a';
+    end
     if(jsonopt('SaveBinary',0,opt)==1)
-        fid = fopen(filename, 'wb');
+        fid = fopen(filename, [mode 'b'],endian,encoding);
         fwrite(fid,json);
     else
-        encoding = jsonopt('Encoding','',opt);
         if(isempty(encoding))
-            fid = fopen(filename,'wt');
+            fid = fopen(filename,[mode 't'],endian);
         else
-            fid = fopen(filename,'wt','n',encoding);
+            fid = fopen(filename,[mode 't'],endian,encoding);
         end
         fwrite(fid,json,'char');
     end

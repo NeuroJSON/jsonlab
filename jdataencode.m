@@ -288,7 +288,7 @@ if(~isempty(zipmethod) && numel(item)>minsize)
     if(~isfield(newitem,N('_ArrayZipSize_')))
         newitem.(N('_ArrayZipSize_'))=size(newitem.(N('_ArrayData_')));
     end
-    newitem.(N('_ArrayZipData_'))=compfun(typecast(newitem.(N('_ArrayData_')),'uint8'));
+    newitem.(N('_ArrayZipData_'))=compfun(typecast(newitem.(N('_ArrayData_'))(:).','uint8'));
     newitem=rmfield(newitem,N('_ArrayData_'));
     if(varargin{1}.base64)
         newitem.(N('_ArrayZipData_'))=char(base64encode(newitem.(N('_ArrayZipData_'))));

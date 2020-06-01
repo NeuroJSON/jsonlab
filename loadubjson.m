@@ -78,6 +78,12 @@ function data = loadubjson(fname,varargin)
     [os,maxelem,systemendian]=computer;
     opt.flipendian_=(systemendian ~= upper(jsonopt('IntEndian','B',opt)));
 
+    objid=jsonopt('ObjectID',0,opt);
+    maxobjid=max(objid);
+    if(maxobjid==0)
+        maxobjid=inf;
+    end
+
     jsoncount=1;
     while pos <= inputlen
         [cc, pos]=next_char(inputstr, pos);
@@ -89,8 +95,15 @@ function data = loadubjson(fname,varargin)
             otherwise
                 error_pos('Outer level structure must be an object or an array', inputstr, pos);
         end
+	if(jsoncount>=maxobjid)
+	    break;
+	end
         jsoncount=jsoncount+1;
     end % while
+
+    if(length(objid)>1 || min(objid)>1)
+        data=data(objid(objid<=length(data)));
+    end
 
     jsoncount=length(data);
     if(jsoncount==1 && iscell(data))
