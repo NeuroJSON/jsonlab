@@ -223,28 +223,29 @@ function [out, idx] = parsearray(len, bytes, idx, varargin)
     for n=1:len
         [out{n}, idx] = parse(bytes, idx, varargin{:});
     end
-    if(len==1 && iscell(out{1}))
+    if(len==1)
         out=out{1};
     end
     if(varargin{1}.simplifycell)
-        if(~isempty(out) && isnumeric(out{1}))
+        if(iscell(out) && ~isempty(out) && isnumeric(out{1}))
           try
-            oldobj=out;
-            if(iscell(out) && length(out)>1 && ndims(out{1})>=2)
-                catdim=size(out{1});
-                catdim=ndims(out{1})-(catdim(end)==1)+1;
-                out=cat(catdim,out{:});
-                out=permute(out,ndims(out):-1:1);
-            else
-                out=cell2mat(out')';
-            end
-            if(iscell(oldobj) && isstruct(out) && numel(out)>1 && varargin{1}.simplifycellarray==0)
-                out=oldobj;
-            elseif(~iscell(object) && size(out,2)>1 && ndims(out)==2)
-                out=out';
-            end
+              oldobj=out;
+              if(iscell(out) && length(out)>1 && ndims(out{1})>=2)
+                  catdim=size(out{1});
+                  catdim=ndims(out{1})-(catdim(end)==1)+1;
+                  out=cat(catdim,out{:});
+                  out=permute(out,ndims(out):-1:1);
+              else
+                  out=cell2mat(out')';
+              end
+              if(iscell(oldobj) && isstruct(out) && numel(out)>1 && varargin{1}.simplifycellarray==0)
+                  out=oldobj;
+              end  
           catch
           end
+        end
+        if(~iscell(out) && size(out,2)>1 && ndims(out)==2)
+            out=out';
         end
     end
 end
