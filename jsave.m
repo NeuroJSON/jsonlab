@@ -67,7 +67,8 @@ metadata=struct('CreateDate',datestr(now,29),...
 
 vers=ver('MATLAB');
 if(isempty(vers))
-    [verstr, releasedate]=version;
+    [verstr, releasedate]=version
+    vers=struct('Name','GNU Octave','Version',verstr);
     vers.Release=verstr;
     vers.Date=releasedate;
 end

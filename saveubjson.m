@@ -255,10 +255,14 @@ filename=jsonopt('FileName','',opt);
 if(~isempty(filename))
     encoding = jsonopt('Encoding','',opt);
     endian = jsonopt('Endian','n',opt);
+    writemode='w';
     if(jsonopt('Append',0,opt))
-        fid = fopen(filename, 'a',endian,encoding);
+        writemode='a';
+    end
+    if((exist('OCTAVE_VERSION','builtin')~=0))
+        fid = fopen(filename, writemode, endian, encoding);
     else
-        fid = fopen(filename, 'w',endian,encoding);
+        fid = fopen(filename, writemode, endian);
     end
     fwrite(fid,json);
     fclose(fid);
