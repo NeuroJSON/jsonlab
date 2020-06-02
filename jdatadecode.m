@@ -122,10 +122,19 @@ function newdata=jdatadecode(data,varargin)
             end
             if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
                 decompfun=str2func([zipmethod 'decode']);
+                arraytype=data(j).(N_('_ArrayType_'));
+                chartype=0;
+                if(strcmp(arraytype,'char'))
+                    chartype=1;
+                    arraytype='uint8';
+                end
                 if(needbase64)
-                    ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),data(j).(N_('_ArrayType_'))),dims);
+                    ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),arraytype),dims);
                 else
-                    ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayZipData_'))),data(j).(N_('_ArrayType_'))),dims);
+                    ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayZipData_'))),arraytype),dims);
+                end
+                if(chartype)
+                    ndata=char(ndata);
                 end
             else
                 error('compression method is not supported');

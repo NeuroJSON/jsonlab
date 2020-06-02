@@ -88,6 +88,8 @@ function json=savejson(rootname,obj,varargin)
 %                             compressed binary array data. 
 %           CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
+%           CompressStringSize [400|int]: only to compress a string if the total 
+%                         element count is larger than this number.
 %           FormatVersion [2|float]: set the JSONLab output version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -144,6 +146,7 @@ opt.singletcell=jsonopt('SingletCell',1,opt);
 opt.singletarray=jsonopt('SingletArray',0,opt);
 opt.formatversion=jsonopt('FormatVersion',2,opt);
 opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
+opt.compressstringsize=jsonopt('CompressStringSize',opt.compressarraysize*4,opt);
 opt.intformat=jsonopt('IntFormat','%d',opt);
 opt.floatformat=jsonopt('FloatFormat','%.10g',opt);
 opt.unpackhex=jsonopt('UnpackHex',1,opt);
@@ -254,7 +257,11 @@ elseif(isstruct(item))
 elseif(isnumeric(item) || islogical(item))
     txt=mat2json(name,item,level,varargin{:});
 elseif(ischar(item))
-    txt=str2json(name,item,level,varargin{:});
+    if(numel(item)>=varargin{1}.compressstringsize)
+        txt=mat2json(name,item,level,varargin{:});
+    else
+        txt=str2json(name,item,level,varargin{:});
+    end
 elseif(isa(item,'function_handle'))
     txt=struct2json(name,functions(item),level,varargin{:});
 elseif(isa(item,'containers.Map'))
@@ -533,7 +540,7 @@ txt = sprintf('%s',txt{:});
 
 %%-------------------------------------------------------------------------
 function txt=mat2json(name,item,level,varargin)
-if(~isnumeric(item) && ~islogical(item))
+if(~isnumeric(item) && ~islogical(item) && ~ischar(item))
         error('input is not an array');
 end
 ws=varargin{1}.whitespaces_;
@@ -598,7 +605,7 @@ if(issparse(item))
         end
         txt=sprintf(dataformat,txt,padding0,'"_ArrayZipSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
         txt=sprintf(dataformat,txt,padding0,'"_ArrayZipType_": "',dozip, ['"' sep]);
-	    compfun=str2func([dozip 'encode']);
+	compfun=str2func([dozip 'encode']);
         txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
     else
         if(size(item,1)==1)
@@ -621,7 +628,7 @@ else
     if(~isempty(dozip) && numel(item)>zipsize)
         if(isreal(item))
             fulldata=item(:)';
-            if(islogical(fulldata))
+            if(islogical(fulldata) || ischar(fulldata))
                 fulldata=uint8(fulldata);
             end
         else

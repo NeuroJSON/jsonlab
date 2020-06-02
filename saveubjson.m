@@ -87,6 +87,8 @@ function json=saveubjson(rootname,obj,varargin)
 %                            'base64' encoding
 %          CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
+%          CompressStringSize [400|int]: only to compress a string if the total 
+%                         element count is larger than this number.
 %          MessagePack [0|1]: output MessagePack (https://msgpack.org/)
 %                         binary stream instead of BJD/UBJSON
 %          UBJSON [0|1]: 0: (default)-encode data based on BJData Draft 1
@@ -146,6 +148,7 @@ opt.compression=jsonopt('Compression','',opt);
 opt.nestarray=jsonopt('NestArray',0,opt);
 opt.formatversion=jsonopt('FormatVersion',2,opt);
 opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
+opt.compressstringsize=jsonopt('CompressStringSize',opt.compressarraysize*4,opt);
 opt.singletcell=jsonopt('SingletCell',1,opt);
 opt.singletarray=jsonopt('SingletArray',0,opt);
 opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
@@ -271,7 +274,11 @@ elseif(isstruct(item))
 elseif(isnumeric(item) || islogical(item))
     txt=mat2ubjson(name,item,level,varargin{:});
 elseif(ischar(item))
-    txt=str2ubjson(name,item,level,varargin{:});
+    if(numel(item)>=varargin{1}.compressstringsize)
+        txt=mat2ubjson(name,item,level,varargin{:});
+    else
+        txt=str2ubjson(name,item,level,varargin{:});
+    end
 elseif(isa(item,'function_handle'))
     txt=struct2ubjson(name,functions(item),level,varargin{:});
 elseif(isa(item,'containers.Map'))
@@ -502,7 +509,7 @@ end
 
 %%-------------------------------------------------------------------------
 function txt=mat2ubjson(name,item,level,varargin)
-if(~isnumeric(item) && ~islogical(item))
+if(~isnumeric(item) && ~islogical(item) && ~ischar(item))
         error('input is not an array');
 end
 
@@ -610,7 +617,7 @@ else
     if(~isempty(dozip) && numel(item)>zipsize)
         if(isreal(item))
             fulldata=item(:)';
-            if(islogical(fulldata))
+            if(islogical(fulldata) || ischar(fulldata))
                 fulldata=uint8(fulldata);
             end
         else
@@ -621,8 +628,8 @@ else
         cid=I_(uint32(max(size(fulldata))),varargin{:});
         txt=[txt, N_('_ArrayZipSize_',opt),I_a(size(fulldata),cid(1),varargin{:})];
         txt=[txt, N_('_ArrayZipType_',opt),S_(dozip,opt)];
-	    compfun=str2func([dozip 'encode']);
-	    txt=[txt,N_('_ArrayZipData_',opt), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),varargin{:})];
+	compfun=str2func([dozip 'encode']);
+	txt=[txt,N_('_ArrayZipData_',opt), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),varargin{:})];
         childcount=childcount+3;
     else
         if(ismsgpack)
