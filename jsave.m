@@ -5,16 +5,16 @@ function jsave(filename, varargin)
 % jsave(fname)
 % varlist=jsave(fname,'param1',value1,'param2',value2,...)
 %
-% Store all variables in a workspace to a JSON or binary JSON file
+% Store variables in a workspace to a JSON or binary JSON file
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 % created on 2020/05/31
 %
 % input:
-%      fname: (optional) input file name; if not given, load 'jamdata.jamm'
+%      fname: (optional) output file name; if not given, save to 'jamdata.jamm'
 %           if fname has a '.json' or '.jdt' suffix, a text-based
-%           JSON/JData file will be created; if the suffix is '.jamm' or
-%           '.jdb', a Binary JData file will be created.
+%           JSON/JData file will be created (slow); if the suffix is '.jamm' or
+%           '.jdb', a Binary JData (https://github.com/fangq/bjdata/) file will be created.
 %      opt: (optional) a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs - the param string is equivallent
 %           to a field in opt. opt can have the following 
@@ -25,7 +25,7 @@ function jsave(filename, varargin)
 %           vars [{'var1','var2',...}]: list of variables to be saved
 %
 %           all options for saveubjson/savejson (depends on file suffix)
-%           can be used to adjust the output file
+%           can be used to adjust the output
 %
 % output:
 %      varlist: a list of variables loaded
@@ -67,8 +67,8 @@ metadata=struct('CreateDate',datestr(now,29),...
 
 vers=ver('MATLAB');
 if(isempty(vers))
-    [verstr, releasedate]=version
-    vers=struct('Name','GNU Octave','Version',verstr);
+    vers=ver('Octave');
+    [verstr, releasedate]=version;
     vers.Release=verstr;
     vers.Date=releasedate;
 end

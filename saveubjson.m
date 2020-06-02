@@ -259,7 +259,7 @@ if(~isempty(filename))
     if(jsonopt('Append',0,opt))
         writemode='a';
     end
-    if((exist('OCTAVE_VERSION','builtin')~=0))
+    if(~exist('OCTAVE_VERSION','builtin'))
         fid = fopen(filename, writemode, endian, encoding);
     else
         fid = fopen(filename, writemode, endian);

@@ -25,7 +25,7 @@ function varargout=jload(filename, varargin)
 %           vars [{'var1','var2',...}]: list of variables to be saved
 %
 %           all options for loadubjson/loadjson (depends on file suffix)
-%           can be used to adjust the output file
+%           can be used to adjust the parsing options
 %
 % output:
 %      varlist: a list of variables loaded

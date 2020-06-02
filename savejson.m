@@ -261,8 +261,7 @@ elseif(isstruct(item))
 elseif(isnumeric(item) || islogical(item))
     txt=mat2json(name,item,level,varargin{:});
 elseif(ischar(item))
-    if(numel(item)>=varargin{1}.compressstringsize && ...
-            ~strcmp(name,encodevarname('_ArrayZipData_',varargin{:})))
+    if(numel(item)>=varargin{1}.compressstringsize)
         txt=mat2json(name,item,level,varargin{:});
     else
         txt=str2json(name,item,level,varargin{:});
@@ -399,8 +398,14 @@ for j=1:dim(2)
     end
     if(~isempty(names))
       for e=1:length(names)
+        if(varargin{1}.nosubstruct_ && ischar(item(i,j).(names{e})) || ...
+              strcmp(names{e},encodevarname('_ByteStream_')))
+	    txt{end+1}=str2json(names{e},item(i,j).(names{e}),...
+               level+(dim(1)>1)+1+forcearray,varargin{:});
+        else
 	    txt{end+1}=obj2json(names{e},item(i,j).(names{e}),...
-             level+(dim(1)>1)+1+forcearray,varargin{:});
+               level+(dim(1)>1)+1+forcearray,varargin{:});
+        end
         if(e<length(names))
             txt{end+1}=',';
         end
