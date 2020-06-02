@@ -257,7 +257,8 @@ elseif(isstruct(item))
 elseif(isnumeric(item) || islogical(item))
     txt=mat2json(name,item,level,varargin{:});
 elseif(ischar(item))
-    if(numel(item)>=varargin{1}.compressstringsize)
+    if(numel(item)>=varargin{1}.compressstringsize && ...
+            ~strcmp(name,encodevarname('_ArrayZipData_',varargin{:})))
         txt=mat2json(name,item,level,varargin{:});
     else
         txt=str2json(name,item,level,varargin{:});

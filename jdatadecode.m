@@ -124,7 +124,7 @@ function newdata=jdatadecode(data,varargin)
                 decompfun=str2func([zipmethod 'decode']);
                 arraytype=data(j).(N_('_ArrayType_'));
                 chartype=0;
-                if(strcmp(arraytype,'char'))
+                if(strcmp(arraytype,'char') || strcmp(arraytype,'logical'))
                     chartype=1;
                     arraytype='uint8';
                 end

@@ -375,7 +375,7 @@ Imarker=varargin{1}.IM_;
 Amarker=varargin{1}.AM_;
 Omarker=varargin{1}.OM_;
 
-if(isfield(item,N_('_ArrayType_',varargin{:})))
+if(isfield(item,encodevarname('_ArrayType_',varargin{:})))
     varargin{1}.nosubstruct_=1;
 end
 
@@ -586,8 +586,8 @@ if(issparse(item))
         cid=I_(uint32(max(size(fulldata))),varargin{:});
         txt=[txt, N_('_ArrayZipSize_',opt),I_a(size(fulldata),cid(1),varargin{:})];
         txt=[txt, N_('_ArrayZipType_',opt),S_(dozip,opt)];
-	    compfun=str2func([dozip 'encode']);
-	    txt=[txt,N_('_ArrayZipData_',opt), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),varargin{:})];
+        compfun=str2func([dozip 'encode']);
+        txt=[txt,N_('_ArrayZipData_',opt), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),varargin{:})];
         childcount=childcount+3;
     else
         if(size(item,1)==1)
