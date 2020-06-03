@@ -256,10 +256,14 @@ filename=jsonopt('FileName','',opt);
 if(~isempty(filename))
     encoding = jsonopt('Encoding','',opt);
     endian = jsonopt('Endian','n',opt);
+    writemode='w';
     if(jsonopt('Append',0,opt))
-        fid = fopen(filename, 'a',endian,encoding);
+        writemode='a';
+    end
+    if(~exist('OCTAVE_VERSION','builtin'))
+        fid = fopen(filename, writemode, endian, encoding);
     else
-        fid = fopen(filename, 'w',endian,encoding);
+        fid = fopen(filename, writemode, endian);
     end
     fwrite(fid,json);
     fclose(fid);
@@ -587,8 +591,8 @@ if(issparse(item))
         cid=I_(uint32(max(size(fulldata))),varargin{:});
         txt=[txt, N_('_ArrayZipSize_',opt),I_a(size(fulldata),cid(1),varargin{:})];
         txt=[txt, N_('_ArrayZipType_',opt),S_(dozip,opt)];
-	    compfun=str2func([dozip 'encode']);
-	    txt=[txt,N_('_ArrayZipData_',opt), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),varargin{:})];
+        compfun=str2func([dozip 'encode']);
+        txt=[txt,N_('_ArrayZipData_',opt), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),varargin{:})];
         childcount=childcount+3;
     else
         if(size(item,1)==1)

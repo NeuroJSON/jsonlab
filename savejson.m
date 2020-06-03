@@ -234,7 +234,11 @@ if(~isempty(filename))
         mode='a';
     end
     if(jsonopt('SaveBinary',0,opt)==1)
-        fid = fopen(filename, [mode 'b'],endian,encoding);
+        if(isempty(encoding))
+            fid = fopen(filename, [mode 'b'],endian,encoding);
+        else
+            fid = fopen(filename, [mode 'b'],endian);
+        end
         fwrite(fid,json);
     else
         if(isempty(encoding))
@@ -394,8 +398,14 @@ for j=1:dim(2)
     end
     if(~isempty(names))
       for e=1:length(names)
+        if(varargin{1}.nosubstruct_ && ischar(item(i,j).(names{e})) || ...
+              strcmp(names{e},encodevarname('_ByteStream_')))
+	    txt{end+1}=str2json(names{e},item(i,j).(names{e}),...
+               level+(dim(1)>1)+1+forcearray,varargin{:});
+        else
 	    txt{end+1}=obj2json(names{e},item(i,j).(names{e}),...
-             level+(dim(1)>1)+1+forcearray,varargin{:});
+               level+(dim(1)>1)+1+forcearray,varargin{:});
+        end
         if(e<length(names))
             txt{end+1}=',';
         end
