@@ -228,20 +228,22 @@ function [out, idx] = parsearray(len, bytes, idx, varargin)
     end
     if(varargin{1}.simplifycell)
         if(iscell(out) && ~isempty(out) && isnumeric(out{1}))
-          try
-              oldobj=out;
-              if(iscell(out) && length(out)>1 && ndims(out{1})>=2)
-                  catdim=size(out{1});
-                  catdim=ndims(out{1})-(catdim(end)==1)+1;
-                  out=cat(catdim,out{:});
-                  out=permute(out,ndims(out):-1:1);
-              else
-                  out=cell2mat(out')';
+          if(all(cellfun(@(e) isequal(size(out{1}), size(e)) , out(2:end))))
+              try
+                  oldobj=out;
+                  if(iscell(out) && length(out)>1 && ndims(out{1})>=2)
+                      catdim=size(out{1});
+                      catdim=ndims(out{1})-(catdim(end)==1)+1;
+                      out=cat(catdim,out{:});
+                      out=permute(out,ndims(out):-1:1);
+                  else
+                      out=cell2mat(out')';
+                  end
+                  if(iscell(oldobj) && isstruct(out) && numel(out)>1 && varargin{1}.simplifycellarray==0)
+                      out=oldobj;
+                  end  
+              catch
               end
-              if(iscell(oldobj) && isstruct(out) && numel(out)>1 && varargin{1}.simplifycellarray==0)
-                  out=oldobj;
-              end  
-          catch
           end
         end
         if(~iscell(out) && size(out,2)>1 && ndims(out)==2)

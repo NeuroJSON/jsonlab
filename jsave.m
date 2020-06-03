@@ -96,4 +96,4 @@ end
 
 savefun('WorkspaceHeader',header,'filename',filename,varargin{:});
 savefun('WorkspaceData',body,'filename',filename,'append',1,...
-    'compression','zlib',varargin{:});
+    'compression','zlib','keeptype',1,'array2struct',1,varargin{:});

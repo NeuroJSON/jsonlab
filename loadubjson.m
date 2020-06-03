@@ -72,7 +72,7 @@ function data = loadubjson(fname,varargin)
 
     opt=varargin2struct(varargin{:});
     opt.arraytoken_=arraytoken;
-    opt.simplifycell=jsonopt('SimplifyCell',0,opt);
+    opt.simplifycell=jsonopt('SimplifyCell',1,opt);
     opt.simplifycellarray=jsonopt('SimplifyCellArray',0,opt);
     opt.usemap=jsonopt('UseMap',0,opt);
     opt.nameisstring=jsonopt('NameIsString',0,opt);
@@ -193,21 +193,23 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
     end
     if(varargin{1}.simplifycell)
       if(iscell(object) && ~isempty(object) && isnumeric(object{1}))
-      try
-        oldobj=object;
-        if(iscell(object) && length(object)>1 && ndims(object{1})>=2)
-            catdim=size(object{1});
-            catdim=ndims(object{1})-(catdim(end)==1)+1;
-            object=cat(catdim,object{:});
-            object=permute(object,ndims(object):-1:1);
-        else
-            object=cell2mat(object')';
-        end
-        if(iscell(oldobj) && isstruct(object) && numel(object)>1 && varargin{1}.simplifycellarray==0)
-            object=oldobj;
-        end
-      catch
-      end
+          if(all(cellfun(@(e) isequal(size(object{1}), size(e)) , object(2:end))))
+              try
+                  oldobj=object;
+                  if(iscell(object) && length(object)>1 && ndims(object{1})>=2)
+                      catdim=size(object{1});
+                      catdim=ndims(object{1})-(catdim(end)==1)+1;
+                      object=cat(catdim,object{:});
+                      object=permute(object,ndims(object):-1:1);
+                  else
+                      object=cell2mat(object')';
+                  end
+                  if(iscell(oldobj) && isstruct(object) && numel(object)>1 && varargin{1}.simplifycellarray==0)
+                      object=oldobj;
+                  end
+              catch
+              end
+          end
       end
       if(~iscell(object) && size(object,1)>1 && ndims(object)==2)
             object=object';

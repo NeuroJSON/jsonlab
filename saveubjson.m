@@ -156,6 +156,7 @@ opt.debug=jsonopt('Debug',0,opt);
 opt.messagepack=jsonopt('MessagePack',0,opt);
 opt.num2cell_=0;
 opt.ubjson=bitand(jsonopt('UBJSON',0,opt), ~opt.messagepack);
+opt.keeptype=jsonopt('KeepType',0,opt);
 opt.nosubstruct_=0;
 
 if(jsonopt('PreEncode',1,opt))
@@ -375,7 +376,7 @@ Imarker=varargin{1}.IM_;
 Amarker=varargin{1}.AM_;
 Omarker=varargin{1}.OM_;
 
-if(isfield(item,N_('_ArrayType_',varargin{:})))
+if(isfield(item,encodevarname('_ArrayType_',varargin{:})))
     varargin{1}.nosubstruct_=1;
 end
 
@@ -721,11 +722,19 @@ if(~isvector(mat) && isnest==1)
    varargin{1}.num2cell_=1;
 end
 
-if(isa(mat,'integer') || isinteger(mat) || (isfloat(mat) && all(mod(mat(:),1) == 0)))
+if(isa(mat,'integer') || isinteger(mat) || (~varargin{1}.keeptype && isfloat(mat) && all(mod(mat(:),1) == 0)))
     if(~isvector(mat) && isnest==1)
         txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
     elseif(~ismsgpack || size(mat,1)==1)
-        if(~any(mat<0))
+        if(0 && varargin{1}.keeptype)
+            itype=class(mat);
+            idx=find(ismember(varargin{1}.IType_,itype));
+            if(isempty(idx))
+                idx=find(ismember(varargin{1}.IType_,itype(2:end)));
+            end
+            type=Imarker(idx);
+            varargin{1}.inttype_=idx;
+        elseif(~any(mat<0))
             cid=varargin{1}.IType_;
             type=Imarker(end);
             maxdata=max(double(mat(:)));
@@ -826,8 +835,16 @@ if(~isinteger(num))
     error('input is not an integer');
 end
 Imarker=varargin{1}.IM_;
+cid=varargin{1}.IType_;
 isdebug=varargin{1}.debug;
-
+if(isfield(varargin{1},'inttype_'))
+    if(isdebug)
+        val=[Imarker(varargin{1}.inttype_) sprintf('<%d>',num)];
+    else
+        val=[Imarker(varargin{1}.inttype_) data2byte(swapbytes(cast(num,cid{varargin{1}.inttype_})),'uint8')];
+    end
+    return;
+end
 if(Imarker(1)~='U')
     if(num>=0 && num<127)
        val=uint8(num);
@@ -843,7 +860,6 @@ if(Imarker(1)~='U' && num<0 && num<127)
    return;
 end
 key=Imarker;
-cid=varargin{1}.IType_;
 for i=1:length(cid)
   if(num==cast(num,cid{i}))
     if(isdebug)

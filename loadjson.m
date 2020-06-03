@@ -25,7 +25,7 @@ function data = loadjson(fname,varargin)
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
+%           SimplifyCell [1|0]: if set to 1, loadjson will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
 %           FastArrayParser [1|0 or integer]: if set to 1, use a
@@ -281,22 +281,27 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
     end
 
     if(varargin{1}.simplifycell)
-      try
-        oldobj=object;
-        if(iscell(object) && length(object)>1 && ndims(object{1})>=2)
-            catdim=size(object{1});
-            catdim=ndims(object{1})-(catdim(end)==1)+1;
-            object=cat(catdim,object{:});
-            object=permute(object,ndims(object):-1:1);
-        else
-            object=cell2mat(object')';
-        end
-        if(iscell(oldobj) && isstruct(object) && numel(object)>1 && varargin{1}.simplifycellarray==0)
-            object=oldobj;
-        elseif(~iscell(object) && size(object,1)>1 && ndims(object)==2)
+      if(iscell(object) && ~isempty(object) && isnumeric(object{1}))
+          if(all(cellfun(@(e) isequal(size(object{1}), size(e)) , object(2:end))))
+              try
+                  oldobj=object;
+                  if(iscell(object) && length(object)>1 && ndims(object{1})>=2)
+                      catdim=size(object{1});
+                      catdim=ndims(object{1})-(catdim(end)==1)+1;
+                      object=cat(catdim,object{:});
+                      object=permute(object,ndims(object):-1:1);
+                  else
+                      object=cell2mat(object')';
+                  end
+                  if(iscell(oldobj) && isstruct(object) && numel(object)>1 && varargin{1}.simplifycellarray==0)
+                      object=oldobj;
+                  end
+              catch
+              end
+          end
+      end
+      if(~iscell(object) && size(object,1)>1 && ndims(object)==2)
             object=object';
-        end
-      catch
       end
     end
     pos=parse_char(inputstr, pos, ']');
