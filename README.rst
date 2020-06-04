@@ -291,6 +291,8 @@ jdatadecode.m
 jsave.m
 ----------
 
+.. code-block:: matlab
+
       jsave    % save workspace to jamdata.jamm
       jsave mydata.jamm
       jsave('mydata.jamm','vars',{'var1','var2'})
@@ -300,6 +302,8 @@ jsave.m
 ----------
 jload.m
 ----------
+
+.. code-block:: matlab
 
       jload    % load from jamdata.jamm
       jload mydata.jamm
