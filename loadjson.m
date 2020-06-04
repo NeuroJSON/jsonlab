@@ -70,7 +70,7 @@ function data = loadjson(fname,varargin)
 % examples:
 %      dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
 %      dat=loadjson(['examples' filesep 'example1.json'])
-%      dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',1)
+%      dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',0)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -489,7 +489,7 @@ function pos=error_pos(msg, inputstr, pos)
     end
     msg = [sprintf(msg, pos) ': ' ...
     inputstr(poShow(1):poShow(2)) '<error>' inputstr(poShow(3):poShow(4)) ];
-    error( ['JSONparser:invalidFormat: ' msg] );
+    error( ['JSONLAB:InvalidFormat: ' msg] );
 end
 
 %%-------------------------------------------------------------------------

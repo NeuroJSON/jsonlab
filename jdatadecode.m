@@ -6,7 +6,7 @@ function newdata=jdatadecode(data,varargin)
 % (accepts JData objects loaded from either loadjson/loadubjson or 
 % jsondecode for MATLAB R2018a or later)
 %
-% This function implements the JData Specification Draft 2 (Oct. 2019)
+% This function implements the JData Specification Draft 3 (Jun. 2020)
 % see http://github.com/fangq/jdata for details
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)

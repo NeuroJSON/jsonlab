@@ -26,8 +26,17 @@ JData Specification (http://openjdata.org) for portable scientific data storage.
 
 There have been many major updates added to this release since the previous 
 release v1.9.8 in Oct. 2019. A list of the major changes are summarized below
-with key features marked by *:
+(with key features marked by *), including the support to ``_ArrayShape_`` to
+efficiently encode special matrices and the addition of ``jsave/jload`` to save
+and restore variables in MATLAB/Octave like `save/load` commands (experimental):
 
+
+- 2020-06-02*[15ca7ae] add keeptype option to jsave and saveubjson
+- 2020-06-02 [7f2cbc4] make jsave and jload work on octave
+- 2020-06-01*[8829d6b] apply data compression to strings, new datatype char
+- 2020-06-01 [270cbf6] fix loadmsgpack ND array issue
+- 2020-06-01*[919f502] add jsave and jload for portable data sharing,update doc
+- 2020-05-31 [df3a4fa] debug arrayshape related changes and test all demo scripts
 - 2020-05-31*[fc0b285] adding support to _ArrayShape_ to record special matrices
 - 2020-05-15*[d88d454] jsonlab is compatible with matlab R2008
 - 2020-05-13 [86efe89] flag to prevent embedding ND array size specifier
@@ -88,33 +97,29 @@ format.
 Introduction
 ============
 
-JSONLab is a free and open-source implementation of a JSON/UBJSON/MessagePack encoder 
-and a decoder in the native MATLAB language. It can be used to convert a MATLAB 
+JSONLab is a free and open-source JSON/UBJSON/MessagePack encoder and a 
+decoder in the native MATLAB language. It can be used to convert a MATLAB 
 data structure (array, struct, cell, struct array, cell array, and objects) into 
 JSON/UBJSON/MessagePack formatted strings, or to decode a 
 JSON/UBJSON/MessagePack file into MATLAB data structure. JSONLab supports both 
-MATLAB and `GNU Octave <http://www.gnu.org/software/octave/>`_ (a free MATLAB clone).
+MATLAB and [http://www.gnu.org/software/octave GNU Octave] (a free MATLAB clone).
 
-JSON (`JavaScript Object Notation <http://www.json.org/>`_) is a highly portable, 
-human-readable and " `fat-free <http://en.wikipedia.org/wiki/JSON>`_" text format 
-to represent complex and hierarchical data. It is as powerful as `XML <http://en.wikipedia.org/wiki/XML>`_, 
-but less verbose. JSON format is widely used for data-exchange in applications.
-
-UBJSON (`Universal Binary JSON <http://ubjson.org/>`_) is a binary JSON format,  
-specifically optimized for compact file size and better performance while keeping
-the semantics as simple as the text-based JSON format. Using the UBJSON
-format allows to wrap complex binary data in a flexible and extensible
-structure, making it possible to process complex and large dataset 
-without accuracy loss due to text conversions. MessagePack is another binary
+JSON ([http://www.json.org/ JavaScript Object Notation]) is a highly portable, 
+human-readable and [http://en.wikipedia.org/wiki/JSON "fat-free"] text format 
+to represent complex and hierarchical data, widely used for data-exchange in applications.
+UBJSON ([http://ubjson.org/ Universal Binary JSON]) is a binary JSON format,  
+specifically designed to complement the limitations of JSON, permitting the
+storage of binary data with strongly typed data records, resulting in smaller
+file sizes and fast encoding and decoding. MessagePack is another binary
 JSON-like data format widely used in data exchange in web/native applications.
 It is slightly more compact than UBJSON, but is not directly readable compared
 to UBJSON.
 
 We envision that both JSON and its binary counterparts will play important 
-roles as mainstream data-exchange formats for scientific research.
-It has both the flexibility and generality as offered by other popular 
-general-purpose file specifications, such as `HDF5 <http://www.hdfgroup.org/HDF5/whatishdf5.html>`_, 
-but with significantly reduced complexity and excellent readability.
+rules not only for light-weight data storage, but also for storage and interchange
+of scientific data. It has both the flexibility and generality as in other general-purpose 
+file specifications, such as [http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5] 
+but has significantly reduced complexity and excellent readability.
 
 Towards this goal, we have developed the JData Specification (http://github.com/fangq/jdata) 
 to standardize serializations of complex scientific data structures, such as
@@ -122,12 +127,6 @@ N-D arrays, sparse/complex-valued arrays, trees, maps, tables and graphs using
 JSON/binary JSON constructs. The text and binary formatted JData files are
 syntactically compatible with JSON/UBJSON formats, and can be readily parsed 
 using existing JSON and UBJSON parsers.
-
-Please note that data files produced by ``saveubjson`` may utilize a special
-"optimized header" to store N-D (N>=2) arrays, as defined in the JData Specification Draft 2.
-This feature is not supported by UBJSON Specification Draft 12. To produce 
-UBJSON files that can be parsed by UBJSON-Draft-12 compliant parsers, you must
-add the option ``'NestArray',1`` in the call to ``saveubjson``.
 
 ================
 Installation
@@ -142,9 +141,9 @@ by using the following command:
 
     addpath('/path/to/jsonlab');
 
-If you want to add this path permanently, you can type ``"pathtool"``, 
+If you want to add this path permanently, you can type ``pathtool``, 
 browse to the JSONLab root folder and add to the list, then click "Save".
-Then, run "rehash" in MATLAB, and type "which savejson", if you see an 
+Then, run ``rehash`` in MATLAB, and type ``which savejson``, if you see an 
 output, that means JSONLab is installed for MATLAB/Octave.
 
 If you use MATLAB in a shared environment such as a Linux server, the
@@ -155,9 +154,9 @@ best way to add path is to type
    mkdir ~/matlab/
    nano ~/matlab/startup.m
 
-and type addpath('/path/to/jsonlab') in this file, save and quit the editor.
+and type ``addpath('/path/to/jsonlab')`` in this file, save and quit the editor.
 MATLAB will execute this file every time it starts. For Octave, the file
-you need to edit is ~/.octaverc , where "~" is your home directory.
+you need to edit is ``~/.octaverc``, where ``~`` is your home directory.
 
 ----------
 Install JSONLab on Fedora 24 or later
@@ -170,7 +169,7 @@ install it directly using the below command
 
    sudo dnf install octave-jsonlab
 
-To enable data compression/decompression, you are encouraged to install ``octave-zmat`` using
+To enable data compression/decompression, you need to install ``octave-zmat`` using
 
 .. code:: shell
 
@@ -184,20 +183,30 @@ JSONLab is also available on Arch Linux. You may install it using the below comm
 
 .. code:: shell
 
-   sudo pacman -S jsonlab
+   sudo pikaur -S jsonlab
 
 ================
 Using JSONLab
 ================
 
-JSONLab provides two functions, ``loadjson`` -- a MATLAB->JSON decoder, 
-and ``savejson`` -- a MATLAB->JSON encoder, for the text-based JSON, and 
+JSONLab provides a pair of functions, ``loadjson`` -- a JSON-to-MATLAB parser, 
+and ``savejson`` -- a MATLAB-to-JSON encoder, for the text-based JSON, and 
 two equivallent function pairs -- ``loadubjson`` and ``saveubjson`` for binary 
-JSON and ``loadmsgpack`` and ``savemsgpack`` for MessagePack. The ``load`` functions 
+JSON and ``loadmsgpack`` and ``savemsgpack`` for MessagePack. The ``load*`` functions 
 for the 3 supported data formats share almost the same input parameters; 
-similarly for the 3 ``save`` functions (``savejson/saveubjson/savemsgpack``)
-The detailed help information can be found in the ``Contents.m`` file. 
+similarly for the 3 ``save*`` functions (``savejson/saveubjson/savemsgpack``)
+These encoders and decoders are capable of converting/storing many different
+data structures supported by MATLAB, thanks to `jdataencode/jdatadecode` - 
+a pair of in-memory data converters that translate complex data structures
+to the easy-to-serialized forms according to the JData specifications.
+The detailed help information can be found in the `Contents.m` file. 
 
+In addition, we also provide a pair of functions, ``jsave/jload`` to store
+and retrieve variables from the current workspace, similar to the `save/load` 
+functions in MATLAB and Octave. The files ``jsave/jload`` use is by default 
+a binary JData file with self-contained metadata. The file size is comparable
+(can be smaller if use ``lzma`` compression) to ``.mat`` files. This feature
+is currently experimental.
 In the below section, we simply provide a few examples on how to use
 each of the core functions for encoding/decoding JSON/UBJSON/MessagePack data
 
@@ -215,12 +224,13 @@ savejson.m
                 'SpecialData',[nan, inf, -inf]);
        savejson(jsonmesh)
        savejson('jmesh',jsonmesh)
-       savejson('',jsonmesh,'compact',1)
+       savejson('',jsonmesh,'Compact',1)
        savejson('jmesh',jsonmesh,'outputfile.json')
        savejson('',jsonmesh,'ArrayIndent',0,'FloatFormat','\t%.5g','FileName','outputfile2.json')
        savejson('cpxrand',eye(5)+1i*magic(5))
        savejson('ziparray',eye(10),'Compression','zlib','CompressArraySize',1)
        savejson('',jsonmesh,'ArrayToStruct',1)
+       savejson('',eye(10),'UseArrayShape',1)
 
 ----------
 loadjson.m
@@ -231,7 +241,7 @@ loadjson.m
        loadjson('{}')
        dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
        dat=loadjson(['examples' filesep 'example1.json'])
-       dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',1)
+       dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',0)
 
 -------------
 saveubjson.m
@@ -277,18 +287,39 @@ jdatadecode.m
       newjd=jdatadecode(jd)
       isequaln(newjd,rawdata)
 
+----------
+jsave.m
+----------
+
+      jsave    % save workspace to jamdata.jamm
+      jsave mydata.jamm
+      jsave('mydata.jamm','vars',{'var1','var2'})
+      jsave('mydata.jamm','compression','lzma')
+      jsave('mydata.json','compression','gzip')
+
+----------
+jload.m
+----------
+
+      jload    % load from jamdata.jamm
+      jload mydata.jamm
+      jload('mydata.jamm','vars',{'var1','var2'})
+      jload('mydata.jamm','simplifycell',0)
+      jload('mydata.json')
+
+
 ---------
 examples
 ---------
 
-Under the ``"examples"`` folder, you can find several scripts to demonstrate the
-basic utilities of JSONLab. Running the ``"demo_jsonlab_basic.m"`` script, you 
+Under the ``examples`` folder, you can find several scripts to demonstrate the
+basic utilities of JSONLab. Running the ``demo_jsonlab_basic.m`` script, you 
 will see the conversions from MATLAB data structure to JSON text and backward.
-In ``"jsonlab_selftest.m"``, we load complex JSON files downloaded from the Internet
+In ``jsonlab_selftest.m``, we load complex JSON files downloaded from the Internet
 and validate the ``loadjson/savejson`` functions for regression testing purposes.
 Similarly, a ``"demo_ubjson_basic.m"`` script is provided to test the ``saveubjson``
 and ``loadubjson`` functions for various matlab data structures, and 
-``"demo_msgpack_basic.m"`` is for testing ``savemsgpack`` and ``loadmsgpack`` functions.
+``demo_msgpack_basic.m`` is for testing ``savemsgpack`` and ``loadmsgpack`` functions.
 
 Please run these examples and understand how JSONLab works before you use
 it to process your data.

@@ -23,6 +23,8 @@ function varargout=jload(filename, varargin)
 %           ws ['base'|'wsname']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: list of variables to be saved
+%           Header [0|1]: if set to 1, return the metadata of the variables 
+%                         stored in the file
 %
 %           all options for loadubjson/loadjson (depends on file suffix)
 %           can be used to adjust the parsing options
@@ -32,6 +34,7 @@ function varargout=jload(filename, varargin)
 %
 % examples:
 %      jload  % load all variables in jamdata.jamm to the 'base' workspace 
+%      jload mydat.jamm
 %      jload('mydat.jamm','vars', {'v1','v2',...}) % load selected variables
 %      jload('mydat.jamm','simplifycell',1)
 %
@@ -58,7 +61,12 @@ elseif(regexp(filename,'\.[mM][sS][gG][pP][kK]$'))
     loadfun=@loadmsgpack;
 end
 
-header=loadfun(filename,'ObjectID',1);
+header=loadfun(filename,'ObjectID',1, varargin{:});
+
+if(jsonopt('Header',0,opt))
+    varargout{1}=header;
+    return;
+end
 
 allvar=fieldnames(header.WorkspaceHeader);
 
@@ -70,7 +78,7 @@ if(any(isfound==0))
     error('specified variable is not found');
 end
 
-body=loadfun(filename,'ObjectID',2);
+body=loadfun(filename,'ObjectID',2, varargin{:});
 
 for i=1:length(varlist)
     assignin(ws, varlist{i}, body.WorkspaceData.(varlist{i}));

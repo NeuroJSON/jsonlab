@@ -31,6 +31,10 @@ function data = loadubjson(fname,varargin)
 %                         flag to 1.
 %           UseMap [0|1]: if set to 1, loadjson uses a containers.Map to 
 %                         store map objects; otherwise use a struct object
+%           ObjectID [0|interger or list]: if set to a positive number, 
+%                         it returns the specified JSON object by index 
+%                         in a multi-JSON document; if set to a vector,
+%                         it returns a list of specified objects.
 %           FormatVersion [2|float]: set the JSONLab format version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -46,7 +50,7 @@ function data = loadubjson(fname,varargin)
 %      ubjdata=saveubjson('obj',obj);
 %      dat=loadubjson(ubjdata)
 %      dat=loadubjson(['examples' filesep 'example1.ubj'])
-%      dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',1)
+%      dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',0)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -337,7 +341,7 @@ function pos=error_pos(msg, inputstr, pos)
     end
     msg = [sprintf(msg, pos) ': ' ...
     inputstr(poShow(1):poShow(2)) '<error>' inputstr(poShow(3):poShow(4)) ];
-    error( ['JSONparser:invalidFormat: ' msg] );
+    error( ['JSONLAB:InvalidFormat: ' msg] );
 end
 
 %%-------------------------------------------------------------------------

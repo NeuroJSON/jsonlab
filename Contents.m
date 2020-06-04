@@ -11,6 +11,8 @@
 %   isoctavemesh       - [isoctave verinfo]=isoctavemesh
 %   jdatadecode        - newdata=jdatadecode(data,opt,...)
 %   jdataencode        - jdata=jdataencode(data)
+%   jsave              - jsave(fname,'param1',value1,'param2',value2,...)
+%   jload              - jload(fname,'param1',value1,'param2',value2,...)
 %   jsonopt            - val=jsonopt(key,default,optstruct)
 %   loadjson           - data=loadjson(fname,opt)
 %   loadmsgpack        - PARSEMSGPACK parses a msgpack byte buffer into Matlab data structures
@@ -45,7 +47,7 @@
 % Serialize a MATLAB struct or cell array into a JData-compliant 
 % structure as defined in the JData spec: http://github.com/fangq/jdata
 %
-% This function implements the JData Specification Draft 2 (Oct. 2019)
+% This function implements the JData Specification Draft 3 (Jun. 2020)
 % see http://github.com/fangq/jdata for details
 %
 %
@@ -68,6 +70,9 @@
 %       	       the original data stored in _ArrayData_, and then flaten
 %       	       _ArrayData_ into a row vector using row-major
 %       	       order; if set to 0, a 2D _ArrayData_ will be used
+%         UseArrayShape: [0|1] if set to 1, a matrix will be tested by
+%                  to determine if it is diagonal, triangular, banded or
+%                  toeplitz, and use _ArrayShape_ to encode the matrix
 %         MapAsStruct: [0|1] if set to 1, convert containers.Map into
 %       	       struct; otherwise, keep it as map
 %         Compression: ['zlib'|'gzip','lzma','lz4','lz4hc'] - use zlib method 
@@ -95,7 +100,7 @@
 % (accepts JData objects loaded from either loadjson/loadubjson or 
 % jsondecode for MATLAB R2018a or later)
 %
-% This function implements the JData Specification Draft 2 (Oct. 2019)
+% This function implements the JData Specification Draft 3 (Jun. 2020)
 % see http://github.com/fangq/jdata for details
 %
 %
@@ -121,6 +126,8 @@
 %                         jsondecode(), the prefix is 'x'; this function
 %                         attempts to automatically determine the prefix;
 %                         for octave, the default value is an empty string ''.
+%               FullArrayShape: [0|1] if set to 1, converting _ArrayShape_ 
+%                         objects to full matrices, otherwise, stay sparse
 %               FormatVersion: [2|float]: set the JSONLab output version; 
 %                         since v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -168,7 +175,7 @@
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           SimplifyCell [0|1]: if set to 1, loadjson will call cell2mat
+%           SimplifyCell [1|0]: if set to 1, loadjson will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
 %           FastArrayParser [1|0 or integer]: if set to 1, use a
@@ -185,6 +192,8 @@
 %                         arrays; setting to 3 will return to a 2D cell
 %                         array of 1D vectors; setting to 4 will return a
 %                         3D cell array.
+%           UseMap [0|1]: if set to 1, loadjson uses a containers.Map to 
+%                         store map objects; otherwise use a struct object
 %           ShowProgress [0|1]: if set to 1, loadjson displays a progress bar.
 %           ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
 %                         (introduced in MATLAB R2016b) to char arrays; if set to 1,
@@ -196,9 +205,13 @@
 %                         please set FormatVersion to 1.9 or earlier.
 %           Encoding ['']: json file encoding. Support all encodings of
 %                         fopen() function
+%           ObjectID [0|interger or list]: if set to a positive number, 
+%                         it returns the specified JSON object by index 
+%                         in a multi-JSON document; if set to a vector,
+%                         it returns a list of specified objects.
 %           JDataDecode [1|0]: if set to 1, call jdatadecode to decode
-%                        JData structures defined in the JData
-%                        Specification.
+%                         JData structures defined in the JData
+%                         Specification.
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -207,7 +220,7 @@
 % examples:
 %      dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
 %      dat=loadjson(['examples' filesep 'example1.json'])
-%      dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',1)
+%      dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',0)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -302,6 +315,8 @@
 %                             compressed binary array data. 
 %           CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
+%           CompressStringSize [400|int]: only to compress a string if the total 
+%                         element count is larger than this number.
 %           FormatVersion [2|float]: set the JSONLab output version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -309,6 +324,9 @@
 %                         please set FormatVersion to 1.9 or earlier.
 %           Encoding ['']: json file encoding. Support all encodings of
 %                         fopen() function
+%           Append [0|1]: if set to 1, append a new object at the end of the file.
+%           Endian ['n'|'b','l']: Endianness of the output file ('n': native, 
+%                         'b': big endian, 'l': little-endian)
 %           PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
 %
@@ -351,7 +369,7 @@
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           SimplifyCell [0|1]: if set to 1, loadubjson will call cell2mat
+%           SimplifyCell [1|0]: if set to 1, loadubjson will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
 %           IntEndian [B|L]: specify the endianness of the integer fields
@@ -363,6 +381,12 @@
 %                         the "name" tag is treated as a string. To load 
 %                         these UBJSON data, you need to manually set this 
 %                         flag to 1.
+%           UseMap [0|1]: if set to 1, loadjson uses a containers.Map to 
+%                         store map objects; otherwise use a struct object
+%           ObjectID [0|interger or list]: if set to a positive number, 
+%                         it returns the specified JSON object by index 
+%                         in a multi-JSON document; if set to a vector,
+%                         it returns a list of specified objects.
 %           FormatVersion [2|float]: set the JSONLab format version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -378,7 +402,7 @@
 %      ubjdata=saveubjson('obj',obj);
 %      dat=loadubjson(ubjdata)
 %      dat=loadubjson(['examples' filesep 'example1.ubj'])
-%      dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',1)
+%      dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',0)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -392,10 +416,20 @@
 % json=saveubjson(rootname,obj,opt)
 % json=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
 %
-% convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
-% into a Universal Binary JSON (UBJSON) or a MessagePack binary stream
+% Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
+% into a Binary JData (BJD, Draft 1), Universal Binary JSON (UBJSON, Draft
+% 12) or a MessagePack binary stream
 %
 % initially created on 2013/08/17
+%
+% By default, this function creates BJD-compliant output. The BJD
+% specification is largely similar to UBJSON, with additional data types
+% including uint16(u), uint32(m), uint64(M) and half-precision float (h)
+%
+% Format specifications:
+%    Binary JData (BJD):   https://github.com/fangq/bjdata
+%    UBJSON:               https://github.com/ubjson/universal-binary-json
+%    MessagePack:          https://github.com/msgpack/msgpack
 %
 % input:
 %      rootname: the name of the root-object, when set to '', the root name
@@ -419,6 +453,8 @@
 %                         "_ArrayData_" array will include two rows 
 %                         (4 for sparse) to record the real and imaginary 
 %                         parts, and also "_ArrayIsComplex_":true is added. 
+%                         Other annotations include "_ArrayShape_" and 
+%                         "_ArrayOrder_", "_ArrayZipLevel_" etc.
 %          NestArray    [0|1]: If set to 1, use nested array constructs
 %                         to store N-dimensional arrays (compatible with 
 %                         UBJSON specification Draft 12); if set to 0,
@@ -462,14 +498,26 @@
 %                            'base64' encoding
 %          CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
+%          CompressStringSize [400|int]: only to compress a string if the total 
+%                         element count is larger than this number.
 %          MessagePack [0|1]: output MessagePack (https://msgpack.org/)
-%                         binary stream instead of UBJSON
+%                         binary stream instead of BJD/UBJSON
+%          UBJSON [0|1]: 0: (default)-encode data based on BJData Draft 1
+%                         (supports uint16(u)/uint32(m)/uint64(M)/half(h) markers)
+%                        1: encode data based on UBJSON Draft 12 (without
+%                         u/m/M/h markers)
 %          FormatVersion [2|float]: set the JSONLab output version; since
-%                         v2.0, JSONLab uses JData specification Draft 2
-%                         for output format, it is incompatible with all
-%                         previous releases; if old output is desired,
+%                         v2.0, JSONLab uses JData specification Draft 3
+%                         for output format, it is incompatible with releases
+%                         older than v1.9.8; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
+%          KeepType [0|1]: if set to 1, use the original data type to store 
+%                         integers instead of converting to the integer type
+%                         of the minimum length without losing accuracy (default)
 %          Debug [0|1]: output binary numbers in <%g> format for debugging
+%          Append [0|1]: if set to 1, append a new object at the end of the file.
+%          Endian ['n'|'b','l']: Endianness of the output file ('n': native, 
+%                         'b': big endian, 'l': little-endian)
 %          PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
 %
@@ -486,8 +534,9 @@
 %               'MeshCreator','FangQ','MeshTitle','T6 Cube',...
 %               'SpecialData',[nan, inf, -inf]);
 %      saveubjson(jsonmesh)
-%      saveubjson('',jsonmesh,'meshdata.ubj')
+%      saveubjson('',jsonmesh,'meshdata.bjd')
 %      saveubjson('mesh1',jsonmesh,'FileName','meshdata.msgpk','MessagePack',1)
+%      saveubjson('',jsonmesh,'ubjson',1)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -535,6 +584,91 @@
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
+%
+
+%%=== # Workspace ===
+
+%==== function varargout=jsave(filename, varargin) ====
+%
+% jsave
+%   or
+% jsave(fname)
+% varlist=jsave(fname,'param1',value1,'param2',value2,...)
+%
+% Store variables in a workspace to a JSON or binary JSON file
+%
+% created on 2020/05/31
+%
+% input:
+%      fname: (optional) output file name; if not given, save to 'jamdata.jamm'
+%           if fname has a '.json' or '.jdt' suffix, a text-based
+%           JSON/JData file will be created (slow); if the suffix is '.jamm' or
+%           '.jdb', a Binary JData (https://github.com/fangq/bjdata/) file will be created.
+%      opt: (optional) a struct to store parsing options, opt can be replaced by 
+%           a list of ('param',value) pairs - the param string is equivallent
+%           to a field in opt. opt can have the following 
+%           fields (first in [.|.] is the default)
+%
+%           ws ['base'|'wsname']: the name of the workspace in which the
+%                         variables are to be saved
+%           vars [{'var1','var2',...}]: cell array of variable names to be saved
+%
+%           all options for saveubjson/savejson (depends on file suffix)
+%           can be used to adjust the output
+%
+% output:
+%      varlist: a list of variables loaded
+%
+% examples:
+%      jsave  % save all variables in the 'base' workspace to jamdata.jamm
+%      jsave('mydat.jamm','vars', {'v1','v2',...}) % save selected variables
+%      jsave('mydat.jamm','compression','lzma')
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+
+%==== function varargout=jload(filename, varargin) ====
+%
+% jload
+%   or
+% jload(fname)
+% varlist=jload(fname,'param1',value1,'param2',value2,...)
+%
+% Load variables from a JSON or binary JSON file to a workspace
+%
+% created on 2020/05/31
+%
+% input:
+%      fname: (optional) input file name; if not given, load 'jamdata.jamm'
+%           if fname has a '.json' or '.jdt' suffix, a text-based
+%           JSON/JData file will be expected; if the suffix is '.jamm' or
+%           '.jdb', a Binary JData file will be expected.
+%      opt: (optional) a struct to store parsing options, opt can be replaced by 
+%           a list of ('param',value) pairs - the param string is equivallent
+%           to a field in opt. opt can have the following 
+%           fields (first in [.|.] is the default)
+%
+%           ws ['base'|'wsname']: the name of the workspace in which the
+%                         variables are to be saved
+%           vars [{'var1','var2',...}]: list of variables to be saved
+%           Header [0|1]: if set to 1, return the metadata of the variables 
+%                         stored in the file
+%
+%           all options for loadubjson/loadjson (depends on file suffix)
+%           can be used to adjust the parsing options
+%
+% output:
+%      varlist: a list of variables loaded
+%
+% examples:
+%      jload  % load all variables in jamdata.jamm to the 'base' workspace 
+%      jload mydat.jamm
+%      jload('mydat.jamm','vars', {'v1','v2',...}) % load selected variables
+%      jload('mydat.jamm','simplifycell',1)
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 %
 
 %%=== # Compression and decompression ===

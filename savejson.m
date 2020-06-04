@@ -97,6 +97,9 @@ function json=savejson(rootname,obj,varargin)
 %                         please set FormatVersion to 1.9 or earlier.
 %           Encoding ['']: json file encoding. Support all encodings of
 %                         fopen() function
+%           Append [0|1]: if set to 1, append a new object at the end of the file.
+%           Endian ['n'|'b','l']: Endianness of the output file ('n': native, 
+%                         'b': big endian, 'l': little-endian)
 %           PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
 %

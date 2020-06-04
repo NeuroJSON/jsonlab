@@ -8,7 +8,7 @@ function jdata=jdataencode(data, varargin)
 % Serialize a MATLAB struct or cell array into a JData-compliant 
 % structure as defined in the JData spec: http://github.com/fangq/jdata
 %
-% This function implements the JData Specification Draft 2 (Oct. 2019)
+% This function implements the JData Specification Draft 3 (Jun. 2020)
 % see http://github.com/fangq/jdata for details
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)

@@ -27,6 +27,7 @@ func_jdata="jdataencode jdatadecode"
 func_json="loadjson savejson"
 func_ubjson="loadubjson saveubjson"
 func_msgpack="loadmsgpack savemsgpack"
+func_space="jsave jload"
 func_zip="zlibencode zlibdecode gzipencode gzipdecode lzmaencode lzmadecode
           lzipencode lzipdecode lz4encode lz4decode lz4hcencode lz4hcdecode
 	  base64encode base64decode encodevarname decodevarname"
@@ -44,6 +45,9 @@ print_group $func_ubjson
 
 echo %%=== "#" MessagePack ===
 print_group $func_msgpack
+
+echo %%=== "#" Workspace ===
+print_group $func_space
 
 echo %%=== "#" Compression and decompression ===
 print_group $func_zip

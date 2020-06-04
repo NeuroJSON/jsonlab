@@ -1,4 +1,4 @@
-function jsave(filename, varargin)
+function varargout=jsave(filename, varargin)
 %
 % jsave
 %   or
@@ -22,7 +22,7 @@ function jsave(filename, varargin)
 %
 %           ws ['base'|'wsname']: the name of the workspace in which the
 %                         variables are to be saved
-%           vars [{'var1','var2',...}]: list of variables to be saved
+%           vars [{'var1','var2',...}]: cell array of variable names to be saved
 %
 %           all options for saveubjson/savejson (depends on file suffix)
 %           can be used to adjust the output
@@ -77,6 +77,7 @@ metadata.CreatorApp=vers.Name;
 metadata.CreatorVersion=vers.Version;
 metadata.CreatorRelease=vers.Release;
 metadata.ReleaseDate=vers.Date;
+metadata.FormatVersion=1;
 metadata.Parameters=opt;
 
 header.(encodevarname('_DataInfo_'))=metadata;
@@ -93,6 +94,10 @@ elseif(regexp(filename,'\.[jJ][dD][tT]$'))
     savefun=@savejson;
 elseif(regexp(filename,'\.[mM][sS][gG][pP][kK]$'))
     savefun=@savemsgpack;
+end
+
+if(nargout==1)
+    varargout{1}=header;
 end
 
 savefun('WorkspaceHeader',header,'filename',filename,varargin{:});

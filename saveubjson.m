@@ -44,6 +44,8 @@ function json=saveubjson(rootname,obj,varargin)
 %                         "_ArrayData_" array will include two rows 
 %                         (4 for sparse) to record the real and imaginary 
 %                         parts, and also "_ArrayIsComplex_":true is added. 
+%                         Other annotations include "_ArrayShape_" and 
+%                         "_ArrayOrder_", "_ArrayZipLevel_" etc.
 %          NestArray    [0|1]: If set to 1, use nested array constructs
 %                         to store N-dimensional arrays (compatible with 
 %                         UBJSON specification Draft 12); if set to 0,
@@ -96,11 +98,17 @@ function json=saveubjson(rootname,obj,varargin)
 %                        1: encode data based on UBJSON Draft 12 (without
 %                         u/m/M/h markers)
 %          FormatVersion [2|float]: set the JSONLab output version; since
-%                         v2.0, JSONLab uses JData specification Draft 2
-%                         for output format, it is incompatible with all
-%                         previous releases; if old output is desired,
+%                         v2.0, JSONLab uses JData specification Draft 3
+%                         for output format, it is incompatible with releases
+%                         older than v1.9.8; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
+%          KeepType [0|1]: if set to 1, use the original data type to store 
+%                         integers instead of converting to the integer type
+%                         of the minimum length without losing accuracy (default)
 %          Debug [0|1]: output binary numbers in <%g> format for debugging
+%          Append [0|1]: if set to 1, append a new object at the end of the file.
+%          Endian ['n'|'b','l']: Endianness of the output file ('n': native, 
+%                         'b': big endian, 'l': little-endian)
 %          PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
 %

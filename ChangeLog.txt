@@ -8,6 +8,12 @@ JSONlab ChangeLog (key features marked by *):
 
 == JSONlab 2.0 (codename: Magnus Prime), FangQ <q.fang (at) neu.edu> ==
 
+ 2020-06-02*[15ca7ae] add keeptype option to jsave and saveubjson
+ 2020-06-02 [7f2cbc4] make jsave and jload work on octave
+ 2020-06-01*[8829d6b] apply data compression to strings, new datatype char
+ 2020-06-01 [270cbf6] fix loadmsgpack ND array issue
+ 2020-06-01*[919f502] add jsave and jload for portable data sharing,update doc
+ 2020-05-31 [df3a4fa] debug arrayshape related changes and test all demo scripts
  2020-05-31*[fc0b285] adding support to _ArrayShape_ to record special matrices
  2020-05-15*[d88d454] jsonlab is compatible with matlab R2008
  2020-05-13 [86efe89] flag to prevent embedding ND array size specifier
