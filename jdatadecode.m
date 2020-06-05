@@ -163,6 +163,13 @@ function newdata=jdatadecode(data,varargin)
         if(isfield(data,N_('_ArrayIsComplex_')) && data(j).(N_('_ArrayIsComplex_')) )
                 iscpx=1;
         end
+        iscol=0;
+        if(isfield(data,N_('_ArrayOrder_')))
+            arrayorder=data(j).(N_('_ArrayOrder_'));
+            if(~isempty(arrayorder) && (arrayorder(1)=='c' || arrayorder(1)=='C'))
+                iscol=1;
+            end
+        end
         if(isfield(data,N_('_ArrayIsSparse_')) && data(j).(N_('_ArrayIsSparse_')))
                 if(isfield(data,N_('_ArraySize_')))
                     dim=data(j).(N_('_ArraySize_'))(:)';
@@ -278,7 +285,7 @@ function newdata=jdatadecode(data,varargin)
             if(iscpx)
                 ndata=complex(ndata(1,:),ndata(2,:));
             end
-            if(format>1.9)
+            if(format>1.9 && iscol==0)
                 data(j).(N_('_ArraySize_'))=data(j).(N_('_ArraySize_'))(end:-1:1);
             end
             dims=data(j).(N_('_ArraySize_'))(:)';
@@ -289,7 +296,7 @@ function newdata=jdatadecode(data,varargin)
 		dims=[1 dims];
 	    end
             ndata=reshape(ndata(:),dims(:)');
-            if(format>1.9)
+            if(format>1.9 && iscol==0)
                 ndata=permute(ndata,ndims(ndata):-1:1);
             end
         end
