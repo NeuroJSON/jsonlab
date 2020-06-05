@@ -138,9 +138,6 @@ function json=saveubjson(rootname,obj,varargin)
 if(nargin==1)
    varname=inputname(1);
    obj=rootname;
-   if(isempty(varname)) 
-      varname='root';
-   end
    rootname=varname;
 else
    varname=inputname(2);
