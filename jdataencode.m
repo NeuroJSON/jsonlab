@@ -207,6 +207,12 @@ elseif(varargin{1}.usearrayshape && ndims(item)==2 && ~isvector(item))
     elseif(uband<size(item,2)-1 || lband<size(item,1)-1) % band
         newitem.(N('_ArrayShape_'))={'band',uband,lband};
         newitem.(N('_ArrayData_'))=spdiags(item.',-uband:lband).';
+    elseif(all(toeplitz(item(:,1),item(1,:))==item))  % Toeplitz matrix
+        newitem.(N('_ArrayShape_'))='toeplitz';
+        newitem.(N('_ArrayZipSize_'))=[2,max(size(item))];
+        newitem.(N('_ArrayData_'))=zeros(2,max(size(item)));
+        newitem.(N('_ArrayData_'))(1,1:size(item,2))=item(1,:);
+        newitem.(N('_ArrayData_'))(2,1:size(item,1))=item(:,1).';
     else  % full matrix
         newitem=item;
     end
