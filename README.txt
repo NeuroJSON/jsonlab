@@ -35,6 +35,11 @@ release v1.9.8 in Oct. 2019. A list of the major changes are summarized below
 efficiently encode special matrices and the addition of `jsave/jload` to save
 and restore variables in MATLAB/Octave like `save/load` commands (experimental):
 
+* 2020-06-06 [a44015f] accelerate fast_match_bracket, drop unicode2native for speed
+* 2020-06-06 [eefccf3] call jsonencode/decode in jsave/jload, parse embedded jdata struct
+* 2020-06-05 [9434103] support Toeplitz matrices, use case-insensitive comparison
+* 2020-06-04 [3119ce4] jdatadecode now handles _ArrayOrder_
+* 2020-06-04 [89b844c] remove forced root name, update internal test results
 * 2020-06-02*[15ca7ae] add keeptype option to jsave and saveubjson
 * 2020-06-02 [7f2cbc4] make jsave and jload work on octave
 * 2020-06-01*[8829d6b] apply data compression to strings, new datatype char
@@ -284,9 +289,25 @@ The main benefits of using .jamm file to share matlab variables include
 * a `.jamm` file is quasi-human-readable, one can see the internal data fields \
   even in a command line, for example using `strings -n 2 file.jamm | astyle`, \
   making the binary data easy to be understood, shared and reused.
-* jsave/jload can also use MessagePack and JSON formats as the underlying \
-  data storage format, addressing needs from a diverse set of applications. \
+* `jsave/jload` can also use MessagePack and JSON formats as the underlying \
+  data storage format, addressing needs from diverse applications. \
   MessagePack parsers are readily available at https://msgpack.org/
+  
+For example, to load the `.jamm` file in python, one needs to install '''py-jdata''' 
+(https://pypi.org/project/jdata/) and '''py-bjdata''' (https://pypi.org/project/bjdata/)
+
+      pip install jdata
+      pip install bjdata
+
+Other built-in Python modules needed include `json` and `numpy`.
+
+Once these modules are installed, one can open python, and run
+
+      import jdata as jd
+      import numpy as np
+      from collections import OrderedDict
+
+      mydata=jd.loadb('myfile.jamm',object_pairs_hook=OrderedDict);
 
 
 === jsave.m ===

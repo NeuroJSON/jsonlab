@@ -8,6 +8,11 @@ JSONlab ChangeLog (key features marked by *):
 
 == JSONlab 2.0 (codename: Magnus Prime), FangQ <q.fang (at) neu.edu> ==
 
+ 2020-06-06 [a44015f] accelerate fast_match_bracket, drop unicode2native for speed
+ 2020-06-06 [eefccf3] call jsonencode/decode in jsave/jload, parse embedded jdata struct
+ 2020-06-05 [9434103] support Toeplitz matrices, use case-insensitive comparison
+ 2020-06-04 [3119ce4] jdatadecode now handles _ArrayOrder_
+ 2020-06-04 [89b844c] remove forced root name, update internal test results
  2020-06-02*[15ca7ae] add keeptype option to jsave and saveubjson
  2020-06-02 [7f2cbc4] make jsave and jload work on octave
  2020-06-01*[8829d6b] apply data compression to strings, new datatype char
