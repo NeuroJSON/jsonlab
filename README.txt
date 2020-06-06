@@ -150,7 +150,7 @@ by using the following command:
     addpath('/path/to/jsonlab');
 
 If you want to add this path permanently, you need to type `pathtool`, 
-browse to the zmat root folder and add to the list, then click "Save".
+browse to the root folder of JSONLab and add to the list, then click "Save".
 Then, run `rehash` in MATLAB, and type "which savejson", if you see an 
 output, that means JSONLab is installed for MATLAB/Octave.
 
@@ -163,6 +163,13 @@ best way to add path is to type
 and type `addpath('/path/to/jsonlab')` in this file, save and exit the editor.
 MATLAB will execute this file every time it starts. For Octave, the file
 you need to edit is `~/.octaverc` , where `"~"` represents your home directory.
+
+To use the data compression features, please download the ZMat toolbox from
+https://github.com/fangq/zmat/releases/latest and follow the instruction to
+install ZMat first. The ZMat toolbox is required when compression is used on 
+MATLAB running in the `-nojvm` mode or GNU Octave. ZMat can also compress
+large arrays that MATLAB's Java-based compression API does not support.
+
 
 === Install JSONLab on Fedora 24 or later ===
 
