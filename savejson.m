@@ -648,7 +648,7 @@ else
         txt=sprintf(dataformat,txt,padding0,'"_ArrayZipSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
         txt=sprintf(dataformat,txt,padding0,'"_ArrayZipType_": "',dozip, ['"' sep]);
 	    compfun=str2func([dozip 'encode']);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_": "',char(base64encode(compfun(typecast(fulldata(:),'uint8')))),['"' nl]);
     else
         if(isreal(item))
             txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...

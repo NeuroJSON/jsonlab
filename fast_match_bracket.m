@@ -53,7 +53,13 @@ if(length(count)==1 && count==']')
     maxlevel=1;
     return;
 end
+count=count(1:min(length(count),8));
 flag=cumsum(count==brackets(1))-cumsum(count==brackets(2))+1;
 endpos = find(flag==0,1);
+if(isempty(endpos))
+    count= key(startpos:end);
+    flag=cumsum(count==brackets(1))-cumsum(count==brackets(2))+1;
+    endpos = find(flag==0,1);
+end
 maxlevel=max([1,max(flag(1:endpos))]);
 endpos = pos(endpos + startpos-1);

@@ -38,11 +38,7 @@ function str = encodevarname(str,varargin)
 %
 
     if(~isvarname(str(1)))
-        if(exist('unicode2native','builtin'))
-            str=regexprep(str,'^([^A-Za-z])','x0x${sprintf(''%X'',unicode2native($1))}_','once');
-        else
-            str=sprintf('x0x%X_%s',char(str(1))+0,str(2:end));
-        end
+        str=sprintf('x0x%X_%s',char(str(1))+0,str(2:end));
     end
     if(isvarname(str))
         return;

@@ -93,7 +93,7 @@ end
 if(jsonopt('matlab',0,opt) && exist('jsonencode','builtin'))
     body=jdatadecode(jsondecode(jsonstr(pos+4:end)));
 else
-    body=jsondecode(filename,'ObjectID',2, varargin{:});
+    body=loadfun(filename,'ObjectID',2, varargin{:});
 end
 
 for i=1:length(varlist)

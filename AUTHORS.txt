@@ -1,13 +1,12 @@
 The author of "jsonlab" toolbox is Qianqian Fang. Qianqian
-is currently an Associate Professor in the Department of Bioengineering,
+is currently an Assistant Professor in the Department of Bioengineering,
 Northeastern University.
 
 Address: Qianqian Fang
          Department of Bioengineering
          Northeastern University
-         ISEC 223
+         ISEC 206
          360 Huntington Ave, Boston, MA 02115, USA
-         Office:   503 Holmes Hall
          Phone[O]: 617-373-3829
 URL: http://fanglab.org
 Email: <q.fang at neu.edu> and <fangqq at gmail.com>
