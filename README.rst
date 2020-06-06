@@ -111,12 +111,12 @@ decoder in the native MATLAB language. It can be used to convert a MATLAB
 data structure (array, struct, cell, struct array, cell array, and objects) into 
 JSON/UBJSON/MessagePack formatted strings, or to decode a 
 JSON/UBJSON/MessagePack file into MATLAB data structure. JSONLab supports both 
-MATLAB and [http://www.gnu.org/software/octave GNU Octave] (a free MATLAB clone).
+MATLAB and `GNU Octave <http://www.gnu.org/software/octave>`_ (a free MATLAB clone).
 
-JSON ([http://www.json.org/ JavaScript Object Notation]) is a highly portable, 
-human-readable and [http://en.wikipedia.org/wiki/JSON "fat-free"] text format 
+JSON (`JavaScript Object Notation <http://www.json.org/>`_) is a highly portable, 
+human-readable and `"fat-free" <http://en.wikipedia.org/wiki/JSON>`_ text format 
 to represent complex and hierarchical data, widely used for data-exchange in applications.
-UBJSON ([http://ubjson.org/ Universal Binary JSON]) is a binary JSON format,  
+UBJSON (`Universal Binary JSON <http://ubjson.org/>`_) is a binary JSON format,  
 specifically designed to complement the limitations of JSON, permitting the
 storage of binary data with strongly typed data records, resulting in smaller
 file sizes and fast encoding and decoding. MessagePack is another binary
@@ -127,7 +127,7 @@ to UBJSON.
 We envision that both JSON and its binary counterparts will play important 
 rules not only for light-weight data storage, but also for storage and interchange
 of scientific data. It has both the flexibility and generality as in other general-purpose 
-file specifications, such as [http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5] 
+file specifications, such as `HDF5 <http://www.hdfgroup.org/HDF5/whatishdf5.html>`_ 
 but has significantly reduced complexity and excellent readability.
 
 Towards this goal, we have developed the JData Specification (http://github.com/fangq/jdata) 
@@ -205,17 +205,11 @@ JSON and ``loadmsgpack`` and ``savemsgpack`` for MessagePack. The ``load*`` func
 for the 3 supported data formats share almost the same input parameters; 
 similarly for the 3 ``save*`` functions (``savejson/saveubjson/savemsgpack``)
 These encoders and decoders are capable of converting/storing many different
-data structures supported by MATLAB, thanks to `jdataencode/jdatadecode` - 
+data structures supported by MATLAB, thanks to ``jdataencode/jdatadecode`` - 
 a pair of in-memory data converters that translate complex data structures
 to the easy-to-serialized forms according to the JData specifications.
-The detailed help information can be found in the `Contents.m` file. 
+The detailed help information can be found in the ``Contents.m`` file. 
 
-In addition, we also provide a pair of functions, ``jsave/jload`` to store
-and retrieve variables from the current workspace, similar to the `save/load` 
-functions in MATLAB and Octave. The files ``jsave/jload`` use is by default 
-a binary JData file with self-contained metadata. The file size is comparable
-(can be smaller if use ``lzma`` compression) to ``.mat`` files. This feature
-is currently experimental.
 In the below section, we simply provide a few examples on how to use
 each of the core functions for encoding/decoding JSON/UBJSON/MessagePack data
 
@@ -321,7 +315,7 @@ Starting from JSONLab v2.0, we provide a pair of functions, ``jsave/jload`` to s
 and retrieve variables from the current workspace, similar to the ``save/load`` 
 functions in MATLAB and Octave. The files ``jsave/jload`` use is by default 
 a binary JData file with a suffix ``.jamm``. The file size is comparable
-(can be smaller if use ``lzma`` compression) to `.mat` files. This feature
+(can be smaller if use ``lzma`` compression) to ``.mat`` files. This feature
 is currently experimental.
 
 The main benefits of using .jamm file to share matlab variables include
