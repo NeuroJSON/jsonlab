@@ -4,7 +4,7 @@ function newdata=jdatadecode(data,varargin)
 %
 % Convert all JData object (in the form of a struct array) into an array
 % (accepts JData objects loaded from either loadjson/loadubjson or 
-% jsondecode for MATLAB R2018a or later)
+% jsondecode for MATLAB R2016b or later)
 %
 % This function implements the JData Specification Draft 3 (Jun. 2020)
 % see http://github.com/fangq/jdata for details
@@ -113,6 +113,9 @@ function newdata=jdatadecode(data,varargin)
       for j=1:len
         if(isfield(data,N_('_ArrayZipSize_')) && isfield(data,N_('_ArrayZipData_')))
             zipmethod='zip';
+            if(isstruct(data(j).(N_('_ArrayZipSize_'))))
+                data(j).(N_('_ArrayZipSize_'))=jdatadecode(data(j).(N_('_ArrayZipSize_')),opt);
+            end
 	    dims=data(j).(N_('_ArrayZipSize_'))(:)';
             if(length(dims)==1)
                  dims=[1 dims];
@@ -140,6 +143,9 @@ function newdata=jdatadecode(data,varargin)
                 error('compression method is not supported');
             end
         else
+            if(isstruct(data(j).(N_('_ArrayData_'))))
+                data(j).(N_('_ArrayData_'))=jdatadecode(data(j).(N_('_ArrayData_')),opt);
+            end
             if(isstruct(data(j).(N_('_ArrayData_'))) && isfield(data(j).(N_('_ArrayData_')),N_('_ArrayType_')))
                 data(j).(N_('_ArrayData_'))=jdatadecode(data(j).(N_('_ArrayData_')),varargin{:});
             end
@@ -149,6 +155,9 @@ function newdata=jdatadecode(data,varargin)
             ndata=cast(data(j).(N_('_ArrayData_')),char(data(j).(N_('_ArrayType_'))));
         end
         if(isfield(data,N_('_ArrayZipSize_')))
+            if(isstruct(data(j).(N_('_ArrayZipSize_'))))
+                data(j).(N_('_ArrayZipSize_'))=jdatadecode(data(j).(N_('_ArrayZipSize_')),opt);
+            end
 	    dims=data(j).(N_('_ArrayZipSize_'))(:)';
             if(iscell(dims))
                 dims=cell2mat(dims);
@@ -160,6 +169,9 @@ function newdata=jdatadecode(data,varargin)
             ndata=permute(ndata,ndims(ndata):-1:1);
         end
         iscpx=0;
+        if(isfield(data,N_('_ArrayIsComplex_')) && isstruct(data(j).(N_('_ArrayIsComplex_'))) )
+                data(j).(N_('_ArrayIsComplex_'))=jdatadecode(data(j).(N_('_ArrayIsComplex_')),opt);
+        end
         if(isfield(data,N_('_ArrayIsComplex_')) && data(j).(N_('_ArrayIsComplex_')) )
                 iscpx=1;
         end
@@ -170,8 +182,14 @@ function newdata=jdatadecode(data,varargin)
                 iscol=1;
             end
         end
+        if(isfield(data,N_('_ArrayIsSparse_')) && isstruct(data(j).(N_('_ArrayIsSparse_'))) )
+                data(j).(N_('_ArrayIsSparse_'))=jdatadecode(data(j).(N_('_ArrayIsSparse_')),opt);
+        end
         if(isfield(data,N_('_ArrayIsSparse_')) && data(j).(N_('_ArrayIsSparse_')))
                 if(isfield(data,N_('_ArraySize_')))
+                    if(isstruct(data(j).(N_('_ArraySize_'))))
+                        data(j).(N_('_ArraySize_'))=jdatadecode(data(j).(N_('_ArraySize_')),opt);
+                    end
                     dim=data(j).(N_('_ArraySize_'))(:)';
                     if(iscell(dim))
                         dim=cell2mat(dim);
@@ -203,6 +221,9 @@ function newdata=jdatadecode(data,varargin)
                     ndata=sparse(ndata(1,:),ndata(2,:),ndata(3,:));
                 end
         elseif(isfield(data,N_('_ArrayShape_')))
+                if(isstruct(data(j).(N_('_ArrayShape_'))))
+                    data(j).(N_('_ArrayShape_'))=jdatadecode(data(j).(N_('_ArrayShape_')),opt);
+                end
                 if(iscpx)
                     if(size(ndata,1)==2)
                         dim=size(ndata);
@@ -227,7 +248,11 @@ function newdata=jdatadecode(data,varargin)
                 else
                         datasize=size(arraydata);
                 end
+                if(isstruct(data(j).(N_('_ArraySize_'))))
+                    data(j).(N_('_ArraySize_'))=jdatadecode(data(j).(N_('_ArraySize_')),opt);
+                end
                 arraysize=data.(N_('_ArraySize_'));
+
                 if(iscell(arraysize))
                     arraysize=cell2mat(arraysize);
                 end
@@ -278,12 +303,16 @@ function newdata=jdatadecode(data,varargin)
                         end
                         ndata=spdiags(reshape(arraydata,min(arraysize),datasize(1)),double(shapeid{2}):-1:-double(shapeid{3}),arraysize(1),arraysize(2));
                 elseif(strcmpi(shapeid{1},'toeplitz'))
-                        ndata=toeplitz(arraydata(:,1),arraydata(:,2)).';
+                        arraydata=reshape(arraydata,flipud(datasize(:))');
+                        ndata=toeplitz(arraydata(1:arraysize(1),2),arraydata(1:arraysize(2),1));
                 end
                 if(opt.fullarrayshape && issparse(ndata))
                         ndata=cast(full(ndata),data(j).(N_('_ArrayType_')));
                 end
         elseif(isfield(data,N_('_ArraySize_')))
+            if(isstruct(data(j).(N_('_ArraySize_'))))
+                data(j).(N_('_ArraySize_'))=jdatadecode(data(j).(N_('_ArraySize_')),opt);
+            end
             if(iscpx)
                 ndata=complex(ndata(1,:),ndata(2,:));
             end

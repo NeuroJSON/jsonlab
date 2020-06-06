@@ -23,8 +23,11 @@ function varargout=jload(filename, varargin)
 %           ws ['base'|'wsname']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: list of variables to be saved
-%           Header [0|1]: if set to 1, return the metadata of the variables 
+%           header [0|1]: if set to 1, return the metadata of the variables 
 %                         stored in the file
+%           matlab [0|1] if set to 1, use matlab's built-in jsondecode to
+%                         parse the json file and then decode the output by
+%                         jdatadecode; input file must have a suffix of .jdt
 %
 %           all options for loadubjson/loadjson (depends on file suffix)
 %           can be used to adjust the parsing options
@@ -61,7 +64,16 @@ elseif(regexp(filename,'\.[mM][sS][gG][pP][kK]$'))
     loadfun=@loadmsgpack;
 end
 
-header=loadfun(filename,'ObjectID',1, varargin{:});
+if(jsonopt('matlab',0,opt) && exist('jsonencode','builtin'))
+    jsonstr=fileread(filename);
+    pos=regexp(jsonstr,'}\n\n\n{"WorkspaceData":','once');
+    if(isempty(pos))
+        error('the json file is not generated using matlab''s jsonencode');
+    end
+    header=jsondecode(jsonstr(1:pos+1));
+else
+    header=loadfun(filename,'ObjectID',1, varargin{:});
+end
 
 if(jsonopt('Header',0,opt))
     varargout{1}=header;
@@ -78,7 +90,11 @@ if(any(isfound==0))
     error('specified variable is not found');
 end
 
-body=loadfun(filename,'ObjectID',2, varargin{:});
+if(jsonopt('matlab',0,opt) && exist('jsonencode','builtin'))
+    body=jdatadecode(jsondecode(jsonstr(pos+4:end)));
+else
+    body=jsondecode(filename,'ObjectID',2, varargin{:});
+end
 
 for i=1:length(varlist)
     assignin(ws, varlist{i}, body.WorkspaceData.(varlist{i}));

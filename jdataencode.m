@@ -5,8 +5,11 @@ function jdata=jdataencode(data, varargin)
 % jdata=jdataencode(data, options)
 % jdata=jdataencode(data, 'Param1',value1, 'Param2',value2,...)
 %
-% Serialize a MATLAB struct or cell array into a JData-compliant 
-% structure as defined in the JData spec: http://github.com/fangq/jdata
+% Annotate a MATLAB struct or cell array into a JData-compliant data
+% structure as defined in the JData spec: http://github.com/fangq/jdata.
+% This encoded form servers as an intermediate format that allows unambiguous
+% storage, exchange of complex data structures and easy-to-serialize by
+% json encoders such as savejson and jsonencode (MATLAB R2016b or newer)
 %
 % This function implements the JData Specification Draft 3 (Jun. 2020)
 % see http://github.com/fangq/jdata for details
@@ -17,6 +20,11 @@ function jdata=jdataencode(data, varargin)
 %     data: a structure (array) or cell (array) to be encoded.
 %     options: (optional) a struct or Param/value pairs for user
 %              specified options (first in [.|.] is the default)
+%         AnnotateArray: [0|1] - if set to 1, convert all 1D/2D matrices 
+%              to the annotated JData array format to preserve data types;
+%              N-D (N>2), complex and sparse arrays are encoded using the
+%              annotated format by default. Please set this option to 1 if
+%              you intend to use MATLAB's jsonencode to convert to JSON.
 %         Base64: [0|1] if set to 1, _ArrayZipData_ is assumed to
 %       	       be encoded with base64 format and need to be
 %       	       decoded first. This is needed for JSON but not
@@ -50,6 +58,14 @@ function jdata=jdataencode(data, varargin)
 % example:
 %     jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
 %
+%     encodedmat=jdataencode(single(magic(5)),'annotatearray',1,'prefix','x')
+%     jdatadecode(jsondecode(jsonencode(encodedmat)))  % serialize by jsonencode
+%     jdatadecode(loadjson(savejson('',encodedmat)))   % serialize by savejson
+%
+%     encodedtoeplitz=jdataencode(uint8(toeplitz([1,2,3,4],[1,5,6])),'usearrayshape',1,'prefix','x')
+%     jdatadecode(jsondecode(jsonencode(encodedtoeplitz)))  % serialize by jsonencode
+%     jdatadecode(loadjson(savejson('',encodedtoeplitz)))   % serialize by savejson
+%
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 %
@@ -77,6 +93,7 @@ opt.mapasstruct=jsonopt('MapAsStruct',0,opt);
 opt.usearrayzipsize=jsonopt('UseArrayZipSize',1,opt);
 opt.messagepack=jsonopt('MessagePack',0,opt);
 opt.usearrayshape=jsonopt('UseArrayShape',0,opt) && exist('bandwidth');
+opt.annotatearray=jsonopt('AnnotateArray',0,opt);
 
 jdata=obj2jd(data,opt);
 
@@ -166,14 +183,9 @@ newitem=struct(N('_ArrayType_'),class(item),N('_ArraySize_'),size(item));
 zipmethod=varargin{1}.compression;
 minsize=varargin{1}.compressarraysize;
 
-% no encoding for char arrays or non-sparse real vectors
-if(isempty(item) || isa(item,'string') || ischar(item) || varargin{1}.nestarray || ...
-        ((isvector(item) || (ndims(item)==2 && ~varargin{1}.usearrayshape)) ... 
-         && isreal(item) && ~issparse(item))) 
-    newitem=item;
-    return;
 % 2d numerical (real/complex/sparse) arrays with _ArrayShape_ encoding enabled
-elseif(varargin{1}.usearrayshape && ndims(item)==2 && ~isvector(item))
+if(varargin{1}.usearrayshape && ndims(item)==2 && ~isvector(item))
+    encoded=1;
     if(~isreal(item))
         newitem.(N('_ArrayIsComplex_'))=true;
     end
@@ -214,11 +226,12 @@ elseif(varargin{1}.usearrayshape && ndims(item)==2 && ~isvector(item))
         newitem.(N('_ArrayData_'))(1,1:size(item,2))=item(1,:);
         newitem.(N('_ArrayData_'))(2,1:size(item,1))=item(:,1).';
     else  % full matrix
-        newitem=item;
+        newitem=rmfield(newitem,N('_ArrayZipSize_'));
+        encoded=0;
     end
 
     % serialize complex data at last
-    if(isstruct(newitem) && ~isreal(newitem.(N('_ArrayData_'))))
+    if(encoded && isstruct(newitem) && ~isreal(newitem.(N('_ArrayData_'))))
         item=squeeze(zeros([2, size(newitem.(N('_ArrayData_')))]));
         item(1,:)=real(newitem.(N('_ArrayData_'))(:));
         item(2,:)=imag(newitem.(N('_ArrayData_'))(:));
@@ -228,64 +241,74 @@ elseif(varargin{1}.usearrayshape && ndims(item)==2 && ~isvector(item))
 
     % wrap _ArrayData_ into a single row vector, and store preprocessed
     % size to _ArrayZipSize_ (force varargin{1}.usearrayzipsize=true)
-    if(isstruct(newitem) && ~isvector(newitem.(N('_ArrayData_'))))
-        item=newitem.(N('_ArrayData_'));
-        item=permute(item,ndims(item):-1:1);
-        newitem.(N('_ArrayData_'))=item(:).';
-    else
-        newitem=rmfield(newitem,N('_ArrayZipSize_'));
+    if(encoded)
+        if(isstruct(newitem) && ~isvector(newitem.(N('_ArrayData_'))))
+            item=newitem.(N('_ArrayData_'));
+            item=permute(item,ndims(item):-1:1);
+            newitem.(N('_ArrayData_'))=item(:).';
+        else
+            newitem=rmfield(newitem,N('_ArrayZipSize_'));
+        end
+        newitem.(N('_ArrayData_'))=full(newitem.(N('_ArrayData_')));
+        return
     end
-    
-    newitem.(N('_ArrayData_'))=full(newitem.(N('_ArrayData_')));
+end
+
+% no encoding for char arrays or non-sparse real vectors
+if(isempty(item) || isa(item,'string') || ischar(item) || varargin{1}.nestarray || ...
+        ((isvector(item) || ndims(item)==2) && isreal(item) && ~issparse(item) && ...
+        ~varargin{1}.annotatearray)) 
+    newitem=item;
+    return;
+end
+
+if(isa(item,'logical'))
+    item=uint8(item);
+end
+
+if(isreal(item))
+    if(issparse(item))
+        fulldata=full(item(item~=0));
+        newitem.(N('_ArrayIsSparse_'))=true;
+        newitem.(N('_ArrayZipSize_'))=[2+(~isvector(item)),length(fulldata)];
+        if(isvector(item))
+            newitem.(N('_ArrayData_'))=[find(item(:))', fulldata(:)'];
+        else
+            [ix,iy]=find(item);
+                newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)', fulldata(:)'];
+        end
+    else
+        if(varargin{1}.formatversion>1.9)
+                item=permute(item,ndims(item):-1:1);
+        end
+        newitem.(N('_ArrayData_'))=item(:)';
+    end
 else
-    if(isa(item,'logical'))
-        item=uint8(item);
-    end
-
-    if(isreal(item))
-        if(issparse(item))
-            fulldata=full(item(find(item)));
-            newitem.(N('_ArrayIsSparse_'))=true;
-            newitem.(N('_ArrayZipSize_'))=[2+(~isvector(item)),length(fulldata)];
-            if(isvector(item))
-                newitem.(N('_ArrayData_'))=[find(item(:))', fulldata(:)'];
-            else
-                [ix,iy]=find(item);
-                    newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)', fulldata(:)'];
-            end
+    newitem.(N('_ArrayIsComplex_'))=true;
+    if(issparse(item))
+        fulldata=full(item(item~=0));
+        newitem.(N('_ArrayIsSparse_'))=true;
+        newitem.(N('_ArrayZipSize_'))=[3+(~isvector(item)),length(fulldata)];
+        if(isvector(item))
+            newitem.(N('_ArrayData_'))=[find(item(:))', real(fulldata(:))', imag(fulldata(:))'];
         else
-            if(varargin{1}.formatversion>1.9)
-                    item=permute(item,ndims(item):-1:1);
-            end
-            newitem.(N('_ArrayData_'))=item(:)';
+            [ix,iy]=find(item);
+            newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)' , real(fulldata(:))', imag(fulldata(:))'];
         end
     else
-        newitem.(N('_ArrayIsComplex_'))=true;
-        if(issparse(item))
-            fulldata=full(item(find(item)));
-            newitem.(N('_ArrayIsSparse_'))=true;
-            newitem.(N('_ArrayZipSize_'))=[3+(~isvector(item)),length(fulldata)];
-            if(isvector(item))
-                newitem.(N('_ArrayData_'))=[find(item(:))', real(fulldata(:))', imag(fulldata(:))'];
-            else
-                [ix,iy]=find(item);
-                newitem.(N('_ArrayData_'))=[ix(:)' , iy(:)' , real(fulldata(:))', imag(fulldata(:))'];
-            end
-        else
-            if(varargin{1}.formatversion>1.9)
-                    item=permute(item,ndims(item):-1:1);
-            end
-            newitem.(N('_ArrayZipSize_'))=[2,numel(item)];
-            newitem.(N('_ArrayData_'))=[real(item(:))', imag(item(:))'];
+        if(varargin{1}.formatversion>1.9)
+                item=permute(item,ndims(item):-1:1);
         end
+        newitem.(N('_ArrayZipSize_'))=[2,numel(item)];
+        newitem.(N('_ArrayData_'))=[real(item(:))', imag(item(:))'];
     end
+end
 
-    if(varargin{1}.usearrayzipsize==0 && isfield(newitem,N('_ArrayZipSize_')))
-        data=newitem.(N('_ArrayData_'));
-        data=reshape(data,fliplr(newitem.(N('_ArrayZipSize_'))));
-        newitem.(N('_ArrayData_'))=permute(data,ndims(data):-1:1);
-        newitem=rmfield(newitem,N('_ArrayZipSize_'));
-    end
+if(varargin{1}.usearrayzipsize==0 && isfield(newitem,N('_ArrayZipSize_')))
+    data=newitem.(N('_ArrayData_'));
+    data=reshape(data,fliplr(newitem.(N('_ArrayZipSize_'))));
+    newitem.(N('_ArrayData_'))=permute(data,ndims(data):-1:1);
+    newitem=rmfield(newitem,N('_ArrayZipSize_'));
 end
 
 if(~isempty(zipmethod) && numel(item)>minsize)

@@ -23,9 +23,12 @@ function varargout=jsave(filename, varargin)
 %           ws ['base'|'wsname']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: cell array of variable names to be saved
+%           matlab [0|1] if set to 1, use matlab's built-in jsonencode to
+%                         store encoded data to a json file; output file
+%                         must have a suffix of .jdt
 %
 %           all options for saveubjson/savejson (depends on file suffix)
-%           can be used to adjust the output
+%           can be used to adjust the output unless "'matlab',1" is used
 %
 % output:
 %      varlist: a list of variables loaded
@@ -57,7 +60,6 @@ if(any(isfound==0))
     error('specified variable is not found');
 end
 
-metadata=struct;
 header=struct;
 body=struct;
 
@@ -100,6 +102,27 @@ if(nargout==1)
     varargout{1}=header;
 end
 
-savefun('WorkspaceHeader',header,'filename',filename,varargin{:});
-savefun('WorkspaceData',body,'filename',filename,'append',1,...
-    'compression','zlib','keeptype',1,'array2struct',1,varargin{:});
+if(jsonopt('matlab',0,opt) && exist('jsonencode','builtin'))
+    if(isempty(regexp(filename,'\.[jJ][sS][oO][nN]$', 'once')))
+        filename=regexprep(filename,'\.[a-zA-Z]+$','.jdt');
+    end
+    output.WorkspaceHeader=jdataencode(header,'prefix','x','base64',1,varargin{:});
+    headerjson=jsonencode(output);
+    clear output;
+
+    output.WorkspaceData=jdataencode(body,'AnnotateArray',1,'base64',1,...
+       'Compression','zlib','UseArrayZipSize',1,'MapAsStruct',1,...
+       'prefix','x',varargin{:});
+    bodyjson=jsonencode(output);
+    clear output;
+
+    fid=fopen(filename,jsonopt('writemode','w',opt));
+    fwrite(fid,headerjson);
+    fwrite(fid,sprintf('\n\n\n'));
+    fwrite(fid,bodyjson);
+    fclose(fid);
+else
+    savefun('WorkspaceHeader',header,'filename',filename,varargin{:});
+    savefun('WorkspaceData',body,'filename',filename,'append',1,...
+        'compression','zlib','keeptype',1,'array2struct',1,varargin{:});
+end
