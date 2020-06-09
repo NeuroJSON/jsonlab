@@ -100,6 +100,8 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/jsonopt.m</file>
       <file>${PROJECT_ROOT}/jsave.m</file>
       <file>${PROJECT_ROOT}/jload.m</file>
+      <file>${PROJECT_ROOT}/savebj.m</file>
+      <file>${PROJECT_ROOT}/loadbj.m</file>
       <file>${PROJECT_ROOT}/loadjson.m</file>
       <file>${PROJECT_ROOT}/loadmsgpack.m</file>
       <file>${PROJECT_ROOT}/loadubjson.m</file>
