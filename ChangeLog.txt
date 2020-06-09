@@ -8,6 +8,8 @@ JSONlab ChangeLog (key features marked by *):
 
 == JSONlab 2.0 (codename: Magnus Prime), FangQ <q.fang (at) neu.edu> ==
 
+ 2020-06-08*[cbde607] add savebj and loadbj to dedicate to loading and saving bjdata
+ 2020-06-08*[e2451e1] add unit testing script, fix issues found in the testing unit
  2020-06-06 [a44015f] accelerate fast_match_bracket, drop unicode2native for speed
  2020-06-06 [eefccf3] call jsonencode/decode in jsave/jload, parse embedded jdata struct
  2020-06-05 [9434103] support Toeplitz matrices, use case-insensitive comparison
