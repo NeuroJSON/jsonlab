@@ -1,9 +1,9 @@
 function run_jsonlab_test(testname,fhandle,input,expected,varargin)
 res=fhandle('',input,varargin{:});
 if(~isequal(strtrim(res),expected))
-    warning('%s: failed: expected ''%s'', obtained ''%s''',testname,expected,res);
+    warning('Test %s: failed: expected ''%s'', obtained ''%s''',testname,expected,res);
 else
-    fprintf(1,'%s: ok\n\toutput:''%s''\n',testname,strtrim(res));
+    fprintf(1,'Testing %s: ok\n\toutput:''%s''\n',testname,strtrim(res));
     if(regexp(res,'^[\[\{]'))
         handleinfo=functions(fhandle);
         loadfunname=regexprep(handleinfo.function,'^save','load');

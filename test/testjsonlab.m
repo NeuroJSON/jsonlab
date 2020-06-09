@@ -44,10 +44,10 @@ if(ismember('js',tests))
     run_jsonlab_test('empty array',@savejson,[],'[]');
     run_jsonlab_test('empty cell',@savejson,{},'[]');
     run_jsonlab_test('empty string',@savejson,'','""','compact',1);
-    run_jsonlab_test('string escape',@savejson,sprintf('jdata\n\b\awill\tprevail\t"\"\\'),'"jdata\n\b\awill\tprevail\t\"\"\\"');
+    run_jsonlab_test('string escape',@savejson,sprintf('jdata\n\b\ashall\tprevail\t"\"\\'),'"jdata\n\b\ashall\tprevail\t\"\"\\"');
     if(exist('isstring'))
-        run_jsonlab_test('string type',@savejson,string(sprintf('jdata\n\b\awill\tprevail')),'"jdata\n\b\awill\tprevail"','compact',1);
-        run_jsonlab_test('string array',@savejson,[string('jdata');string('will');string('prevail')],'["jdata","will","prevail"]','compact',1);
+        run_jsonlab_test('string type',@savejson,string(sprintf('jdata\n\b\ashall\tprevail')),'"jdata\n\b\ashall\tprevail"','compact',1);
+        run_jsonlab_test('string array',@savejson,[string('jdata');string('shall');string('prevail')],'["jdata","shall","prevail"]','compact',1);
     end
     run_jsonlab_test('row vector',@savejson,[1,2,3],'[1,2,3]');
     run_jsonlab_test('column vector',@savejson,[1;2;3],'[[1],[2],[3]]','compact',1);
@@ -67,8 +67,8 @@ if(ismember('js',tests))
          '{"_ArrayType_":"double","_ArraySize_":[2,3],"_ArrayIsSparse_":true,"_ArrayData_":[]}','compact',1);
     run_jsonlab_test('real sparse matrix',@savejson,sparse([0,3,0,1,4]'),...
          '{"_ArrayType_":"double","_ArraySize_":[5,1],"_ArrayIsSparse_":true,"_ArrayData_":[[2,4,5],[3,1,4]]}','compact',1);
-    run_jsonlab_test('complex sparse matrix',@savejson,sparse([0,3i,0,1.0,4i]'),...
-         '{"_ArrayType_":"double","_ArraySize_":[5,1],"_ArrayIsComplex_":true,"_ArrayIsSparse_":true,"_ArrayData_":[[2,4,5],[0,1,0],[-3,0,-4]]}','compact',1);
+    run_jsonlab_test('complex sparse matrix',@savejson,sparse([0,3i,0,1,4i].'),...
+         '{"_ArrayType_":"double","_ArraySize_":[5,1],"_ArrayIsComplex_":true,"_ArrayIsSparse_":true,"_ArrayData_":[[2,4,5],[0,1,0],[3,0,4]]}','compact',1);
     run_jsonlab_test('heterogeneous cell',@savejson,{{1,{2,3}},{4,5},{6};{7},{8,9},{10}},...
          '[[[1,[2,3]],[4,5],[6]],[[7],[8,9],[10]]]','compact',1);
     run_jsonlab_test('struct array',@savejson,repmat(struct('i',1.1,'d','str'),[1,2]),...
@@ -139,6 +139,10 @@ if(ismember('jso',tests))
     run_jsonlab_test('boolean',@savejson,[true,false],'[true,false]','compact',1,'ParseLogical',1);
     run_jsonlab_test('nan option',@savejson,nan,'["_nan_"]','NaN','"_nan_"');
     run_jsonlab_test('inf option',@savejson,-inf,'["-inf"]','Inf','"$1inf"');
+    run_jsonlab_test('output int format',@savejson,uint8(5),'[  5]','IntFormat','%3d');
+    run_jsonlab_test('output float format',@savejson,pi,'[3.142]','FloatFormat','%5.3f');
+    run_jsonlab_test('remove singlet array',@savejson,{struct('a',1),5},'[{"a":1},5]','compact',1,'SingletArray',0);
+    run_jsonlab_test('keep singlet array',@savejson,{struct('a',1),5},'[[{"a":[1]}],[5]]','compact',1,'SingletArray',1);
 end
 
 
@@ -167,10 +171,10 @@ if(ismember('bj',tests))
     run_jsonlab_test('empty array',@savebj,[],'Z','debug',1);
     run_jsonlab_test('empty cell',@savebj,{},'Z','debug',1);
     run_jsonlab_test('empty string',@savebj,'','SU<0>','debug',1);
-    run_jsonlab_test('string escape',@savebj,sprintf('jdata\n\b\awill\tprevail\t"\"\\'),sprintf('SU<24>jdata\n\b\awill\tprevail\t\"\"\\'),'debug',1);
+    run_jsonlab_test('string escape',@savebj,sprintf('jdata\n\b\ashall\tprevail\t"\"\\'),sprintf('SU<25>jdata\n\b\ashall\tprevail\t\"\"\\'),'debug',1);
     if(exist('isstring'))
-        run_jsonlab_test('string type',@savebj,string(sprintf('jdata\n\b\awill\tprevail')),sprintf('[SU<20>jdata\n\b\awill\tprevail]'),'debug',1);
-        run_jsonlab_test('string array',@savebj,[string('jdata');string('will');string('prevail')],'[[SU<5>jdataSU<4>willSU<7>prevail]]','debug',1);
+        run_jsonlab_test('string type',@savebj,string(sprintf('jdata\n\b\ashall\tprevail')),sprintf('[SU<21>jdata\n\b\ashall\tprevail]'),'debug',1);
+        run_jsonlab_test('string array',@savebj,[string('jdata');string('shall');string('prevail')],'[[SU<5>jdataSU<5>shallSU<7>prevail]]','debug',1);
     end
     run_jsonlab_test('row vector',@savebj,[1,2,3],'[$U#U<3><1><2><3>','debug',1);
     run_jsonlab_test('column vector',@savebj,[1;2;3],'[$U#[$U#U<2><3><1><1><2><3>','debug',1);
@@ -190,8 +194,8 @@ if(ismember('bj',tests))
          '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><2><3>U<15>_ArrayIsSparse_TU<11>_ArrayData_Z}','debug',1);
     run_jsonlab_test('real sparse matrix',@savebj,sparse([0,3,0,1,4]'),...
          '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><5><1>U<15>_ArrayIsSparse_TU<11>_ArrayData_[$U#[$U#U<2><2><3><2><3><4><1><5><4>}','debug',1);
-    run_jsonlab_test('complex sparse matrix',@savebj,sparse([0,3i,0,1.0,4i]'),...
-         '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><5><1>U<16>_ArrayIsComplex_TU<15>_ArrayIsSparse_TU<11>_ArrayData_[$i#[$U#U<2><3><3><2><0><-3><4><1><0><5><0><-4>}','debug',1);
+    run_jsonlab_test('complex sparse matrix',@savebj,sparse([0,3i,0,1,4i].'),...
+         '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><5><1>U<16>_ArrayIsComplex_TU<15>_ArrayIsSparse_TU<11>_ArrayData_[$U#[$U#U<2><3><3><2><0><3><4><1><0><5><0><4>}','debug',1);
     run_jsonlab_test('heterogeneous cell',@savebj,{{1,{2,3}},{4,5},{6};{7},{8,9},{10}},...
          '[[[U<1>[U<2>U<3>]][U<4>U<5>][U<6>]][[U<7>][U<8>U<9>][U<10>]]]','debug',1);
     run_jsonlab_test('struct array',@savebj,repmat(struct('i',1.1,'d','str'),[1,2]),...
@@ -257,12 +261,13 @@ end
 %%
 if(ismember('bjo',tests))
     fprintf(sprintf('%s\n',char(ones(1,79)*61)));
-    fprintf('Test JSON function options\n');
+    fprintf('Test Binary JSON function options\n');
     fprintf(sprintf('%s\n',char(ones(1,79)*61)));
 
-    run_jsonlab_test('row vector',@savebj,[1,2,3],'[$U#U<3><1><2><3>','debug',1);
-    run_jsonlab_test('single integer',@savebj,256,'I<256>','debug',1,'ubjson',1);
-    run_jsonlab_test('single integer',@savebj,2^32-1,'L<4294967295>','debug',1,'ubjson',1);
-    run_jsonlab_test('single integer',@savebj,2^64-1,'HU<20>18446744073709551616','debug',1,'ubjson',1);
-    run_jsonlab_test('inf option',@savejson,-inf,'["-inf"]','Inf','"$1inf"');
+    run_jsonlab_test('remove ubjson optimized array header',@savebj,[1,2,3],'[U<1>U<2>U<3>]','debug',1,'nestarray',1);
+    run_jsonlab_test('limit to ubjson signed integer',@savebj,256,'I<256>','debug',1,'ubjson',1);
+    run_jsonlab_test('limit to ubjson integer markers',@savebj,2^32-1,'L<4294967295>','debug',1,'ubjson',1);
+    run_jsonlab_test('H marker for out of bound integer',@savebj,2^64-1,'HU<20>18446744073709551616','debug',1,'ubjson',1);
+    run_jsonlab_test('do not downcast integers to the shortest format',@savebj,int32(5),'l<5>','debug',1,'keeptype',1);
+    run_jsonlab_test('do not downcast integer array to the shortest format',@savebj,int32([5,6]),'[$l#l<2><5><6>','debug',1,'keeptype',1);
 end

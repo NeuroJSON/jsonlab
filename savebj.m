@@ -735,7 +735,7 @@ if(isa(mat,'integer') || isinteger(mat) || (~varargin{1}.keeptype && isfloat(mat
     if(~isvector(mat) && isnest==1)
         txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
     elseif(~ismsgpack || size(mat,1)==1)
-        if(0 && varargin{1}.keeptype)
+        if(varargin{1}.keeptype)
             itype=class(mat);
             idx=find(ismember(varargin{1}.IType_,itype));
             if(isempty(idx))
