@@ -18,10 +18,10 @@ for i=1:4
     fname=sprintf('example%d.json',i);
     if(exist(fname,'file')==0) break; end
     fprintf(1,'===============================================\n>> %s\n',fname);
-    json=saveubjson('data',loadjson(fname));
+    json=savebj('data',loadjson(fname));
     fprintf(1,'%s\n',json);
-    data=loadubjson(json);
+    data=loadbj(json);
     savejson('',data);
-    saveubjson('data',data,'selftest.ubj');
-    data=loadubjson('selftest.ubj');
+    savebj('data',data,'selftest.ubj');
+    data=loadbj('selftest.ubj');
 end

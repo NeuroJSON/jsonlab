@@ -25,6 +25,7 @@ print_group()
 
 func_jdata="jdataencode jdatadecode"
 func_json="loadjson savejson"
+func_bjdata="loadbj savebj"
 func_ubjson="loadubjson saveubjson"
 func_msgpack="loadmsgpack savemsgpack"
 func_space="jsave jload"
@@ -39,6 +40,9 @@ print_group $func_jdata
 
 echo %%=== "#" JSON ===
 print_group $func_json
+
+echo %%=== "#" BJData ===
+print_group $func_bjdata
 
 echo %%=== "#" UBJSON ===
 print_group $func_ubjson

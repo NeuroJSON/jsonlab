@@ -14,6 +14,7 @@
 %   jsave              - jsave(fname,'param1',value1,'param2',value2,...)
 %   jload              - jload(fname,'param1',value1,'param2',value2,...)
 %   jsonopt            - val=jsonopt(key,default,optstruct)
+%   loadbj             - data=loadbj(fname,opt)
 %   loadjson           - data=loadjson(fname,opt)
 %   loadmsgpack        - PARSEMSGPACK parses a msgpack byte buffer into Matlab data structures
 %   loadubjson         - data=loadubjson(fname,opt)
@@ -28,6 +29,7 @@
 %   match_bracket      - [endpos, maxlevel] = match_bracket(str,startpos,brackets)
 %   mergestruct        - s=mergestruct(s1,s2)
 %   nestbracket2dim    - [dims, maxlevel, count] = nestbracket2dim(str,brackets)
+%   savebj             - bjd=savebj(rootname,obj,filename)
 %   savejson           - json=savejson(rootname,obj,filename)
 %   savemsgpack        - msgpk=savemsgpack(rootname,obj,filename)
 %   saveubjson         - json=saveubjson(rootname,obj,filename)
@@ -44,8 +46,11 @@
 % jdata=jdataencode(data, options)
 % jdata=jdataencode(data, 'Param1',value1, 'Param2',value2,...)
 %
-% Serialize a MATLAB struct or cell array into a JData-compliant 
-% structure as defined in the JData spec: http://github.com/fangq/jdata
+% Annotate a MATLAB struct or cell array into a JData-compliant data
+% structure as defined in the JData spec: http://github.com/fangq/jdata.
+% This encoded form servers as an intermediate format that allows unambiguous
+% storage, exchange of complex data structures and easy-to-serialize by
+% json encoders such as savejson and jsonencode (MATLAB R2016b or newer)
 %
 % This function implements the JData Specification Draft 3 (Jun. 2020)
 % see http://github.com/fangq/jdata for details
@@ -55,6 +60,11 @@
 %     data: a structure (array) or cell (array) to be encoded.
 %     options: (optional) a struct or Param/value pairs for user
 %              specified options (first in [.|.] is the default)
+%         AnnotateArray: [0|1] - if set to 1, convert all 1D/2D matrices 
+%              to the annotated JData array format to preserve data types;
+%              N-D (N>2), complex and sparse arrays are encoded using the
+%              annotated format by default. Please set this option to 1 if
+%              you intend to use MATLAB's jsonencode to convert to JSON.
 %         Base64: [0|1] if set to 1, _ArrayZipData_ is assumed to
 %       	       be encoded with base64 format and need to be
 %       	       decoded first. This is needed for JSON but not
@@ -88,6 +98,14 @@
 % example:
 %     jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
 %
+%     encodedmat=jdataencode(single(magic(5)),'annotatearray',1,'prefix','x')
+%     jdatadecode(jsondecode(jsonencode(encodedmat)))  % serialize by jsonencode
+%     jdatadecode(loadjson(savejson('',encodedmat)))   % serialize by savejson
+%
+%     encodedtoeplitz=jdataencode(uint8(toeplitz([1,2,3,4],[1,5,6])),'usearrayshape',1,'prefix','x')
+%     jdatadecode(jsondecode(jsonencode(encodedtoeplitz)))  % serialize by jsonencode
+%     jdatadecode(loadjson(savejson('',encodedtoeplitz)))   % serialize by savejson
+%
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 %
@@ -98,7 +116,7 @@
 %
 % Convert all JData object (in the form of a struct array) into an array
 % (accepts JData objects loaded from either loadjson/loadubjson or 
-% jsondecode for MATLAB R2018a or later)
+% jsondecode for MATLAB R2016b or later)
 %
 % This function implements the JData Specification Draft 3 (Jun. 2020)
 % see http://github.com/fangq/jdata for details
@@ -252,7 +270,7 @@
 %           FileName [''|string]: a file name to save the output JSON data
 %           FloatFormat ['%.10g'|string]: format to show each numeric element
 %                         of a 1D/2D array;
-%           IntFormat ['%d'|string]: format to display integer elements
+%           IntFormat ['%.0f'|string]: format to display integer elements
 %                         of a 1D/2D array;
 %           ArrayIndent [1|0]: if 1, output explicit data array with
 %                         precedent indentation; if 0, no indentation
@@ -349,31 +367,32 @@
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 
-%%=== # UBJSON ===
+%%=== # BJData ===
 
-%==== function data = loadubjson(fname,varargin) ====
+%==== function data = loadbj(fname,varargin) ====
 %
-% data=loadubjson(fname,opt)
+% data=loadbj(fname,opt)
 %    or
-% data=loadubjson(fname,'param1',value1,'param2',value2,...)
+% data=loadbj(fname,'param1',value1,'param2',value2,...)
 %
-% parse a JSON (JavaScript Object Notation) file or string
+% Parse a Binary JData (BJData, Draft-1, defined in https://github.com/OpenJData/bjdata) 
+% file or memory buffer and convert into a MATLAB data structure
 %
 % initially created on 2013/08/01
 %
 % input:
 %      fname: input file name, if fname contains "{}" or "[]", fname
-%             will be interpreted as a UBJSON string
+%             will be interpreted as a BJData/UBJSON string
 %      opt: a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs - the param string is equivallent
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           SimplifyCell [1|0]: if set to 1, loadubjson will call cell2mat
+%           SimplifyCell [1|0]: if set to 1, loadbj will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
 %           IntEndian [B|L]: specify the endianness of the integer fields
-%                         in the UBJSON input data. B - Big-Endian format for 
+%                         in the BJData/UBJSON input data. B - Big-Endian format for 
 %                         integers (as required in the UBJSON specification); 
 %                         L - input integer fields are in Little-Endian order.
 %           NameIsString [0|1]: for UBJSON Specification Draft 8 or 
@@ -399,26 +418,26 @@
 %
 % examples:
 %      obj=struct('string','value','array',[1 2 3]);
-%      ubjdata=saveubjson('obj',obj);
-%      dat=loadubjson(ubjdata)
-%      dat=loadubjson(['examples' filesep 'example1.ubj'])
-%      dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',0)
+%      ubjdata=savebj('obj',obj);
+%      dat=loadbj(ubjdata)
+%      dat=loadbj(['examples' filesep 'example1.bjd'])
+%      dat=loadbj(['examples' filesep 'example1.bjd'],'SimplifyCell',0)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 %
 
-%==== function json=saveubjson(rootname,obj,varargin) ====
+%==== function json=savebj(rootname,obj,varargin) ====
 %
-% json=saveubjson(obj)
+% bjd=savebj(obj)
 %    or
-% json=saveubjson(rootname,obj,filename)
-% json=saveubjson(rootname,obj,opt)
-% json=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
+% bjd=savebj(rootname,obj,filename)
+% bjd=savebj(rootname,obj,opt)
+% bjd=savebj(rootname,obj,'param1',value1,'param2',value2,...)
 %
 % Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
-% into a Binary JData (BJD, Draft 1), Universal Binary JSON (UBJSON, Draft
-% 12) or a MessagePack binary stream
+% into a Binary JData (BJData, Draft 1), Universal Binary JSON (UBJSON,
+% Draft-12) or a MessagePack binary stream
 %
 % initially created on 2013/08/17
 %
@@ -442,7 +461,7 @@
 %           opt can have the following fields (first in [.|.] is the default)
 %
 %           FileName [''|string]: a file name to save the output JSON data
-%           ArrayToStruct[0|1]: when set to 0, saveubjson outputs 1D/2D
+%           ArrayToStruct[0|1]: when set to 0, savebj outputs 1D/2D
 %                         array in JSON array format; if sets to 1, an
 %                         array will be shown as a struct with fields
 %                         "_ArrayType_", "_ArraySize_" and "_ArrayData_"; for
@@ -470,7 +489,7 @@
 %          SingletCell  [1|0]: if 1, always enclose a cell with "[]" 
 %                         even it has only one element; if 0, brackets
 %                         are ignored when a cell has only 1 element.
-%          ForceRootName [0|1]: when set to 1 and rootname is empty, saveubjson
+%          ForceRootName [0|1]: when set to 1 and rootname is empty, savebj
 %                         will use the name of the passed obj variable as the 
 %                         root object name; if obj is an expression and 
 %                         does not have a name, 'root' will be used; if this 
@@ -524,6 +543,104 @@
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
 % output:
+%      bjd: a binary string in the UBJSON format (see http://ubjson.org)
+%
+% examples:
+%      jsonmesh=struct('MeshVertex3',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
+%               'MeshTet4',[1 2 4 8;1 3 4 8;1 2 6 8;1 5 6 8;1 5 7 8;1 3 7 8],...
+%               'MeshTri3',[1 2 4;1 2 6;1 3 4;1 3 7;1 5 6;1 5 7;...
+%                          2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
+%               'MeshCreator','FangQ','MeshTitle','T6 Cube',...
+%               'SpecialData',[nan, inf, -inf]);
+%      savebj(jsonmesh)
+%      savebj('',jsonmesh,'meshdata.bjd')
+%      savebj('mesh1',jsonmesh,'FileName','meshdata.msgpk','MessagePack',1)
+%      savebj('',jsonmesh,'ubjson',1)
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
+%
+
+%%=== # UBJSON ===
+
+%==== function varargout = loadubjson(varargin) ====
+%
+% data=loadubjson(fname,opt)
+%    or
+% data=loadubjson(fname,'param1',value1,'param2',value2,...)
+%
+% Parse a UBJSON file or string and store the output into a MATLAB variable
+%
+% initially created on 2019/06/08
+%
+% This function is an alias to loadbj
+%
+% input:
+%      fname: input file name, if fname contains "{}" or "[]", fname
+%             will be interpreted as a UBJSON string
+%      opt: a struct to store parsing options, opt can be replaced by 
+%           a list of ('param',value) pairs - the param string is equivallent
+%           to a field in opt. The supported options can be found by typing
+%           "help loadbj".
+%
+% output:
+%      data: a cell array, where {...} blocks are converted into cell arrays,
+%           and [...] are converted to arrays
+%
+% examples:
+%      obj=struct('string','value','array',[1 2 3]);
+%      ubjdata=saveubjson('obj',obj);
+%      dat=loadubjson(ubjdata)
+%      dat=loadubjson(['examples' filesep 'example1.ubj'])
+%      dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',0)
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+
+%==== function ubj=saveubjson(rootname,obj,varargin) ====
+%
+% ubj=saveubjson(obj)
+%    or
+% ubj=saveubjson(rootname,obj,filename)
+% ubj=saveubjson(rootname,obj,opt)
+% ubj=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
+%
+% Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
+% into a Universal Binary JSON (UBJSON, Draft 12) or a MessagePack binary stream
+%
+% initially created on 2013/08/17
+%
+% Format specifications:
+%    Binary JData (BJData):https://github.com/fangq/bjdata
+%    UBJSON:               https://github.com/ubjson/universal-binary-json
+%    MessagePack:          https://github.com/msgpack/msgpack
+%
+% This function is the same as calling "savebj(...,'ubjson',1)". By , 
+% default this function creates UBJSON-compliant output without the
+% newly added uint16(u), uint32(m), uint64(M) and half-precision float (h)
+% data types.
+%
+% This function by default still enables an optimized ND-array format for efficient  
+% array storage. To ensure the output compatible to UBJSON Draft-12, one should use
+% "saveubjson(...,'NestArray',1)" or "savebj(...,'ubjson',1,'NestArray',1)"
+%
+% input:
+%      rootname: the name of the root-object, when set to '', the root name
+%           is ignored, however, when opt.ForceRootName is set to 1 (see below),
+%           the MATLAB variable name will be used as the root name.
+%      obj: a MATLAB object (array, cell, cell array, struct, struct array,
+%           class instance)
+%      filename: a string for the file name to save the output UBJSON data
+%      opt: a struct for additional options, ignore to use default values.
+%           opt can have the following fields (first in [.|.] is the default)
+%
+%           opt can be replaced by a list of ('param',value) pairs. The param 
+%           string is equivallent to a field in opt and is case sensitive.
+%
+%           Please type "help savebj" for details for all supported options.
+%
+% output:
 %      json: a binary string in the UBJSON format (see http://ubjson.org)
 %
 % examples:
@@ -534,9 +651,9 @@
 %               'MeshCreator','FangQ','MeshTitle','T6 Cube',...
 %               'SpecialData',[nan, inf, -inf]);
 %      saveubjson(jsonmesh)
-%      saveubjson('',jsonmesh,'meshdata.bjd')
+%      saveubjson('',jsonmesh,'meshdata.ubj')
 %      saveubjson('mesh1',jsonmesh,'FileName','meshdata.msgpk','MessagePack',1)
-%      saveubjson('',jsonmesh,'ubjson',1)
+%      saveubjson('',jsonmesh,'KeepType',1)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -578,9 +695,9 @@
 %
 % initially created on 2019/05/20
 %
-% This function is the same as calling saveubjson(...,'MessagePack',1)
+% This function is the same as calling savebj(...,'MessagePack',1)
 %
-% Please type "help saveubjson" for details for the supported inputs and outputs.
+% Please type "help savebj" for details for the supported inputs and outputs.
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -612,9 +729,12 @@
 %           ws ['base'|'wsname']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: cell array of variable names to be saved
+%           matlab [0|1] if set to 1, use matlab's built-in jsonencode to
+%                         store encoded data to a json file; output file
+%                         must have a suffix of .jdt
 %
 %           all options for saveubjson/savejson (depends on file suffix)
-%           can be used to adjust the output
+%           can be used to adjust the output unless "'matlab',1" is used
 %
 % output:
 %      varlist: a list of variables loaded
@@ -652,8 +772,11 @@
 %           ws ['base'|'wsname']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: list of variables to be saved
-%           Header [0|1]: if set to 1, return the metadata of the variables 
+%           header [0|1]: if set to 1, return the metadata of the variables 
 %                         stored in the file
+%           matlab [0|1] if set to 1, use matlab's built-in jsondecode to
+%                         parse the json file and then decode the output by
+%                         jdatadecode; input file must have a suffix of .jdt
 %
 %           all options for loadubjson/loadjson (depends on file suffix)
 %           can be used to adjust the parsing options
@@ -1302,4 +1425,5 @@
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
+
 

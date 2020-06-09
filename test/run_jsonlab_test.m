@@ -1,4 +1,4 @@
-function run_save_test(testname,fhandle,input,expected,varargin)
+function run_jsonlab_test(testname,fhandle,input,expected,varargin)
 res=fhandle('',input,varargin{:});
 if(~isequal(strtrim(res),expected))
     warning('%s: failed: expected ''%s'', obtained ''%s''',testname,expected,res);
@@ -8,7 +8,7 @@ else
         handleinfo=functions(fhandle);
         loadfunname=regexprep(handleinfo.function,'^save','load');
         loadfun=str2func(loadfunname);
-        if(strcmp(loadfunname,'loadubjson'))
+        if(strcmp(loadfunname,'loadbj'))
             newres=loadfun(fhandle('',input,varargin{:},'debug',0),varargin{:});
         else
             newres=loadfun(res,varargin{:});

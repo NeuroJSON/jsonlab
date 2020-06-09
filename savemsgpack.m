@@ -12,9 +12,9 @@ function msgpk=savemsgpack(rootname,obj,varargin)
 % author: Qianqian Fang (q.fang <at> neu.edu)
 % initially created on 2019/05/20
 %
-% This function is the same as calling saveubjson(...,'MessagePack',1)
+% This function is the same as calling savebj(...,'MessagePack',1)
 %
-% Please type "help saveubjson" for details for the supported inputs and outputs.
+% Please type "help savebj" for details for the supported inputs and outputs.
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -23,9 +23,9 @@ function msgpk=savemsgpack(rootname,obj,varargin)
 %
 
 if(nargin==1)
-    msgpk=saveubjson('',rootname,'MessagePack',1);
+    msgpk=savebj('',rootname,'MessagePack',1);
 elseif(length(varargin)==1 && ischar(varargin{1}))
-    msgpk=saveubjson(rootname,obj,'FileName',varargin{1},'MessagePack',1);
+    msgpk=savebj(rootname,obj,'FileName',varargin{1},'MessagePack',1);
 else
-    msgpk=saveubjson(rootname,obj,varargin{:},'MessagePack',1);
+    msgpk=savebj(rootname,obj,varargin{:},'MessagePack',1);
 end
