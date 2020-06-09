@@ -25,7 +25,7 @@ function json=savejson(rootname,obj,varargin)
 %           FileName [''|string]: a file name to save the output JSON data
 %           FloatFormat ['%.10g'|string]: format to show each numeric element
 %                         of a 1D/2D array;
-%           IntFormat ['%d'|string]: format to display integer elements
+%           IntFormat ['%.0f'|string]: format to display integer elements
 %                         of a 1D/2D array;
 %           ArrayIndent [1|0]: if 1, output explicit data array with
 %                         precedent indentation; if 0, no indentation
@@ -147,7 +147,7 @@ opt.singletarray=jsonopt('SingletArray',0,opt);
 opt.formatversion=jsonopt('FormatVersion',2,opt);
 opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
 opt.compressstringsize=jsonopt('CompressStringSize',opt.compressarraysize*4,opt);
-opt.intformat=jsonopt('IntFormat','%d',opt);
+opt.intformat=jsonopt('IntFormat','%.0f',opt);
 opt.floatformat=jsonopt('FloatFormat','%.10g',opt);
 opt.unpackhex=jsonopt('UnpackHex',1,opt);
 opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
@@ -288,6 +288,9 @@ txt={};
 if(~iscell(item) && ~isa(item,'string'))
         error('input is not a cell or string array');
 end
+if(isa(item,'string'))
+    level=level-1;
+end
 isnum2cell=varargin{1}.num2cell_;
 if(isnum2cell)
     item=squeeze(item);
@@ -310,14 +313,16 @@ padding2=repmat(ws.tab,1,level+1);
 nl=ws.newline;
 bracketlevel=~varargin{1}.singletcell;
 if(len>bracketlevel)
-    if(~isempty(name))
-        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": [', nl}; name=''; 
-    else
-        txt={padding0, '[', nl};
+    if(~isa(item,'string'))
+        if(~isempty(name))
+            txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'":[', nl}; name=''; 
+        else
+            txt={padding0, '[', nl};
+        end
     end
 elseif(len==0)
     if(~isempty(name))
-        txt={padding0, '"' decodevarname(name,varargin{1}.unpackhex) '": []'}; name=''; 
+        txt={padding0, '"' decodevarname(name,varargin{1}.unpackhex) '":[]'}; name=''; 
     else
         txt={padding0, '[]'};
     end
@@ -340,7 +345,7 @@ for j=1:dim(2)
     end
     %if(j==dim(2)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
 end
-if(len>bracketlevel)
+if(len>bracketlevel && ~isa(item,'string'))
     txt(end+1:end+3)={nl,padding0,']'};
 end
 txt = sprintf('%s',txt{:});
@@ -369,7 +374,7 @@ end
 
 if(isempty(item)) 
     if(~isempty(name)) 
-        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": []'};
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'":[]'};
     else
         txt={padding0, '[]'};
     end
@@ -378,7 +383,7 @@ if(isempty(item))
 end
 if(~isempty(name))
     if(forcearray)
-        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": [', nl};
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'":[', nl};
     end
 else
     if(forcearray)
@@ -392,7 +397,7 @@ for j=1:dim(2)
   for i=1:dim(1)
     names = fieldnames(item(i,j));
     if(~isempty(name) && len==1 && ~forcearray)
-        txt(end+1:end+5)={padding1, '"', decodevarname(name,varargin{1}.unpackhex),'": {', nl};
+        txt(end+1:end+5)={padding1, '"', decodevarname(name,varargin{1}.unpackhex),'":{', nl};
     else
         txt(end+1:end+3)={padding1, '{', nl};
     end
@@ -466,7 +471,7 @@ nl=ws.newline;
 
 if(isempty(item)) 
     if(~isempty(name)) 
-        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": []'};
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'":[]'};
     else
         txt={padding0, '[]'};
     end
@@ -475,7 +480,7 @@ if(isempty(item))
 end
 if(~isempty(name)) 
     if(forcearray)
-        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'": {', nl};
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'":{', nl};
     end
 else
     if(forcearray)
@@ -516,7 +521,7 @@ sep=ws.sep;
 
 if(~isempty(name)) 
     if(len>1)
-        txt={padding1, '"', decodevarname(name,varargin{1}.unpackhex),'": [', nl};
+        txt={padding1, '"', decodevarname(name,varargin{1}.unpackhex),'":[', nl};
     end
 else
     if(len>1)
@@ -530,7 +535,7 @@ for e=1:len
         val=item(e,:);
     end
     if(len==1)
-        obj=['"' decodevarname(name,varargin{1}.unpackhex) '": ' '"',val,'"'];
+        obj=['"' decodevarname(name,varargin{1}.unpackhex) '":' '"',val,'"'];
         if(isempty(name))
             obj=['"',val,'"'];
         end
@@ -567,10 +572,10 @@ isnest=varargin{1}.nestarray;
 if(~varargin{1}.nosubstruct_ && ( ((isnest==0) && length(size(item))>2) || issparse(item) || ~isreal(item) || ...
    (isempty(item) && any(size(item))) || varargin{1}.arraytostruct || (~isempty(dozip) && numel(item)>zipsize)))
     if(isempty(name))
-    	txt=sprintf('%s{%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
+    	txt=sprintf('%s{%s%s"_ArrayType_":"%s",%s%s"_ArraySize_":%s,%s',...
               padding1,nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     else
-    	txt=sprintf('%s"%s": {%s%s"_ArrayType_": "%s",%s%s"_ArraySize_": %s,%s',...
+    	txt=sprintf('%s"%s":{%s%s"_ArrayType_":"%s",%s%s"_ArraySize_":%s,%s',...
               padding1,decodevarname(name,varargin{1}.unpackhex),nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     end
 else
@@ -579,9 +584,9 @@ else
     	txt=sprintf('%s%s',padding1,numtxt);
     else
         if(numel(item)==1 && varargin{1}.singletarray==0)
-           	txt=sprintf('%s"%s": %s',padding1,decodevarname(name,varargin{1}.unpackhex),numtxt);
+           	txt=sprintf('%s"%s":%s',padding1,decodevarname(name,varargin{1}.unpackhex),numtxt);
         else
-    	    txt=sprintf('%s"%s": %s',padding1,decodevarname(name,varargin{1}.unpackhex),numtxt);
+    	    txt=sprintf('%s"%s":%s',padding1,decodevarname(name,varargin{1}.unpackhex),numtxt);
         end
     end
     return;
@@ -599,9 +604,9 @@ if(issparse(item))
            % (Necessary for complex row vector handling below.)
            data=data';
        end
-       txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','true', sep);
+       txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_":','true', sep);
     end
-    txt=sprintf(dataformat,txt,padding0,'"_ArrayIsSparse_": ','true', sep);
+    txt=sprintf(dataformat,txt,padding0,'"_ArrayIsSparse_":','true', sep);
     if(~isempty(dozip) && numel(data*2)>zipsize)
         if(size(item,1)==1)
             % Row vector, store only column indices.
@@ -613,10 +618,10 @@ if(issparse(item))
             % General case, store row and column indices.
             fulldata=[ix,iy,data];
         end
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipType_": "',dozip, ['"' sep]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipSize_":',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipType_":"',dozip, ['"' sep]);
 	compfun=str2func([dozip 'encode']);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_": "',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_":"',base64encode(compfun(typecast(fulldata(:),'uint8'))),['"' nl]);
     else
         if(size(item,1)==1)
             % Row vector, store only column indices.
@@ -628,7 +633,7 @@ if(issparse(item))
             % General case, store row and column indices.
             fulldata=[ix,iy,data];
         end
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayData_":',...
                matdata2json(fulldata',level+2,varargin{:}), nl);    
     end
 else
@@ -642,20 +647,20 @@ else
                 fulldata=uint8(fulldata);
             end
         else
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','true', sep);
+            txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_":','true', sep);
             fulldata=[real(item(:)) imag(item(:))]';
         end
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipSize_": ',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipType_": "',dozip, ['"' sep]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipSize_":',regexprep(mat2str(size(fulldata)),'\s+',','), sep);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipType_":"',dozip, ['"' sep]);
 	    compfun=str2func([dozip 'encode']);
-        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_": "',char(base64encode(compfun(typecast(fulldata(:),'uint8')))),['"' nl]);
+        txt=sprintf(dataformat,txt,padding0,'"_ArrayZipData_":"',char(base64encode(compfun(typecast(fulldata(:),'uint8')))),['"' nl]);
     else
         if(isreal(item))
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
+            txt=sprintf(dataformat,txt,padding0,'"_ArrayData_":',...
             matdata2json(item(:)',level+2,varargin{:}), nl);
         else
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_": ','true', sep);
-            txt=sprintf(dataformat,txt,padding0,'"_ArrayData_": ',...
+            txt=sprintf(dataformat,txt,padding0,'"_ArrayIsComplex_":','true', sep);
+            txt=sprintf(dataformat,txt,padding0,'"_ArrayData_":',...
             matdata2json([real(item(:)) imag(item(:))]',level+2,varargin{:}), nl);
         end
     end

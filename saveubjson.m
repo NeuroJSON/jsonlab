@@ -308,7 +308,7 @@ end
 %%-------------------------------------------------------------------------
 function txt=cell2ubjson(name,item,level,varargin)
 txt='';
-if(~iscell(item))
+if(~iscell(item) && ~isa(item,'string'))
         error('input is not a cell');
 end
 isnum2cell=varargin{1}.num2cell_;
@@ -766,7 +766,11 @@ if(isa(mat,'integer') || isinteger(mat) || (~varargin{1}.keeptype && isfloat(mat
             end
         end
         if(numel(mat)==1)
-            txt=I_(int64(mat),varargin{:});
+            if(mat<0)
+                txt=I_(int64(mat),varargin{:});
+            else
+                txt=I_(uint64(mat),varargin{:});
+            end
         else
             txt=I_a(mat(:),type,size(mat),varargin{:});
         end
@@ -848,7 +852,7 @@ cid=varargin{1}.IType_;
 isdebug=varargin{1}.debug;
 if(isfield(varargin{1},'inttype_'))
     if(isdebug)
-        val=[Imarker(varargin{1}.inttype_) sprintf('<%d>',num)];
+        val=[Imarker(varargin{1}.inttype_) sprintf('<%.0f>',num)];
     else
         val=[Imarker(varargin{1}.inttype_) data2byte(swapbytes(cast(num,cid{varargin{1}.inttype_})),'uint8')];
     end
@@ -872,15 +876,17 @@ key=Imarker;
 for i=1:length(cid)
   if(num==cast(num,cid{i}))
     if(isdebug)
-        val=[key(i) sprintf('<%d>',num)];
+        val=[key(i) sprintf('<%.0f>',num)];
     else
         val=[key(i) data2byte(swapbytes(cast(num,cid{i})),'uint8')];
     end
     return;
   end
 end
-error('unsupported integer');
-
+val=S_(sprintf('%.0f',num),varargin{:});
+if(Imarker(1)=='U')
+    val(1)='H';
+end
 %%-------------------------------------------------------------------------
 function val=D_(num, varargin)
 if(~isfloat(num))
