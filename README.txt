@@ -13,14 +13,15 @@
 
 Table of Content:
 
-0.  What's New
-I.  Introduction
-II. Installation
-III.Using JSONLab
-IV. Using `jsave/jload` to share workspace
-V.  Known Issues and TODOs
-VI. Contribution and feedback
-VII.Acknowledgement
+0.   What's New
+I.   Introduction
+II.  Installation
+III. Using JSONLab
+IV.  Using `jsave/jload` to share workspace
+V.   Sharing JSONLab created data files in Python
+VI.  Known Issues and TODOs
+VII. Contribution and feedback
+VIII.Acknowledgement
 
 -------------------------------------------------------------------------------
 
@@ -36,6 +37,7 @@ release v1.9.8 in Oct. 2019. A list of the major changes are summarized below
 efficiently encode special matrices and the addition of `jsave/jload` to save
 and restore variables in MATLAB/Octave like `save/load` commands (experimental):
 
+* 2020-06-09*[       ] created `jdata` and `bjdata` python modules to share data with MATLAB
 * 2020-06-08*[cbde607] add savebj and loadbj to dedicate to loading and saving bjdata
 * 2020-06-08*[e2451e1] add unit testing script, fix issues found in the testing unit
 * 2020-06-06 [a44015f] accelerate fast_match_bracket, drop unicode2native for speed
@@ -314,22 +316,6 @@ The main benefits of using .jamm file to share matlab variables include
 * `jsave/jload` can also use MessagePack and JSON formats as the underlying \
   data storage format, addressing needs from diverse applications. \
   MessagePack parsers are readily available at https://msgpack.org/
-  
-For example, to load the `.jamm` file in python, one needs to install '''jdata''' 
-(https://pypi.org/project/jdata/) and '''bjdata''' (https://pypi.org/project/bjdata/) modules.
-
-      pip install jdata
-      pip install bjdata
-
-Other built-in Python modules needed include `json` and `numpy`.
-
-Once these modules are installed, one can open python, and run
-
-      import jdata as jd
-      import numpy as np
-      from collections import OrderedDict
-
-      mydata=jd.loadb('myfile.jamm',object_pairs_hook=OrderedDict);
 
 
 === jsave.m ===
@@ -348,10 +334,74 @@ Once these modules are installed, one can open python, and run
       jload('mydata.jamm','simplifycell',0)
       jload('mydata.json')
 
+-------------------------------------------------------------------------------
+
+V. Sharing JSONLab created data files in Python
+
+Despite the use of data annotation schemes defined by the JData Specification, 
+the output JSON files created by JSONLab are 100% JSON compatible (with
+the exception that long strings may be broken into multiple lines for better
+readability). Therefore, JSONLab-created JSON files (`.json, .jnii, .jnirs` etc) 
+can be readily read and written by nearly all existing JSON parsers, including
+the built-in `json` module parser in Python.
+
+However, we strongly recommend one to use a lightweight `jdata` module, 
+developed by the same author, to pefrorm the extra JData encoding and decoding
+and convert JSON data directly to convenient Python/Numpy data structures.
+The `jdata` module can also directly read/write UBJSON/Binary JData outputs
+from JSONLab (`.bjd, .ubj, .bnii, .bnirs, .jamm` etc). Using binary JData
+files are exptected to produce much smaller file sizes and faster parsing,
+while maintainining excellent portability and generality.
+
+In short, to conveniently read/write data files created by JSONLab in Python,
+whether they are JSON based or binary JData/UBJSON based, one should download
+the below two light-weight python modules:
+
+* **jdata**: PyPi: https://pypi.org/project/jdata/  ; Github: https://github.com/fangq/pyjdata
+* **bjdata** PyPi: https://pypi.org/project/bjdata/ ; Github: https://github.com/fangq/pybj
+
+To install these modules on Python 2.x, please first check if your system has
+`pip` and `numpy`, if not, please install it by running (using Ubuntu/Debian as example)
+
+      sudo apt-get install python-pip python3-pip python-numpy python3-numpy
+
+After installation is done, one can then install the `jdata` and `bjdata` modules by
+
+      pip install jdata --user
+      pip install bjdata --user
+
+To install these modules on Python 3.x, please replace `pip` by `pip3`.
+If one prefers to install these modules globally for all users, simply
+execute the above commands using `sudo` and remove the `--user` flag.
+
+The above modules requires built-in Python modules `json` and NumPy (`numpy`).
+
+Once the necessary modules are installed, one can start `python` (or `python3`), and run
+
+      import jdata as jd
+      import numpy as np
+      from collections import OrderedDict
+
+      data1=jd.loadt('myfile.json',object_pairs_hook=OrderedDict);
+      data2=jd.loadb('myfile.ubj',object_pairs_hook=OrderedDict);
+      data3=jd.loadb('myfile.jamm',object_pairs_hook=OrderedDict);
+
+where `jd.loadt()` function loads a text-based JSON file and perform
+JData decoding and convert the enclosed data into Python `dict`, `list` 
+and `numpy` objects. Similarly, `jd.loadb()` function loads a binary 
+JData/UBJSON file and perform similar conversion. One can directly call
+`jd.load()` to open JSONLab (and derived toolboxes such as jnifti: 
+https://github.com/fangq/jnifti or jsnirfy: https://github.com/fangq/jsnirfy) 
+generated files based on their respective default file suffix.
+
+Similarly, the `jb.savet()`, `jb.saveb()` and `jb.save` functions
+can revert the direction and convert a Python/Numpy object into JData encoded
+data structure and store as text-, binary- and suffix-determined output files,
+respectively.
 
 -------------------------------------------------------------------------------
 
-V. Known Issues and TODOs
+VI. Known Issues and TODOs
 
 JSONLab has several known limitations. We are striving to make it more general
 and robust. Hopefully in a few future releases, the limitations become less.
@@ -372,7 +422,7 @@ files, however, it can parse all UBJSON files produced by `saveubjson`.
 
 -------------------------------------------------------------------------------
 
-VI. Contribution and feedback
+VII. Contribution and feedback
 
 JSONLab is an open-source project. This means you can not only use it and modify
 it as you wish, but also you can contribute your changes back to JSONLab so
@@ -415,7 +465,7 @@ mailing list to report any questions you may have regarding JSONLab:
 
 -------------------------------------------------------------------------------
 
-VII.  Acknowledgement
+VIII.  Acknowledgement
 
 This toolbox contains modified functions from the below toolboxes:
 
