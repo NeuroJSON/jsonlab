@@ -15,7 +15,7 @@ It has both the flexibility and generality as offered by other popular general-p
 Towards this goal, we have developed the JData Specification (http://github.com/fangq/jdata) to standardize serializations of complex scientific data structures, such as N-D arrays, sparse/complex-valued arrays, trees, maps, tables and graphs using JSON/binary JSON constructs. The text and binary formatted JData files are syntactically compatible with JSON/UBJSON formats, and can be readily parsed using existing JSON and UBJSON parsers.
 
 Please note that data files produced by `saveubjson` may utilize a special "optimized header" to store N-D (N&gt;1) arrays, as defined in the JData Specification Draft 2. This feature is not supported by UBJSON Specification Draft 12. To produce UBJSON files that can be parsed by UBJSON-Draft-12 compliant parsers, you must add the option `'NestArray',1 ` in the call to `saveubjson`.</param.description>
-    <param.screenshot>${PROJECT_ROOT}/jsonlab-logo.png</param.screenshot>
+    <param.screenshot>${PROJECT_ROOT}/images/jsonlab-logo.png</param.screenshot>
     <param.version>1.9.8</param.version>
     <param.output>${PROJECT_ROOT}/jsonlab.mltbx</param.output>
     <param.products.name />
@@ -96,7 +96,7 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/isoctavemesh.m</file>
       <file>${PROJECT_ROOT}/jdatadecode.m</file>
       <file>${PROJECT_ROOT}/jdataencode.m</file>
-      <file>${PROJECT_ROOT}/jsonlab-logo.png</file>
+      <file>${PROJECT_ROOT}/images/jsonlab-logo.png</file>
       <file>${PROJECT_ROOT}/jsonopt.m</file>
       <file>${PROJECT_ROOT}/jsave.m</file>
       <file>${PROJECT_ROOT}/jload.m</file>
