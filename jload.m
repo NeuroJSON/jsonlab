@@ -55,7 +55,7 @@ opt=varargin2struct(varargin{:});
 
 ws=jsonopt('ws','base',opt);
 
-loadfun=@loadubjson;
+loadfun=@loadbj;
 if(regexp(filename,'\.[jJ][sS][oO][nN]$'))
     loadfun=@loadjson;
 elseif(regexp(filename,'\.[jJ][dD][tT]$'))

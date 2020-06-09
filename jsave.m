@@ -27,7 +27,7 @@ function varargout=jsave(filename, varargin)
 %                         store encoded data to a json file; output file
 %                         must have a suffix of .jdt
 %
-%           all options for saveubjson/savejson (depends on file suffix)
+%           all options for savebj/savejson (depends on file suffix)
 %           can be used to adjust the output unless "'matlab',1" is used
 %
 % output:
@@ -89,7 +89,7 @@ for i=1:length(varlist)
     body.(varlist{i})=evalin(ws,varlist{i});
 end
 
-savefun=@saveubjson;
+savefun=@savebj;
 if(regexp(filename,'\.[jJ][sS][oO][nN]$'))
     savefun=@savejson;
 elseif(regexp(filename,'\.[jJ][dD][tT]$'))
