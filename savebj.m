@@ -742,7 +742,9 @@ if(isa(mat,'integer') || isinteger(mat) || (~varargin{1}.keeptype && isfloat(mat
                 idx=find(ismember(varargin{1}.IType_,itype(2:end)));
             end
             type=Imarker(idx);
-            varargin{1}.inttype_=idx;
+            if(numel(mat)==1)
+                varargin{1}.inttype_=idx;
+            end
         elseif(~any(mat<0))
             cid=varargin{1}.IType_;
             type=Imarker(end);
