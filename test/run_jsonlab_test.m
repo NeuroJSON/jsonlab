@@ -1,9 +1,9 @@
-function testjsonlab(tests)
+function run_jsonlab_test(tests)
 %
-% testjsonlab
+% run_jsonlab_test
 %   or
-% testjsonlab(tests)
-% testjsonlab({'js','jso','bj','bjo'})
+% run_jsonlab_test(tests)
+% run_jsonlab_test({'js','jso','bj','bjo'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
