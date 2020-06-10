@@ -59,14 +59,12 @@ function data = loadbj(fname,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-    if(regexp(fname,'[\{\}\]\[]','once'))
-       string=fname;
-    elseif(exist(fname,'file'))
+    if(exist(fname,'file'))
        fid = fopen(fname,'rb');
        string = fread(fid,inf,'uint8=>char')';
        fclose(fid);
     else
-       error('input file does not exist');
+       string=fname;
     end
 
     pos = 1; inputlen = length(string); inputstr = string;
@@ -99,6 +97,8 @@ function data = loadbj(fname,varargin)
                 [data{jsoncount}, pos] = parse_object(inputstr, pos, opt);
             case '['
                 [data{jsoncount}, pos] = parse_array(inputstr, pos, opt);
+            case {'S','C','H','i','U','I','u','l','m','L','M','h','d','D','T','F','Z','N'}
+                [data{jsoncount}, pos] = parse_value(inputstr, pos, opt);
             otherwise
                 error_pos('Outer level structure must be an object or an array', inputstr, pos);
         end

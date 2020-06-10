@@ -4,7 +4,7 @@ if(~isequal(strtrim(res),expected))
     warning('Test %s: failed: expected ''%s'', obtained ''%s''',testname,expected,res);
 else
     fprintf(1,'Testing %s: ok\n\toutput:''%s''\n',testname,strtrim(res));
-    if(regexp(res,'^[\[\{]'))
+    if(regexp(res,'^[\[\{A-Za-z]'))
         handleinfo=functions(fhandle);
         loadfunname=regexprep(handleinfo.function,'^save','load');
         loadfun=str2func(loadfunname);
