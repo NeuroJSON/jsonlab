@@ -20,7 +20,7 @@ function varargout=jload(filename, varargin)
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           ws ['base'|'wsname']: the name of the workspace in which the
+%           ws ['caller'|'base']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: list of variables to be saved
 %           header [0|1]: if set to 1, return the metadata of the variables 
@@ -36,7 +36,7 @@ function varargout=jload(filename, varargin)
 %      varlist: a list of variables loaded
 %
 % examples:
-%      jload  % load all variables in jamdata.jamm to the 'base' workspace 
+%      jload  % load all variables in jamdata.jamm to the 'caller' workspace 
 %      jload mydat.jamm
 %      jload('mydat.jamm','vars', {'v1','v2',...}) % load selected variables
 %      jload('mydat.jamm','simplifycell',1)
@@ -53,7 +53,7 @@ end
 
 opt=varargin2struct(varargin{:});
 
-ws=jsonopt('ws','base',opt);
+ws=jsonopt('ws','caller',opt);
 
 loadfun=@loadbj;
 if(regexp(filename,'\.[jJ][sS][oO][nN]$'))

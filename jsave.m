@@ -20,7 +20,7 @@ function varargout=jsave(filename, varargin)
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           ws ['base'|'wsname']: the name of the workspace in which the
+%           ws ['caller'|'base']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: cell array of variable names to be saved
 %           matlab [0|1] if set to 1, use matlab's built-in jsonencode to
@@ -34,7 +34,7 @@ function varargout=jsave(filename, varargin)
 %      varlist: a list of variables loaded
 %
 % examples:
-%      jsave  % save all variables in the 'base' workspace to jamdata.jamm
+%      jsave  % save all variables in the 'caller' workspace to jamdata.jamm
 %      jsave('mydat.jamm','vars', {'v1','v2',...}) % save selected variables
 %      jsave('mydat.jamm','compression','lzma')
 %
@@ -50,7 +50,7 @@ end
 
 opt=varargin2struct(varargin{:});
 
-ws=jsonopt('ws','base',opt);
+ws=jsonopt('ws','caller',opt);
 
 allvar=evalin(ws,'whos');
 varlist=jsonopt('vars',{allvar.name},opt);
