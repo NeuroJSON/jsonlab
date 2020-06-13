@@ -399,11 +399,11 @@ where `jd.loadt()` function loads a text-based JSON file, performs
 JData decoding and converts the enclosed data into Python `dict`, `list` 
 and `numpy` objects. Similarly, `jd.loadb()` function loads a binary 
 JData/UBJSON file and performs similar conversions. One can directly call
-`jd.load()` to open JSONLab (and derived toolboxes such as jnifti: 
-https://github.com/fangq/jnifti or jsnirfy: https://github.com/fangq/jsnirfy) 
+`jd.load()` to open JSONLab (and derived toolboxes such as '''jnifti''': 
+https://github.com/fangq/jnifti or '''jsnirfy''': https://github.com/fangq/jsnirfy) 
 generated files based on their respective file suffix.
 
-Similarly, the `jb.savet()`, `jb.saveb()` and `jb.save` functions
+Similarly, the `jd.savet()`, `jd.saveb()` and `jd.save` functions
 can revert the direction and convert a Python/Numpy object into JData encoded
 data structure and store as text-, binary- and suffix-determined output files,
 respectively.
