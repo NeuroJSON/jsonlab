@@ -100,7 +100,7 @@ function data = loadjson(fname,varargin)
            end
        end
     else
-       error('input file does not exist');
+       error_pos('input file does not exist');
     end
 
     pos = 1; inputlen = length(string); inputstr = string;
@@ -489,7 +489,7 @@ function pos=error_pos(msg, inputstr, pos)
     end
     msg = [sprintf(msg, pos) ': ' ...
     inputstr(poShow(1):poShow(2)) '<error>' inputstr(poShow(3):poShow(4)) ];
-    error( ['JSONLAB:InvalidFormat: ' msg] );
+    error( ['JSONLAB:JSON:InvalidFormat: ' msg] );
 end
 
 %%-------------------------------------------------------------------------

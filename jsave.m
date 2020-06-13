@@ -45,7 +45,7 @@ function varargout=jsave(filename, varargin)
 %
 
 if(nargin==0)
-    filename='jamdata.jamm';
+    filename=[pwd filesep 'jamdata.jamm'];
 end
 
 opt=varargin2struct(varargin{:});

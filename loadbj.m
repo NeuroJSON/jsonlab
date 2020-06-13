@@ -63,8 +63,10 @@ function data = loadbj(fname,varargin)
        fid = fopen(fname,'rb');
        string = fread(fid,inf,'uint8=>char')';
        fclose(fid);
-    else
+    elseif(regexp(fname, '^\s*[\[\{SCHiUIulmLMhdDTFZN]'))
        string=fname;
+    else
+       error_pos('input file does not exist or buffer is invalid');
     end
 
     pos = 1; inputlen = length(string); inputstr = string;
@@ -156,7 +158,7 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
         [cc,pos]=next_char(inputstr,pos);
         if(cc=='[')
             if(isfield(varargin{1},'noembedding_') && varargin{1}.noembedding_==1)
-                error('ND array size specifier does not support embedding');
+                error_pos('ND array size specifier does not support embedding');
             end
             varargin{1}.noembedding_=1;
             [dim, pos]=parse_array(inputstr, pos, varargin{:});
@@ -342,7 +344,7 @@ function pos=error_pos(msg, inputstr, pos)
     end
     msg = [sprintf(msg, pos) ': ' ...
     inputstr(poShow(1):poShow(2)) '<error>' inputstr(poShow(3):poShow(4)) ];
-    error( ['JSONLAB:InvalidFormat: ' msg] );
+    error( ['JSONLAB:BJData:InvalidFormat: ' msg] );
 end
 
 %%-------------------------------------------------------------------------

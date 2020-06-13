@@ -3,6 +3,8 @@ function varargout=jload(filename, varargin)
 % jload
 %   or
 % jload(fname)
+% varlist=jload(fname)
+% [varlist, header]=jload(fname)
 % varlist=jload(fname,'param1',value1,'param2',value2,...)
 %
 % Load variables from a JSON or binary JSON file to a workspace
@@ -33,13 +35,16 @@ function varargout=jload(filename, varargin)
 %           can be used to adjust the parsing options
 %
 % output:
-%      varlist: a list of variables loaded
+%      varlist: a struct with each subfield a variable stored in the file,
+%               if output is ignored, the variables will be loaded to the
+%               workspace specified by the 'ws' option, which by default
+%               load the variables to the current workspace ('caller')
 %
 % examples:
 %      jload  % load all variables in jamdata.jamm to the 'caller' workspace 
 %      jload mydat.jamm
 %      jload('mydat.jamm','vars', {'v1','v2',...}) % load selected variables
-%      jload('mydat.jamm','simplifycell',1)
+%      varlist=jload('mydat.jamm','simplifycell',1)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -48,7 +53,7 @@ function varargout=jload(filename, varargin)
 %
 
 if(nargin==0)
-    filename='jamdata.jamm';
+    filename=[pwd filesep 'jamdata.jamm'];
 end
 
 opt=varargin2struct(varargin{:});
@@ -75,11 +80,6 @@ else
     header=loadfun(filename,'ObjectID',1, varargin{:});
 end
 
-if(jsonopt('Header',0,opt))
-    varargout{1}=header;
-    return;
-end
-
 allvar=fieldnames(header.WorkspaceHeader);
 
 varlist=jsonopt('vars',allvar,opt);
@@ -96,10 +96,13 @@ else
     body=loadfun(filename,'ObjectID',2, varargin{:});
 end
 
-for i=1:length(varlist)
-    assignin(ws, varlist{i}, body.WorkspaceData.(varlist{i}));
-end
-
-if(nargout>1)
-    varargout{1}=varlist;
+if(nargout==0)
+    for i=1:length(varlist)
+        assignin(ws, varlist{i}, body.WorkspaceData.(varlist{i}));
+    end
+else
+    varargout{1}=rmfield(body.WorkspaceData,setdiff(fieldnames(body.WorkspaceData),varlist));
+    if(nargout>1)
+        varargout{2}=header;
+    end
 end

@@ -188,7 +188,7 @@ function [obj, idx] = parse(bytes, idx, varargin)
             len = double(bytes2scalar(bytes(idx+1:idx+4), 'uint32'));
             [obj, idx] = parsemap(len, bytes, idx+5, varargin{:});
         otherwise
-            error('transplant:parsemsgpack:unknowntype', ...
+            error('JSONLAB:MSGPACK:InvalidFormat', ...
                   ['Unknown type "' dec2bin(currentbyte) '"']);
     end
 end
