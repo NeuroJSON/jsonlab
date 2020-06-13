@@ -1,4 +1,4 @@
-function run_jsonlab_test(testname,fhandle,input,expected,varargin)
+function test_jsonlab(testname,fhandle,input,expected,varargin)
 res=fhandle('',input,varargin{:});
 if(~isequal(strtrim(res),expected))
     warning('Test %s: failed: expected ''%s'', obtained ''%s''',testname,expected,res);

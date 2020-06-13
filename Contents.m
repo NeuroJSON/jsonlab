@@ -375,7 +375,7 @@
 %    or
 % data=loadbj(fname,'param1',value1,'param2',value2,...)
 %
-% Parse a Binary JData (BJData, Draft-1, defined in https://github.com/OpenJData/bjdata) 
+% Parse a Binary JData (BJData v1 Draft-1, defined in https://github.com/OpenJData/bjdata) 
 % file or memory buffer and convert into a MATLAB data structure
 %
 % initially created on 2013/08/01
@@ -436,7 +436,7 @@
 % bjd=savebj(rootname,obj,'param1',value1,'param2',value2,...)
 %
 % Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
-% into a Binary JData (BJData, Draft 1), Universal Binary JSON (UBJSON,
+% into a Binary JData (BJData v1 Draft-1), Universal Binary JSON (UBJSON,
 % Draft-12) or a MessagePack binary stream
 %
 % initially created on 2013/08/17

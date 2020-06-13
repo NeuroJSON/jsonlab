@@ -32,6 +32,10 @@ release v1.9.8 in Oct. 2019. A list of the major changes are summarized below
 efficiently encode special matrices and the addition of ``jsave/jload`` to save
 and restore variables in MATLAB/Octave like the ``save/load`` commands (experimental):
 
+- 2020-06-13 [81feef3] skil no-op markers, update documentation
+- 2020-06-13 [4904155] jload load data to struct, test if loadbj input is buffer, update error msg
+- 2020-06-12 [c334799] change default workspace to caller for jload and jsave
+- 2020-06-10 [c883546] fix keeptype single integer bug
 - 2020-06-09*[       ] created ``jdata`` and ``bjdata`` python modules to share data with MATLAB
 - 2020-06-08*[cbde607] add savebj and loadbj to dedicate to loading and saving bjdata
 - 2020-06-08*[e2451e1] add unit testing script, fix issues found in the testing unit
@@ -78,7 +82,7 @@ and can be readily opened among a long list of programming environments
 such as Python, JavaScript and Go.
 
 The ``saveubjson/loadubjson`` functions added support to the Binary JData specification (BJData)
-Draft 1 (https://github.com/fangq/bjdata) and are now renamed as ``savebj/loadbj``
+v1 Draft-1 (https://github.com/fangq/bjdata) and are now renamed as ``savebj/loadbj``
 (``saveubjson/loadubjson`` are kept for compatibility purposes as aliases to the new 
 functions). The BJData spec is largely compatible with UBJSON spec Draft 12, with the 
 following differences (we are working with the UBJSON maintainer to merge 

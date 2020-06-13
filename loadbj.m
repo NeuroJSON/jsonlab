@@ -4,7 +4,7 @@ function data = loadbj(fname,varargin)
 %    or
 % data=loadbj(fname,'param1',value1,'param2',value2,...)
 %
-% Parse a Binary JData (BJData, Draft-1, defined in https://github.com/OpenJData/bjdata) 
+% Parse a Binary JData (BJData v1 Draft-1, defined in https://github.com/OpenJData/bjdata) 
 % file or memory buffer and convert into a MATLAB data structure
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)

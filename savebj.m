@@ -7,7 +7,7 @@ function json=savebj(rootname,obj,varargin)
 % bjd=savebj(rootname,obj,'param1',value1,'param2',value2,...)
 %
 % Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
-% into a Binary JData (BJData, Draft 1), Universal Binary JSON (UBJSON,
+% into a Binary JData (BJData v1 Draft-1), Universal Binary JSON (UBJSON,
 % Draft-12) or a MessagePack binary stream
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
