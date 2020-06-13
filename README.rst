@@ -380,8 +380,8 @@ jload.m
 .. code-block:: matlab
 
       jload    % load variables from jamdata.jamm to the current workspace
-      jload mydata.jamm
-      jload('mydata.jamm','vars',{'var1','var2'})
+      jload mydata.jamm   % load variables from mydata.jamm
+      vars=jload('mydata.jamm','vars',{'var1','var2'}) % return vars.var1, vars.var2
       jload('mydata.jamm','simplifycell',0)
       jload('mydata.json')
 

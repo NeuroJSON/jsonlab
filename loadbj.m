@@ -244,6 +244,10 @@ function [c, pos] = next_char(inputstr, pos)
         c = [];
     else
         c = inputstr(pos);
+        while(c=='N')
+             pos=pos+1;
+             c = inputstr(pos);
+        end
     end
 end
 
@@ -307,7 +311,8 @@ end
 %%-------------------------------------------------------------------------
 
 function [val, pos] = parse_value(inputstr, pos, varargin)
-    switch(inputstr(pos))
+    [cc,pos]=next_char(inputstr,pos);
+    switch(cc)
         case {'S','C','H'}
             [val, pos] = parseStr(inputstr, pos, varargin{:});
             return;

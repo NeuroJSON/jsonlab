@@ -8,6 +8,7 @@ JSONlab ChangeLog (key features marked by *):
 
 == JSONlab 2.0 (codename: Magnus Prime), FangQ <q.fang (at) neu.edu> ==
 
+ 2020-06-09*[       ] created `jdata` and `bjdata` python modules to share data with MATLAB
  2020-06-08*[cbde607] add savebj and loadbj to dedicate to loading and saving bjdata
  2020-06-08*[e2451e1] add unit testing script, fix issues found in the testing unit
  2020-06-06 [a44015f] accelerate fast_match_bracket, drop unicode2native for speed

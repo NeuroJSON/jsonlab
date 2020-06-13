@@ -63,9 +63,9 @@ function ubj=saveubjson(rootname,obj,varargin)
 %
 
 if(nargin==1)
-    ubj=saveubjson('',rootname,'ubjson',1);
+    ubj=savebj('',rootname,'ubjson',1);
 elseif(length(varargin)==1 && ischar(varargin{1}))
-    ubj=saveubjson(rootname,obj,'FileName',varargin{1},'ubjson',1);
+    ubj=savebj(rootname,obj,'FileName',varargin{1},'ubjson',1);
 else
-    ubj=saveubjson(rootname,obj,varargin{:},'ubjson',1);
+    ubj=savebj(rootname,obj,varargin{:},'ubjson',1);
 end

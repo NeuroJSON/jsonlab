@@ -12,7 +12,7 @@
 %   jdatadecode        - newdata=jdatadecode(data,opt,...)
 %   jdataencode        - jdata=jdataencode(data)
 %   jsave              - jsave(fname,'param1',value1,'param2',value2,...)
-%   jload              - jload(fname,'param1',value1,'param2',value2,...)
+%   jload              - vars=jload(fname,'param1',value1,'param2',value2,...)
 %   jsonopt            - val=jsonopt(key,default,optstruct)
 %   loadbj             - data=loadbj(fname,opt)
 %   loadjson           - data=loadjson(fname,opt)
@@ -726,21 +726,21 @@
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           ws ['base'|'wsname']: the name of the workspace in which the
+%           ws ['caller'|'base']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: cell array of variable names to be saved
 %           matlab [0|1] if set to 1, use matlab's built-in jsonencode to
 %                         store encoded data to a json file; output file
 %                         must have a suffix of .jdt
 %
-%           all options for saveubjson/savejson (depends on file suffix)
+%           all options for savebj/savejson (depends on file suffix)
 %           can be used to adjust the output unless "'matlab',1" is used
 %
 % output:
 %      varlist: a list of variables loaded
 %
 % examples:
-%      jsave  % save all variables in the 'base' workspace to jamdata.jamm
+%      jsave  % save all variables in the 'caller' workspace to jamdata.jamm
 %      jsave('mydat.jamm','vars', {'v1','v2',...}) % save selected variables
 %      jsave('mydat.jamm','compression','lzma')
 %
@@ -753,6 +753,8 @@
 % jload
 %   or
 % jload(fname)
+% varlist=jload(fname)
+% [varlist, header]=jload(fname)
 % varlist=jload(fname,'param1',value1,'param2',value2,...)
 %
 % Load variables from a JSON or binary JSON file to a workspace
@@ -769,7 +771,7 @@
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %
-%           ws ['base'|'wsname']: the name of the workspace in which the
+%           ws ['caller'|'base']: the name of the workspace in which the
 %                         variables are to be saved
 %           vars [{'var1','var2',...}]: list of variables to be saved
 %           header [0|1]: if set to 1, return the metadata of the variables 
@@ -782,13 +784,16 @@
 %           can be used to adjust the parsing options
 %
 % output:
-%      varlist: a list of variables loaded
+%      varlist: a struct with each subfield a variable stored in the file,
+%               if output is ignored, the variables will be loaded to the
+%               workspace specified by the 'ws' option, which by default
+%               load the variables to the current workspace ('caller')
 %
 % examples:
-%      jload  % load all variables in jamdata.jamm to the 'base' workspace 
+%      jload  % load all variables in jamdata.jamm to the 'caller' workspace 
 %      jload mydat.jamm
 %      jload('mydat.jamm','vars', {'v1','v2',...}) % load selected variables
-%      jload('mydat.jamm','simplifycell',1)
+%      varlist=jload('mydat.jamm','simplifycell',1)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -1425,5 +1430,3 @@
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
-
-
