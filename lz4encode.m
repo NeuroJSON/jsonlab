@@ -1,4 +1,4 @@
-function varargout = lz4hcencode(varargin)
+function varargout = lz4encode(varargin)
 %
 % output = lz4encode(input)
 %    or
