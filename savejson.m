@@ -261,7 +261,7 @@ elseif(isstruct(item))
 elseif(isnumeric(item) || islogical(item))
     txt=mat2json(name,item,level,varargin{:});
 elseif(ischar(item))
-    if(numel(item)>=varargin{1}.compressstringsize)
+    if(~isempty(varargin{1}.compression) && numel(item)>=varargin{1}.compressstringsize)
         txt=mat2json(name,item,level,varargin{:});
     else
         txt=str2json(name,item,level,varargin{:});
@@ -294,7 +294,6 @@ end
 isnum2cell=varargin{1}.num2cell_;
 if(isnum2cell)
     item=squeeze(item);
-else
     format=varargin{1}.formatversion;
     if(format>1.9 && ~isvector(item))
         item=permute(item,ndims(item):-1:1);
@@ -309,16 +308,13 @@ end
 len=numel(item);
 ws=varargin{1}.whitespaces_;
 padding0=repmat(ws.tab,1,level);
-padding2=repmat(ws.tab,1,level+1);
 nl=ws.newline;
 bracketlevel=~varargin{1}.singletcell;
 if(len>bracketlevel)
-    if(~isa(item,'string'))
-        if(~isempty(name))
-            txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'":[', nl}; name=''; 
-        else
-            txt={padding0, '[', nl};
-        end
+    if(~isempty(name))
+        txt={padding0, '"', decodevarname(name,varargin{1}.unpackhex),'":[', nl}; name='';
+    else
+        txt={padding0, '[', nl};
     end
 elseif(len==0)
     if(~isempty(name))
@@ -326,26 +322,17 @@ elseif(len==0)
     else
         txt={padding0, '[]'};
     end
+    txt = sprintf('%s',txt{:});
+    return;
 end
-for j=1:dim(2)
-    if(dim(1)>1)
-        txt(end+1:end+3)={padding2,'[',nl};
-    end
-    for i=1:dim(1)
-       txt{end+1}=obj2json(name,item{i,j},level+(dim(1)>1)+(len>bracketlevel),varargin{:});
-       if(i<dim(1))
-           txt(end+1:end+2)={',' nl};
-       end
-    end
-    if(dim(1)>1)
-        txt(end+1:end+3)={nl,padding2,']'};
-    end
-    if(j<dim(2))
-        txt(end+1:end+2)={',' nl};
-    end
-    %if(j==dim(2)) txt=sprintf('%s%s',txt,sprintf(',%s',nl)); end
+if(size(item,1)>1)
+    item=num2cell(item,2:ndims(item))';
 end
-if(len>bracketlevel && ~isa(item,'string'))
+idx=num2cell(1:length(item));
+sep={[',' nl],''};
+txt=[txt{:},cellfun(@(x,id) [obj2json(name,x,level+(dim(1)>1)+(len>bracketlevel),varargin{:}), sep{(id==length(item))+1}], item, idx, 'UniformOutput',false)];
+
+if(len>bracketlevel)
     txt(end+1:end+3)={nl,padding0,']'};
 end
 txt = sprintf('%s',txt{:});
@@ -718,14 +705,11 @@ if(~isvector(mat) && isnest==1)
         mat=permute(mat,ndims(mat):-1:1);
    end
    varargin{1}.num2cell_=1;
+   varargin{1}.singletcell=0;
    txt=cell2json('',num2cell(mat,1),level-1,varargin{:});
    return;
-else
-    if(isnest)
-        if(isnum2cell)
-             mat=mat(:).';
-        end
-    end
+elseif(isvector(mat) && isnum2cell==1)
+   mat=mat(:).';
 end
 
 if(size(mat,1)==1)

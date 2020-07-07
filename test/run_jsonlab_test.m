@@ -46,8 +46,8 @@ if(ismember('js',tests))
     test_jsonlab('empty string',@savejson,'','""','compact',1);
     test_jsonlab('string escape',@savejson,sprintf('jdata\n\b\ashall\tprevail\t"\"\\'),'"jdata\n\b\ashall\tprevail\t\"\"\\"');
     if(exist('isstring'))
-        test_jsonlab('string type',@savejson,string(sprintf('jdata\n\b\ashall\tprevail')),'"jdata\n\b\ashall\tprevail"','compact',1);
-        test_jsonlab('string array',@savejson,[string('jdata');string('shall');string('prevail')],'["jdata","shall","prevail"]','compact',1);
+        test_jsonlab('string type',@savejson,string(sprintf('jdata\n\b\ashall\tprevail')),'["jdata\n\b\ashall\tprevail"]','compact',1);
+        test_jsonlab('string array',@savejson,[string('jdata'),string('shall'),string('prevail')],'["jdata","shall","prevail"]','compact',1);
     end
     test_jsonlab('row vector',@savejson,[1,2,3],'[1,2,3]');
     test_jsonlab('column vector',@savejson,[1;2;3],'[[1],[2],[3]]','compact',1);
@@ -58,7 +58,7 @@ if(ismember('js',tests))
     test_jsonlab('3d (row-major) nested array',@savejson,reshape(1:(2*3*2),2,3,2),...
          '[[[1,7],[3,9],[5,11]],[[2,8],[4,10],[6,12]]]','compact',1,'nestarray',1);
     test_jsonlab('3d (column-major) nested array',@savejson,reshape(1:(2*3*2),2,3,2),...
-         '[[[1,2],[3,4],[5,6]],[[7,8],[9,10],[11,12]]]','compact',1,'nestarray',1,'formatversion',1.9);
+         '[[[1,2],[7,8]],[[3,4],[9,10]],[[5,6],[11,12]]]','compact',1,'nestarray',1,'formatversion',1.9);
     test_jsonlab('3d annotated array',@savejson,reshape(int8(1:(2*3*2)),2,3,2),...
          '{"_ArrayType_":"int8","_ArraySize_":[2,3,2],"_ArrayData_":[1,7,3,9,5,11,2,8,4,10,6,12]}','compact',1);
     test_jsonlab('complex number',@savejson,single(2+4i),...
