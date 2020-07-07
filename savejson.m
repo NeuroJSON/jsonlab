@@ -261,7 +261,7 @@ elseif(isstruct(item))
 elseif(isnumeric(item) || islogical(item))
     txt=mat2json(name,item,level,varargin{:});
 elseif(ischar(item))
-    if(numel(item)>=varargin{1}.compressstringsize)
+    if(~isempty(varargin{1}.compression) && numel(item)>=varargin{1}.compressstringsize)
         txt=mat2json(name,item,level,varargin{:});
     else
         txt=str2json(name,item,level,varargin{:});
