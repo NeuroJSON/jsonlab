@@ -37,7 +37,7 @@ release v1.9.8 in Oct. 2019. A list of the major changes are summarized below
 efficiently encode special matrices and the addition of `jsave/jload` to save
 and restore variables in MATLAB/Octave like the `save/load` commands (experimental):
 
-* 2020-06-13 [81feef3] skil no-op markers, update documentation
+* 2020-06-13 [81feef3] skip no-op markers, update documentation
 * 2020-06-13 [4904155] jload load data to struct, test if loadbj input is buffer, update error msg
 * 2020-06-12 [c334799] change default workspace to caller for jload and jsave
 * 2020-06-10 [c883546] fix keeptype single integer bug
@@ -197,6 +197,32 @@ install it directly using the below command
 To enable data compression/decompression, you need to install `octave-zmat` using
 
    sudo dnf install octave-zmat
+
+
+=== Install JSONLab on Debian ===
+
+JSONLab is currently available on Debian unstable. To install, you may run
+
+   sudo apt-get install octave-jsonlab
+
+One can alternatively install `matlab-jsonlab` if MATLAB is available.
+
+=== Install JSONLab on Ubuntu ===
+
+JSONLab is currently available on the below PPA for Ubuntu users:
+
+https://launchpad.net/~fangq/+archive/ubuntu/ppa
+
+To install, please run
+
+   sudo add-apt-repository ppa:fangq/ppa
+   sudo apt-get update
+
+to add this PPA, and then use
+
+   sudo apt-get install octave-jsonlab
+
+to install the toolbox. `octave-zmat` will be automatically installed.
 
 === Install JSONLab on Arch Linux ===
 
