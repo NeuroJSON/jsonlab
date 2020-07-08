@@ -1,6 +1,6 @@
-The author of "jsonlab" toolbox is Qianqian Fang. Qianqian
-is currently an Assistant Professor in the Department of Bioengineering,
-Northeastern University.
+The author of "jsonlab" toolbox is Qianqian Fang. Qianqian is
+currently an Associate Professor in the Department of Bioengineering,
+Northeastern University, USA.
 
 Address: Qianqian Fang
          Department of Bioengineering
