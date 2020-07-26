@@ -49,5 +49,5 @@ addons:
 
 script:
     - ${OCTAVE} --version
-    - ${OCTAVE} --eval "addpath(pwd);cd test;run_jsonlab_test"
+    - ${OCTAVE} --eval "pwd;addpath(pwd);cd test;run_jsonlab_test"
     - ${OCTAVE} --eval "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest"
