@@ -14,16 +14,19 @@ jobs:
       dist: xenial
       env:
       - BADGE=Octave_4
+      - OCTAVE=octave-cli
     - os: linux
       name: Octave 3.8
       dist: trusty
       env:
       - BADGE=Octave_3
+      - OCTAVE=octave-cli
     - os: linux
       name: Octave 3.2
       dist: precise
       env:
       - BADGE=Octave_32
+      - OCTAVE=octave
 #    - os: windows
 #      name: Windows
 #      env:
@@ -45,5 +48,6 @@ addons:
     update: true
 
 script:
-    - octave-cli --version
-    - octave-cli --eval "addpath(pwd);cd test;run_jsonlab_test"
+    - ${OCTAVE} --version
+    - ${OCTAVE} --eval "addpath(pwd);cd test;run_jsonlab_test"
+    - ${OCTAVE} --eval "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest"
