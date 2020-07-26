@@ -10,6 +10,8 @@
 * JData Specification Version: Draft 3 (http://github.com/fangq/jdata)
 * URL: http://openjdata.org/jsonlab
 
+.. image:: https://travis-ci.com/fangq/jsonlab.svg?branch=master
+    :target: https://travis-ci.com/fangq/jsonlab
 
 #################
 Table of Contents
