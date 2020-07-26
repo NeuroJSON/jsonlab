@@ -21,12 +21,6 @@ jobs:
       env:
       - BADGE=Octave_3
       - OCTAVE=octave-cli
-    - os: linux
-      name: Octave 3.2
-      dist: precise
-      env:
-      - BADGE=Octave_32
-      - OCTAVE=octave
 #    - os: windows
 #      name: Windows
 #      env:
@@ -49,5 +43,5 @@ addons:
 
 script:
     - ${OCTAVE} --version
-    - ${OCTAVE} --eval "pwd;addpath(pwd);cd test;run_jsonlab_test"
+    - ${OCTAVE} --eval "addpath(pwd);cd test;run_jsonlab_test"
     - ${OCTAVE} --eval "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest"
