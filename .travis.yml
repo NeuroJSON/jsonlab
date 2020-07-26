@@ -19,14 +19,19 @@ jobs:
       dist: trusty
       env:
       - BADGE=Octave_3
-    - os: windows
-      name: Windows
+    - os: linux
+      name: Octave 3.2
+      dist: precise
       env:
-      - BADGE=Windows
-    - os: osx
-      name: OSX
-      env:
-      - BADGE=OSX
+      - BADGE=Octave_32
+#    - os: windows
+#      name: Windows
+#      env:
+#      - BADGE=Windows
+#    - os: osx
+#      name: OSX
+#      env:
+#      - BADGE=OSX
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install octave; fi
