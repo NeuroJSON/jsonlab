@@ -1,4 +1,4 @@
-function json=savejson(rootname,obj,varargin)
+function [json,mmap]=savejson(rootname,obj,varargin)
 %
 % json=savejson(obj)
 %    or
@@ -211,7 +211,7 @@ end
 
 nl=whitespaces.newline;
 
-json=obj2json(rootname,obj,rootlevel,opt);
+[json, mmap]=obj2json(rootname,obj,rootlevel,opt);
 
 if(rootisarray)
     json=sprintf('%s%s',json,nl);
@@ -252,39 +252,40 @@ if(~isempty(filename))
 end
 
 %%-------------------------------------------------------------------------
-function txt=obj2json(name,item,level,varargin)
+function [txt,mmap]=obj2json(name,item,level,varargin)
 
 if(iscell(item) || isa(item,'string'))
-    txt=cell2json(name,item,level,varargin{:});
+    [txt,mmap]=cell2json(name,item,level,varargin{:});
 elseif(isstruct(item))
-    txt=struct2json(name,item,level,varargin{:});
+    [txt,mmap]=struct2json(name,item,level,varargin{:});
 elseif(isnumeric(item) || islogical(item))
-    txt=mat2json(name,item,level,varargin{:});
+    [txt,mmap]=mat2json(name,item,level,varargin{:});
 elseif(ischar(item))
     if(~isempty(varargin{1}.compression) && numel(item)>=varargin{1}.compressstringsize)
-        txt=mat2json(name,item,level,varargin{:});
+        [txt,mmap]=mat2json(name,item,level,varargin{:});
     else
-        txt=str2json(name,item,level,varargin{:});
+        [txt,mmap]=str2json(name,item,level,varargin{:});
     end
 elseif(isa(item,'function_handle'))
-    txt=struct2json(name,functions(item),level,varargin{:});
+    [txt,mmap]=struct2json(name,functions(item),level,varargin{:});
 elseif(isa(item,'containers.Map'))
-    txt=map2json(name,item,level,varargin{:});
+    [txt,mmap]=map2json(name,item,level,varargin{:});
 elseif(isa(item,'categorical'))
-    txt=cell2json(name,cellstr(item),level,varargin{:});
+    [txt,mmap]=cell2json(name,cellstr(item),level,varargin{:});
 elseif(isa(item,'table'))
-    txt=matlabtable2json(name,item,level,varargin{:});
+    [txt,mmap]=matlabtable2json(name,item,level,varargin{:});
 elseif(isa(item,'graph') || isa(item,'digraph'))
-    txt=struct2json(name,jdataencode(item),level,varargin{:});
+    [txt,mmap]=struct2json(name,jdataencode(item),level,varargin{:});
 elseif(isobject(item))
-    txt=matlabobject2json(name,item,level,varargin{:});
+    [txt,mmap]=matlabobject2json(name,item,level,varargin{:});
 else
-    txt=any2json(name,item,level,varargin{:});
+    [txt,mmap]=any2json(name,item,level,varargin{:});
 end
 
 %%-------------------------------------------------------------------------
-function txt=cell2json(name,item,level,varargin)
+function [txt,mmap]=cell2json(name,item,level,varargin)
 txt={};
+mmap={};
 if(~iscell(item) && ~isa(item,'string'))
         error('input is not a cell or string array');
 end
@@ -338,7 +339,7 @@ end
 txt = sprintf('%s',txt{:});
 
 %%-------------------------------------------------------------------------
-function txt=struct2json(name,item,level,varargin)
+function [txt,mmap]=struct2json(name,item,level,varargin)
 txt={};
 if(~isstruct(item))
 	error('input is not a struct');
@@ -392,10 +393,10 @@ for j=1:dim(2)
       for e=1:length(names)
         if(varargin{1}.nosubstruct_ && ischar(item(i,j).(names{e})) || ...
               strcmp(names{e},encodevarname('_ByteStream_')))
-	    txt{end+1}=str2json(names{e},item(i,j).(names{e}),...
+	    [txt{end+1}, mmap{end+1}]=str2json(names{e},item(i,j).(names{e}),...
                level+(dim(1)>1)+1+forcearray,varargin{:});
         else
-	    txt{end+1}=obj2json(names{e},item(i,j).(names{e}),...
+	    [txt{end+1}, mmap{end+1}]=obj2json(names{e},item(i,j).(names{e}),...
                level+(dim(1)>1)+1+forcearray,varargin{:});
         end
         if(e<length(names))
@@ -422,7 +423,7 @@ end
 txt = sprintf('%s',txt{:});
 
 %%-------------------------------------------------------------------------
-function txt=map2json(name,item,level,varargin)
+function [txt,mmap]=map2json(name,item,level,varargin)
 txt={};
 if(~isa(item,'containers.Map'))
 	error('input is not a containers.Map class');
@@ -437,7 +438,7 @@ if(~strcmp(item.KeyType,'char'))
         mm{i}={names{i}, val{i}};
     end
     if(isempty(name))
-        txt=obj2json('_MapData_',mm,level+1,varargin{:});
+        [txt, mmap]=obj2json('_MapData_',mm,level+1,varargin{:});
     else
         temp=struct(name,struct());
 	if(varargin{1}.isoctave)
@@ -445,7 +446,7 @@ if(~strcmp(item.KeyType,'char'))
 	else
 	    temp.(name).('x0x5F_MapData_')=mm;
 	end
-        txt=obj2json(name,temp.(name),level,varargin{:});
+        [txt, mmap]=obj2json(name,temp.(name),level,varargin{:});
     end
     return;
 end
@@ -477,7 +478,7 @@ end
 
 for i=1:dim(1)
     if(~isempty(names{i}))
-	    txt{end+1}=obj2json(names{i},val{i},...
+	    [txt{end+1}, mmap{end+1}]=obj2json(names{i},val{i},...
              level+(dim(1)>1),varargin{:});
         if(i<length(names))
             txt{end+1}=',';
@@ -493,8 +494,9 @@ end
 txt = sprintf('%s',txt{:});
 
 %%-------------------------------------------------------------------------
-function txt=str2json(name,item,level,varargin)
+function [txt,mmap]=str2json(name,item,level,varargin)
 txt={};
+mmap={};
 if(~ischar(item))
         error('input is not a string');
 end
@@ -515,6 +517,7 @@ else
         txt={padding1, '[', nl};
     end
 end
+mmap0=sum(cellfun(@length, txt));
 for e=1:len
     if(strcmp('_ArrayZipData_',decodevarname(name,varargin{1}.unpackhex))==0)
         val=escapejsonstring(item(e,:),varargin{:});
@@ -522,26 +525,33 @@ for e=1:len
         val=item(e,:);
     end
     if(len==1)
-        obj=['"' decodevarname(name,varargin{1}.unpackhex) '":' '"',val,'"'];
         if(isempty(name))
             obj=['"',val,'"'];
+        else
+            obj=['"' decodevarname(name,varargin{1}.unpackhex) '":' '"',val,'"'];
         end
-        txt(end+1:end+2)={padding1, obj};
+        newtxt={padding1, obj};
     else
-        txt(end+1:end+4)={padding0,'"',val,'"'};
+        newtxt={padding0,'"',val,'"'};
     end
+    newtxtlen=sum(cellfun(@length, newtxt));
+    txt(end+1:end+length(newtxt))=newtxt;
     if(e==len)
         sep='';
     end
     txt{end+1}=sep;
+    mmap{e}=[mmap0+newtxtlen-1-length(val), length(val)];
+    mmap0=mmap0+newtxtlen+length(sep);
 end
 if(len>1)
     txt(end+1:end+3)={nl,padding1,']'};
 end
 txt = sprintf('%s',txt{:});
-
+if(~isempty(name))
+    mmap=struct(decodevarname(name,varargin{1}.unpackhex),mmap);
+end
 %%-------------------------------------------------------------------------
-function txt=mat2json(name,item,level,varargin)
+function [txt,mmap]=mat2json(name,item,level,varargin)
 if(~isnumeric(item) && ~islogical(item) && ~ischar(item))
         error('input is not an array');
 end
@@ -566,7 +576,7 @@ if(~varargin{1}.nosubstruct_ && ( ((isnest==0) && length(size(item))>2) || isspa
               padding1,decodevarname(name,varargin{1}.unpackhex),nl,padding0,class(item),nl,padding0,regexprep(mat2str(size(item)),'\s+',','),nl);
     end
 else
-    numtxt=matdata2json(item,level+1,varargin{:});   
+    [numtxt,mmap]=matdata2json(item,level+1,varargin{:});   
     if(isempty(name))
     	txt=sprintf('%s%s',padding1,numtxt);
     else
@@ -656,12 +666,12 @@ end
 txt=sprintf('%s%s%s',txt,padding1,'}');
 
 %%-------------------------------------------------------------------------
-function txt=matlabobject2json(name,item,level,varargin)
+function [txt,mmap]=matlabobject2json(name,item,level,varargin)
 try
     if numel(item) == 0 %empty object
         st = struct();
     elseif numel(item) == 1 %
-        txt = str2json(name, char(item), level, varargin(:));
+        [txt,mmap] = str2json(name, char(item), level, varargin(:));
         return
     else
             propertynames = properties(item);
@@ -671,27 +681,27 @@ try
                 end
             end
     end
-    txt=struct2json(name,st,level,varargin{:});
+    [txt,mmap]=struct2json(name,st,level,varargin{:});
 catch
-    txt = any2json(name,item, level, varargin(:));
+    [txt,mmap] = any2json(name,item, level, varargin(:));
 end
 
 %%-------------------------------------------------------------------------
-function txt=matlabtable2json(name,item,level,varargin)
+function [txt,mmap]=matlabtable2json(name,item,level,varargin)
 st=containers.Map();
 st('_TableRecords_')=table2cell(item);
 st('_TableRows_')=item.Properties.RowNames';
 st('_TableCols_')=item.Properties.VariableNames;
 if(isempty(name))
-    txt=map2json(name,st,level,varargin{:});
+    [txt,mmap]=map2json(name,st,level,varargin{:});
 else
     temp=struct(name,struct());
     temp.(name)=st;
-    txt=map2json(name,temp.(name),level,varargin{:});
+    [txt,mmap]=map2json(name,temp.(name),level,varargin{:});
 end
 
 %%-------------------------------------------------------------------------
-function txt=matdata2json(mat,level,varargin)
+function [txt,mmap]=matdata2json(mat,level,varargin)
 
 ws=varargin{1}.whitespaces_;
 tab=ws.tab;
@@ -706,7 +716,7 @@ if(~isvector(mat) && isnest==1)
    end
    varargin{1}.num2cell_=1;
    varargin{1}.singletcell=0;
-   txt=cell2json('',num2cell(mat,1),level-1,varargin{:});
+   [txt,mmap]=cell2json('',num2cell(mat,1),level-1,varargin{:});
    return;
 elseif(isvector(mat) && isnum2cell==1)
    mat=mat(:).';
@@ -755,17 +765,17 @@ if(any(isnan(mat(:))))
 end
 
 %%-------------------------------------------------------------------------
-function txt=any2json(name,item,level,varargin)
+function [txt,mmap]=any2json(name,item,level,varargin)
 st=containers.Map();
 st('_DataInfo_')=struct('MATLABObjectName',name, 'MATLABObjectClass',class(item),'MATLABObjectSize',size(item));
 st('_ByteStream_')=char(base64encode(getByteStreamFromArray(item)));
 
 if(isempty(name))
-    txt=map2json(name,st,level,varargin{:});
+    [txt, mmap]=map2json(name,st,level,varargin{:});
 else
     temp=struct(name,struct());
     temp.(name)=st;
-    txt=map2json(name,temp.(name),level,varargin{:});
+    [txt, mmap]=map2json(name,temp.(name),level,varargin{:});
 end
 
 %%-------------------------------------------------------------------------

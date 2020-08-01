@@ -1,4 +1,4 @@
-function json=savebj(rootname,obj,varargin)
+function [json, mmap]=savebj(rootname,obj,varargin)
 %
 % bjd=savebj(obj)
 %    or
@@ -241,7 +241,13 @@ if((isstruct(obj) || iscell(obj))&& isempty(rootname) && forceroot)
     rootname='root';
 end
 
-json=obj2ubjson(rootname,obj,rootlevel,opt);
+jd=cell(1,min(nargout,1));
+[jd{:}]=obj2ubjson({rootname,jdpath('$',rootname)},obj,rootlevel,opt);
+json=jd{1};
+
+if(nargout>1)
+    mmap=jd{2};
+end
 
 if(~rootisarray)
     if(opt.messagepack)
@@ -307,7 +313,7 @@ end
 
 %%-------------------------------------------------------------------------
 function txt=cell2ubjson(name,item,level,varargin)
-txt='';
+txt={};
 if(~iscell(item) && ~isa(item,'string'))
         error('input is not a cell');
 end
@@ -338,35 +344,35 @@ else
 end
 len=numel(item); % let's handle 1D cell first
 if(len>bracketlevel) 
-    if(~isempty(name))
-        txt=[N_(decodevarname(name,varargin{:}),varargin{:}) am0]; name=''; 
+    if(~isempty(name{1}))
+        txt={N_(decodevarname(name{1},varargin{:}),varargin{:}) am0}; name{1}=''; 
     else
-        txt=am0; 
+        txt={am0}; 
     end
 elseif(len==0)
-    if(~isempty(name))
-        txt=[N_(decodevarname(name,varargin{:}),varargin{:}) Zmarker]; name=''; 
+    if(~isempty(name{1}))
+        txt=[N_(decodevarname(name{1},varargin{:}),varargin{:}) Zmarker]; name{1}=''; 
     else
-        txt=Zmarker; 
+        txt=Zmarker;
     end
+    return;
 end
+
 if(~strcmp(Amarker{1},'['))
     am0=Imsgpk_(dim(1),220,144,varargin{:});
 end
-for j=1:dim(2)
-    if(dim(1)>1)
-        txt=[txt am0];
-    end
-    for i=1:dim(1)
-       txt=[txt char(obj2ubjson(name,item{i,j},level+(len>bracketlevel),varargin{:}))];
-    end
-    if(dim(1)>1)
-        txt=[txt Amarker{2}];
-    end
+if(size(item,1)>1)
+    item=num2cell(item,2:ndims(item))';
 end
+
+idx=num2cell(1:length(item));
+json=cellfun(@(x,id) obj2ubjson([name{1},sprintf('%s[%d]',name{2},id)],x,level+(dim(1)>1)+(len>bracketlevel),varargin{:}), item, idx, 'UniformOutput',false);
+txt=[txt{:},json{:}];
+
 if(len>bracketlevel)
-    txt=[txt Amarker{2}];
+    txt=[txt{:} Amarker{2}];
 end
+txt = sprintf('%s',txt{:});
 
 %%-------------------------------------------------------------------------
 function txt=struct2ubjson(name,item,level,varargin)
@@ -395,9 +401,9 @@ else
     am0=Amarker{1};
 end
 
-if(~isempty(name)) 
+if(~isempty(name{1})) 
     if(forcearray)
-        txt=[N_(decodevarname(name,varargin{:}),varargin{:}) am0];
+        txt=[N_(decodevarname(name{1},varargin{:}),varargin{:}) am0];
     end
 else
     if(forcearray)
@@ -418,8 +424,8 @@ for j=1:dim(2)
      else
         om0=Omarker{1};
      end
-     if(~isempty(name) && len==1 && ~forcearray)
-        txt=[txt N_(decodevarname(name,varargin{:}),varargin{:}) om0]; 
+     if(~isempty(name{1}) && len==1 && ~forcearray)
+        txt=[txt N_(decodevarname(name{1},varargin{:}),varargin{:}) om0]; 
      else
         txt=[txt om0]; 
      end
@@ -458,9 +464,9 @@ end
 len=prod(dim);
 forcearray= (len>1 || (varargin{1}.singletarray==1 && level>0));
 
-if(~isempty(name)) 
+if(~isempty(name{1})) 
     if(forcearray)
-        txt=[N_(decodevarname(name,varargin{:}),varargin{:}) om0];
+        txt=[N_(decodevarname(name{1},varargin{:}),varargin{:}) om0];
     end
 else
     if(forcearray)
@@ -478,7 +484,7 @@ if(forcearray)
 end
 
 %%-------------------------------------------------------------------------
-function txt=str2ubjson(name,item,level,varargin)
+function txt=str2ubjson(name{1},item,level,varargin)
 txt='';
 if(~ischar(item))
         error('input is not a string');
@@ -492,9 +498,9 @@ if(~strcmp(Amarker{1},'['))
 else
     am0=Amarker{1};
 end
-if(~isempty(name)) 
+if(~isempty(name{1})) 
     if(len>1)
-        txt=[N_(decodevarname(name,varargin{:}),varargin{:}) am0];
+        txt=[N_(decodevarname(name{1},varargin{:}),varargin{:}) am0];
     end
 else
     if(len>1)
@@ -504,8 +510,8 @@ end
 for e=1:len
     val=item(e,:);
     if(len==1)
-        obj=[N_(decodevarname(name,varargin{:}),varargin{:}) '' '',S_(val,varargin{:}),''];
-        if(isempty(name))
+        obj=[N_(decodevarname(name{1},varargin{:}),varargin{:}) '' '',S_(val,varargin{:}),''];
+        if(isempty(name{1}))
             obj=['',S_(val,varargin{:}),''];
         end
         txt=[txt,'',obj];
@@ -543,26 +549,26 @@ if(~varargin{1}.nosubstruct_ && ((length(size(item))>2 && isnest==0)  || ...
        issparse(item) || ~isreal(item) || varargin{1}.arraytostruct || ...
        (~isempty(dozip) && numel(item)>zipsize)) )
       cid=I_(uint32(max(size(item))),varargin{:});
-      if(isempty(name))
+      if(isempty(name{1}))
     	txt=[Omarker{1} N_('_ArrayType_',opt),S_(class(item),opt),N_('_ArraySize_',opt),I_a(size(item),cid(1),varargin{:}) ];
       else
           if(isempty(item))
-              txt=[N_(decodevarname(name,varargin{:}),opt),Zmarker];
+              txt=[N_(decodevarname(name{1},varargin{:}),opt),Zmarker];
               return;
           else
-    	      txt=[N_(decodevarname(name,varargin{:}),opt),Omarker{1},N_('_ArrayType_',opt),S_(class(item),opt),N_('_ArraySize_',opt),I_a(size(item),cid(1),varargin{:})];
+    	      txt=[N_(decodevarname(name{1},varargin{:}),opt),Omarker{1},N_('_ArrayType_',opt),S_(class(item),opt),N_('_ArraySize_',opt),I_a(size(item),cid(1),varargin{:})];
           end
       end
       childcount=2;
 else
-    if(isempty(name))
+    if(isempty(name{1}))
     	txt=matdata2ubjson(item,level+1,varargin{:});
     else
         if(numel(item)==1 && varargin{1}.singletarray==0)
             numtxt=matdata2ubjson(item,level+1,varargin{:});
-            txt=[N_(decodevarname(name,varargin{:}),opt) char(numtxt)];
+            txt=[N_(decodevarname(name{1},varargin{:}),opt) char(numtxt)];
         else
-    	    txt=[N_(decodevarname(name,varargin{:}),opt),char(matdata2ubjson(item,level+1,varargin{:}))];
+    	    txt=[N_(decodevarname(name{1},varargin{:}),opt),char(matdata2ubjson(item,level+1,varargin{:}))];
         end
     end
     return;
@@ -673,12 +679,12 @@ st=containers.Map();
 st('_TableRecords_')=table2cell(item);
 st('_TableRows_')=item.Properties.RowNames';
 st('_TableCols_')=item.Properties.VariableNames;
-if(isempty(name))
+if(isempty(name{1}))
     txt=map2ubjson(name,st,level,varargin{:});
 else
-    temp=struct(name,struct());
-    temp.(name)=st;
-    txt=map2ubjson(name,temp.(name),level,varargin{:});
+    temp=struct(name{1},struct());
+    temp.(name{1})=st;
+    txt=map2ubjson(name,temp.(name{1}),level,varargin{:});
 end
 
 %%-------------------------------------------------------------------------
@@ -1016,15 +1022,26 @@ st=containers.Map();
 st('_DataInfo_')=struct('MATLABObjectClass',class(item),'MATLABObjectSize',size(item));
 st('_ByteStream_')=getByteStreamFromArray(item);
 
-if(isempty(name))
+if(isempty(name{1}))
     txt=map2ubjson(name,st,level,varargin{:});
 else
-    temp=struct(name,struct());
-    temp.(name)=st;
-    txt=map2ubjson(name,temp.(name),level,varargin{:});
+    temp=struct(name{1},struct());
+    temp.(name{1})=st;
+    txt=map2ubjson(name,temp.(name{1}),level,varargin{:});
 end
 
 %%-------------------------------------------------------------------------
 function bytes=data2byte(varargin)
 bytes=typecast(varargin{:});
 bytes=char(bytes(:)');
+
+%%-------------------------------------------------------------------------
+function path=jdpath(str, newpath)
+if(isempty(newpath))
+    path=str;
+elseif(~ischar(newpath))
+    path=sprintf('%s[%d]',str,newpath);
+else
+    path=sprintf('%s.%s',str,newpath);
+end
+    
