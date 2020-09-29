@@ -441,7 +441,7 @@ function newdata=jdatadecode(data,varargin)
     end
 
     %% handle bytestream and arbitrary matlab objects
-    if(isfield(data,N_('_ByteStream_')) && isfield(data,N_('_DataInfo_'))==2)
+    if(isfield(data,N_('_ByteStream_')) && isfield(data,N_('_DataInfo_')))
         newdata=cell(len,1);
         for j=1:len
             if(isfield(data(j).(N_('_DataInfo_')),'MATLABObjectClass'))
