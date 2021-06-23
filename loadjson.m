@@ -114,7 +114,7 @@ function data = loadjson(fname,varargin)
     opt.arraytoken_=arraytoken;
     opt.arraytokenidx_=arraytokenidx;
     opt.simplifycell=jsonopt('SimplifyCell',1,opt);
-    opt.simplifycellarray=jsonopt('SimplifyCellArray',0,opt);
+    opt.simplifycellarray=jsonopt('SimplifyCellArray',opt.simplifycell,opt);
     opt.formatversion=jsonopt('FormatVersion',2,opt);
     opt.fastarrayparser=jsonopt('FastArrayParser',1,opt);
     opt.parsestringarray=jsonopt('ParseStringArray',0,opt);
@@ -281,7 +281,7 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
     end
 
     if(varargin{1}.simplifycell)
-      if(iscell(object) && ~isempty(object) && isnumeric(object{1}))
+      if(iscell(object) && ~isempty(object) && (isnumeric(object{1}) || isstruct(object{1})) )
           if(all(cellfun(@(e) isequal(size(object{1}), size(e)) , object(2:end))))
               try
                   oldobj=object;
