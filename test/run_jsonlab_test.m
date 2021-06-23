@@ -161,10 +161,10 @@ if(ismember('bj',tests))
     test_jsonlab('uint32 integer',@savebj,2^16,'m<65536>','debug',1);
     test_jsonlab('uint32 integer',@savebj,2^32-1,'m<4294967295>','debug',1);
     test_jsonlab('int32 integer',@savebj,-2^31,'l<-2147483648>','debug',1);
-    test_jsonlab('single float',@savebj,3.14,'[D<3.14>]','debug',1);
-    test_jsonlab('nan',@savebj,nan,'[D<NaN>]','debug',1);
-    test_jsonlab('inf',@savebj,inf,'[D<Inf>]','debug',1);
-    test_jsonlab('-inf',@savebj,-inf,'[D<-Inf>]','debug',1);
+    test_jsonlab('single float',@savebj,3.14,'D<3.14>','debug',1);
+    test_jsonlab('nan',@savebj,nan,'D<NaN>','debug',1);
+    test_jsonlab('inf',@savebj,inf,'D<Inf>','debug',1);
+    test_jsonlab('-inf',@savebj,-inf,'D<-Inf>','debug',1);
     test_jsonlab('uint64 integer',@savebj,uint64(2^64),'M<18446744073709551616>','debug',1);
     test_jsonlab('int64 negative integer',@savebj,int64(-2^63),'L<-9223372036854775808>','debug',1);
     test_jsonlab('boolean as 01',@savebj,[true,false],'[U<1>U<0>]','debug',1,'nestarray',1);
@@ -179,7 +179,7 @@ if(ismember('bj',tests))
     end
     test_jsonlab('row vector',@savebj,[1,2,3],'[$U#U<3><1><2><3>','debug',1);
     test_jsonlab('column vector',@savebj,[1;2;3],'[$U#[$U#U<2><3><1><1><2><3>','debug',1);
-    test_jsonlab('mixed array',@savebj,{'a',1,0.9},'[CaU<1>[D<0.9>]]','debug',1);
+    test_jsonlab('mixed array',@savebj,{'a',1,0.9},'[CaU<1>D<0.9>]','debug',1);
     test_jsonlab('char array',@savebj,['AC';'EG'],'[SU<2>ACSU<2>EG]','debug',1);
     test_jsonlab('maps',@savebj,struct('a',1,'b','test'),'{U<1>aU<1>U<1>bSU<4>test}','debug',1);
     test_jsonlab('2d array',@savebj,[1,2,3;4,5,6],'[$U#[$U#U<2><2><3><1><4><2><5><3><6>','debug',1);
@@ -200,7 +200,7 @@ if(ismember('bj',tests))
     test_jsonlab('heterogeneous cell',@savebj,{{1,{2,3}},{4,5},{6};{7},{8,9},{10}},...
          '[[[U<1>[U<2>U<3>]][U<4>U<5>][U<6>]][[U<7>][U<8>U<9>][U<10>]]]','debug',1);
     test_jsonlab('struct array',@savebj,repmat(struct('i',1.1,'d','str'),[1,2]),...
-         '[{U<1>i[D<1.1>]U<1>dSU<3>str}{U<1>i[D<1.1>]U<1>dSU<3>str}]','debug',1);
+         '[{U<1>iD<1.1>U<1>dSU<3>str}{U<1>iD<1.1>U<1>dSU<3>str}]','debug',1);
     test_jsonlab('encoded fieldnames',@savebj,struct(encodevarname('_i'),1,encodevarname('i_'),'str'),...
          '{U<2>_iU<1>U<2>i_SU<3>str}','debug',1);
     if(exist('OCTAVE_VERSION','builtin')~=0)

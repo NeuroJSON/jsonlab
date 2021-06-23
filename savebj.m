@@ -796,7 +796,11 @@ else
         am0=char(145);
     end
     if(numel(mat)==1)
-        txt=[am0 D_(mat,varargin{:}) Amarker{2}];
+        if(varargin{1}.singletarray==1)
+            txt=[am0 D_(mat,varargin{:}) Amarker{2}];
+        else
+            txt=D_(mat,varargin{:});
+        end
     else
         if(~isvector(mat) && isnest==1)
             txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
