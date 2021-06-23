@@ -252,7 +252,7 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
                     end
                 end
             end
-            if(isempty(regexp(arraystr,':','once')))
+            if(isempty(regexp(arraystr,':','once')) && isempty(regexp(arraystr,'\(','once')))
                 arraystr=regexprep(arraystr,'\[','{');
                 arraystr=regexprep(arraystr,'\]','}');
                 if(varargin{1}.parsestringarray==0)
