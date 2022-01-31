@@ -1,6 +1,6 @@
 {
   "name": "jsonlab",
-  "version": "2.0.0",
+  "version": "2.9.8",
   "description": "An open-source MATLAB/Octave JSON encoder and decoder",
   "directories": {
     "example": "examples"
@@ -17,5 +17,5 @@
   "bugs": {
     "url": "https://github.com/fangq/jsonlab/issues"
   },
-  "homepage": "https://openjdata.org/jsonlab/"
+  "homepage": "https://neurojson.org/jsonlab/"
 }

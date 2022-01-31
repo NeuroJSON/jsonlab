@@ -86,14 +86,14 @@ compared to those in JSONLab v2.0.
 The BJData spec was derived from UBJSON spec Draft 12, with the 
 following breaking differences:
 
-* BJData adds 4 new numeric data types: ``uint16 [u]``, ``uint32 [m]``, ``uint64 [M]`` \
-  and ``float16 [h]`` (supported in JSONLab v2.0 or newer)
+* BJData adds 4 new numeric data types: `uint16 [u]`, `uint32 [m]`, `uint64 [M]` \
+  and `float16 [h]` (supported in JSONLab v2.0 or newer)
 * BJData supports an optimized ND array container (supported in JSONLab since 2013)
-* BJData does not convert ``NaN/Inf/-Inf`` to ``null`` (supported in JSONLab since 2013)
+* BJData does not convert `NaN/Inf/-Inf` to `null` (supported in JSONLab since 2013)
 * BJData Draft 2 changes the default byte order to Little-Endian instead of Big-Endian (JSONLab 3.0 or later)
 
-To avoid using the new features, one should attach ``'UBJSON',1`` and ``'Endian','B'``
-in the ``savebj`` command as
+To avoid using the new features, one should attach `'UBJSON',1` and `'Endian','B'`
+in the `savebj` command as
 
    savebj('',data,'FileName','myfile.bjd','UBJSON',1, 'Endian','B');
 
@@ -228,17 +228,17 @@ JSONLab is also available on Arch Linux. You may install it using the below comm
 
 III.Using JSONLab
 
-JSONLab provides a pair of functions, ``loadjson`` -- a JSON parser, and 
-``savejson`` -- a MATLAB-to-JSON encoder, to read/write the text-based JSON; and 
-three equivallent pairs -- ``loadbj/savebj`` for binary JData, ``loadubjson/saveubjson``
-for UBJSON and ``loadmsgpack/savemsgpack`` for MessagePack. The ``load*`` functions 
+JSONLab provides a pair of functions, `loadjson` -- a JSON parser, and 
+`savejson` -- a MATLAB-to-JSON encoder, to read/write the text-based JSON; and 
+three equivallent pairs -- `loadbj/savebj` for binary JData, `loadubjson/saveubjson`
+for UBJSON and `loadmsgpack/savemsgpack` for MessagePack. The `load*` functions 
 for the 3 supported data formats share almost the same input parameter format; 
-similarly for the 3 ``save*`` functions (``savejson/saveubjson/savemsgpack``)
+similarly for the 3 `save*` functions (`savejson/saveubjson/savemsgpack`)
 These encoders and decoders are capable of processing/sharing almost all 
-data structures supported by MATLAB, thanks to ``jdataencode/jdatadecode`` - 
+data structures supported by MATLAB, thanks to `jdataencode/jdatadecode` - 
 a pair of in-memory data converters translating complex data structures
 to the easy-to-serialized forms according to the JData specifications.
-The detailed help information can be found in the ``Contents.m`` file. 
+The detailed help information can be found in the `Contents.m` file. 
 
 In the below section, we provide a few examples on how to us each of the 
 core functions for encoding/decoding JSON/UBJSON/MessagePack data.
@@ -306,7 +306,7 @@ In `jsonlab_selftest.m`, we load complex JSON files downloaded from the Internet
 and validate the loadjson/savejson functions for regression testing purposes.
 Similarly, a `demo_ubjson_basic.m` script is provided to test the `saveubjson`
 and `loadubjson` functions for various matlab data structures, and
-``demo_msgpack_basic.m`` is for testing ``savemsgpack`` and ``loadmsgpack``.
+`demo_msgpack_basic.m` is for testing `savemsgpack` and `loadmsgpack`.
 
 Please run these examples and understand how JSONLab works before you use
 it to process your data.
@@ -394,12 +394,12 @@ To install these modules on Python 2.x, please first check if your system has
 
       sudo apt-get install python-pip python3-pip python-numpy python3-numpy
 
-After the installation is done, one can then install the ``jdata`` and ``bjdata`` modules by
+After the installation is done, one can then install the `jdata` and `bjdata` modules by
 
       pip install jdata --user
       pip install bjdata --user
 
-To install these modules for Python 3.x, please replace ``pip`` by ``pip3``.
+To install these modules for Python 3.x, please replace `pip` by `pip3`.
 If one prefers to install these modules globally for all users, simply
 execute the above commands using `sudo` and remove the `--user` flag.
 
