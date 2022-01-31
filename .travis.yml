@@ -10,6 +10,12 @@ dist:
 jobs:
   include:
     - os: linux
+      name: Octave 5.2
+      dist: focal
+      env:
+      - BADGE=Octave_5
+      - OCTAVE=octave-cli
+    - os: linux
       name: Octave 4.2
       dist: xenial
       env:

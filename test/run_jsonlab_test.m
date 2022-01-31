@@ -280,5 +280,5 @@ if(ismember('bjo',tests))
     test_jsonlab('test default int endian for savebj',@savebj,typecast(uint8('jd'),'uint16'),'ujd');
     test_jsonlab('test default int endian for saveubjson',@saveubjson,typecast(uint8('jd'),'uint16'),'Idj');
     test_jsonlab('test default float endian for savebj',@savebj,typecast(uint8('1e05'),'single'),'d1e05');
-    test_jsonlab('test default float endian for saveubjson',@saveubjson,typecast(uint8('1e05'),'single'),'d50e1');
+    test_jsonlab('test default float endian for saveubjson',@saveubjson,typecast(uint8('9527'),'single'),'d7259');
 end
