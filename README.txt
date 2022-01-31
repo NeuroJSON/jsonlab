@@ -53,11 +53,11 @@ incorrect optimized ND-array BJData/UBJSON element order, and options to use MAT
 built-in jsonencode/jsondecode functions. The octave-jsonlab package has also been
 included in the official distributions of Debian Bullseye and Ubuntu 21.04 or newer.
 
-* 2022-01-30*[       ] [bjdata:breaking] Upgrade savebj/loadbj to BJData v1-draft 2, use little-endian by default
-* 2022-01-30*[       ] [bjdata:breaking] Fix optimized ND array element order (previously used column-major)
-* 2022-01-30*[       ] optimize loadjson and loadbj speed
-* 2022-01-30*[       ] add 'BuiltinJSON' option for savejson/loadjson to call jsonencode/jsondecode
-* 2022-01-30*[       ] more robust tests on ND array when parsing JSON numerical array construct
+* 2022-01-30*[2e3344c] [bjdata:breaking] Upgrade savebj/loadbj to BJData v1-draft 2, use little-endian by default
+* 2022-01-30*[2e3344c] [bjdata:breaking] Fix optimized ND array element order (previously used column-major)
+* 2022-01-30*[2e3344c] optimize loadjson and loadbj speed
+* 2022-01-30*[2e3344c] add 'BuiltinJSON' option for savejson/loadjson to call jsonencode/jsondecode
+* 2022-01-30*[2e3344c] more robust tests on ND array when parsing JSON numerical array construct
 * 2021-06-23 [632531f] fix inconsistency between singlet integer and float values, close #70
 * 2021-06-23 [f7d8226] prevent function calls when parsing array strings using eval, fix #75
 * 2021-06-23 [b1ae5fa] fix #73 as a regression to #22
