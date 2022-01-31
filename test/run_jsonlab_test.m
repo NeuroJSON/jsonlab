@@ -52,11 +52,14 @@ if(ismember('js',tests))
     test_jsonlab('row vector',@savejson,[1,2,3],'[1,2,3]');
     test_jsonlab('column vector',@savejson,[1;2;3],'[[1],[2],[3]]','compact',1);
     test_jsonlab('mixed array',@savejson,{'a',1,0.9},'["a",1,0.9]','compact',1);
+    test_jsonlab('mixed array from string',@savejson,loadjson('["a",{"c":1}, [2,3]]'),'["a",{"c":1},[2,3]]','compact',1);
     test_jsonlab('char array',@savejson,['AC';'EG'],'["AC","EG"]','compact',1);
     test_jsonlab('maps',@savejson,struct('a',1,'b','test'),'{"a":1,"b":"test"}','compact',1);
     test_jsonlab('2d array',@savejson,[1,2,3;4,5,6],'[[1,2,3],[4,5,6]]','compact',1);
     test_jsonlab('non-uniform 2d array',@savejson,{[1,2],[3,4,5],[6,7]},'[[1,2],[3,4,5],[6,7]]','compact',1);
     test_jsonlab('non-uniform array with length multiple of first element',@savejson,{[1,2],[3,4,5,6],[7,8]},'[[1,2],[3,4,5,6],[7,8]]','compact',1);
+    test_jsonlab('1d array with flexible white space',@savejson,loadjson(sprintf(' [ +1, \n -2e3 \n , 3.0E+00 ,\r+4e-0] ')),'[1,-2000,3,4]','compact',1);
+    test_jsonlab('2d array with flexible white space',@savejson,loadjson(sprintf(' [\r [\n 1 , \r\n  2\n, 3] ,\n[ 4, 5 , \t 6\t]\n] ')),'[[1,2,3],[4,5,6]]','compact',1);
     test_jsonlab('3d (row-major) nested array',@savejson,reshape(1:(2*3*2),2,3,2),...
          '[[[1,7],[3,9],[5,11]],[[2,8],[4,10],[6,12]]]','compact',1,'nestarray',1);
     test_jsonlab('3d (column-major) nested array',@savejson,reshape(1:(2*3*2),2,3,2),...
