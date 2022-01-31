@@ -221,10 +221,10 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
 
                         % next handle 2D array, these are most common ones
                         if(maxlevel==2 && ~isempty(regexp(arraystr(2:end),'^\s*\[','once')))
-                            isndarray=nestbracket2dim(arraystr,'[]',1);
+                            [dims,isndarray]=nestbracket2dim(arraystr);
                             rowstart=find(arraystr(2:end)=='[',1)+1;
                             if(rowstart && isndarray)
-                                [obj, nextidx]=parse2darray(inputstr,pos+rowstart,arraystr);
+                                [obj, nextidx]=parsendarray(arraystr,dims);
                                 if(nextidx>=length(arraystr)-1)
                                     object=obj;
                                     if(format>1.9)
@@ -243,26 +243,21 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
                         % for N-D packed array in a nested array construct, 
                         % in the future can replace 1d and 2d cases
                         if(maxlevel>2 && ~isempty(regexp(arraystr(2:end),'^\s*\[\s*\[','once')))
-                            astr=arraystr;
-                            [dims,isndarray]=nestbracket2dim(astr);
-                            if(isndarray && (any(dims==0) || all(mod(dims(:),1) == 0))) % all dimensions are integers - this can be problematic
-                                astr=arraystr;
-                                astr(astr=='[')='';
-                                astr(astr==']')='';
-                                astr=regexprep(astr,'\s*,',',');
-                                astr=regexprep(astr,'\s*$','');
-                                [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
-                                if(nextidx>=length(astr)-1)
-                                        object=reshape(obj,dims);
-                                        if(format>1.9)
-                                            object=permute(object,ndims(object):-1:1);
-                                        end
-                                        pos=endpos;
-                                        pos=parse_char(inputstr, pos, ']');
-                                        if(pbar>0)
-                                            waitbar(pos/length(inStr),pbar,'loading ...');
-                                        end
-                                        return;
+                            [dims,isndarray]=nestbracket2dim(arraystr);
+                            rowstart=find(arraystr(2:end)=='[',1)+1;
+                            if(rowstart && isndarray)
+                                [obj, nextidx]=parsendarray(arraystr,dims);
+                                if(nextidx>=length(arraystr)-1)
+                                    object=obj;
+                                    if(format>1.9)
+                                        object=permute(object,ndims(object):-1:1);
+                                    end
+                                    pos=endpos;
+                                    pos=parse_char(inputstr, pos, ']');
+                                    if(pbar>0)
+                                        waitbar(pos/length(inStr),pbar,'loading ...');
+                                    end
+                                    return;
                                 end
                             end
                         end
@@ -544,26 +539,19 @@ function arraystr=sscanf_prep(str)
         arraystr=regexprep(arraystr,'"_NaN_"','NaN');
         arraystr=regexprep(arraystr,'"([-+]*)_Inf_"','$1Inf');
     end
-    arraystr(arraystr==sprintf('\n'))=[];
-    arraystr(arraystr==sprintf('\r'))=[];
+    arraystr(arraystr==sprintf('\n'))=' ';
+    arraystr(arraystr==sprintf('\r'))=' ';
 end
 
 %%-------------------------------------------------------------------------
-function [obj, nextidx,nextdim]=parse2darray(inputstr,startpos,arraystr)
-    rowend=match_bracket(inputstr,startpos);
-    rowstr=sscanf_prep(inputstr(startpos-1:rowend));
-    [vec1, nextdim, errmsg, nextidx]=sscanf(rowstr,'%f,',[1 inf]);
-    if(nargin==2)
-        obj=nextdim;
-        return;
-    end
+function [obj, nextidx]=parsendarray(arraystr, dims)
     astr=arraystr;
-    astr(astr=='[')='';
-    astr(astr==']')='';
-    astr=regexprep(deblank(astr),'\s+,',',');
-    [obj, count, errmsg, nextidx]=sscanf(astr,'%f,',inf);
+    astr(astr=='[')=' ';
+    astr(astr==']')=' ';
+    astr(astr==',')=' ';
+    [obj, count, errmsg, nextidx]=sscanf(astr,'%f',inf);
     if(nextidx>=length(astr)-1)
-            obj=reshape(obj,nextdim,numel(obj)/nextdim);
+            obj=reshape(obj,dims);
             nextidx=length(arraystr)+1;
     end
 end
