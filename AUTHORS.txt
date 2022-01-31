@@ -1,4 +1,4 @@
-The author of "jsonlab" toolbox is Qianqian Fang. Qianqian is
+The author of "JSONLab" toolbox is Qianqian Fang. Dr. Fang is
 currently an Associate Professor in the Department of Bioengineering,
 Northeastern University, USA.
 
@@ -8,8 +8,14 @@ Address: Qianqian Fang
          ISEC 206
          360 Huntington Ave, Boston, MA 02115, USA
          Phone[O]: 617-373-3829
-URL: http://fanglab.org
+URL: http://fanglab.org, http://neurojson.org
 Email: <q.fang at neu.edu> and <fangqq at gmail.com>
+
+
+Since 2021, this project has been partially funded by the USA National Institute of Health (NIH)
+and National Institute of Neurological Disorders and Stroke (NINDS) under grant
+U24-NS124027 (PI Qianqian Fang). It is the reference implementation of the JData
+and BJData specifications developed under the NeuroJSON Project (http://neurojson.org).
 
 
 The script loadjson.m was built upon previous works (BSD 3-clause license) by
@@ -37,7 +43,7 @@ The loadmsgpack.m script was modified from
 This toolbox contains patches submitted by the following contributors:
 
 - Blake Johnson <bjohnso at bbn.com>
-  part of revision 341
+  part of svn revision 341
 
 - Niclas Borlin <Niclas.Borlin at cs.umu.se>
   various fixes in revision 394, including

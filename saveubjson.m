@@ -6,21 +6,22 @@ function ubj=saveubjson(rootname,obj,varargin)
 % ubj=saveubjson(rootname,obj,opt)
 % ubj=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
 %
-% Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
-% into a Universal Binary JSON (UBJSON, Draft 12) or a MessagePack binary stream
+% Convert a MATLAB object  (cell, struct, array, table, map, graphs ...) 
+% into a Universal Binary JSON (UBJSON, Draft-12) or a MessagePack binary stream
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
 % initially created on 2013/08/17
 %
 % Format specifications:
-%    Binary JData (BJData):https://github.com/fangq/bjdata
+%    Binary JData (BJData):https://github.com/NeuroJSON/bjdata
 %    UBJSON:               https://github.com/ubjson/universal-binary-json
 %    MessagePack:          https://github.com/msgpack/msgpack
 %
-% This function is the same as calling "savebj(...,'ubjson',1)". By , 
-% default this function creates UBJSON-compliant output without the
+% This function is the same as calling "savebj(..,'ubjson',1,'endian','B')"
+% By default this function creates UBJSON-compliant output without the
 % newly added uint16(u), uint32(m), uint64(M) and half-precision float (h)
-% data types.
+% data types and use Big-Endian for all numerical values as in UBJSON
+% Draft-12.
 %
 % This function by default still enables an optimized ND-array format for efficient  
 % array storage. To ensure the output compatible to UBJSON Draft-12, one should use
@@ -42,7 +43,7 @@ function ubj=saveubjson(rootname,obj,varargin)
 %           Please type "help savebj" for details for all supported options.
 %
 % output:
-%      json: a binary string in the UBJSON format (see http://ubjson.org)
+%      ubj: a binary string in the UBJSON format (see http://ubjson.org)
 %
 % examples:
 %      jsonmesh=struct('MeshVertex3',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
@@ -63,9 +64,9 @@ function ubj=saveubjson(rootname,obj,varargin)
 %
 
 if(nargin==1)
-    ubj=savebj('',rootname,'ubjson',1);
+    ubj=savebj('',rootname,'ubjson',1,'endian','B');
 elseif(length(varargin)==1 && ischar(varargin{1}))
-    ubj=savebj(rootname,obj,'FileName',varargin{1},'ubjson',1);
+    ubj=savebj(rootname,obj,'FileName',varargin{1},'ubjson',1,'endian','B');
 else
-    ubj=savebj(rootname,obj,varargin{:},'ubjson',1);
+    ubj=savebj(rootname,obj,varargin{:},'ubjson',1,'endian','B');
 end

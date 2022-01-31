@@ -31,7 +31,7 @@ function varargout=jload(filename, varargin)
 %                         parse the json file and then decode the output by
 %                         jdatadecode; input file must have a suffix of .jdt
 %
-%           all options for loadubjson/loadjson (depends on file suffix)
+%           all options for loadbj/loadjson (depends on file suffix)
 %           can be used to adjust the parsing options
 %
 % output:

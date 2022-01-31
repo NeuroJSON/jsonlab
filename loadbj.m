@@ -4,8 +4,15 @@ function data = loadbj(fname,varargin)
 %    or
 % data=loadbj(fname,'param1',value1,'param2',value2,...)
 %
-% Parse a Binary JData (BJData v1 Draft-1, defined in https://github.com/OpenJData/bjdata) 
+% Parse a Binary JData (BJData v1 Draft-2, defined in https://github.com/NeuroJSON/bjdata) 
 % file or memory buffer and convert into a MATLAB data structure
+%
+% By default, this function parses BJD-compliant output. The BJD
+% specification is largely similar to UBJSON, with additional data types
+% including uint16(u), uint32(m), uint64(M) and half-precision float (h).
+% Starting from BJD Draft-2 (JSONLab 3.0 beta or later), all integer and
+% floating-point numbers are parsed in Little-Endian as opposed to
+% Big-Endian form as in BJD Draft-1/UBJSON Draft-12 (JSONLab 2.1 or older)
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 % initially created on 2013/08/01
@@ -21,16 +28,26 @@ function data = loadbj(fname,varargin)
 %           SimplifyCell [1|0]: if set to 1, loadbj will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
-%           IntEndian [B|L]: specify the endianness of the integer fields
-%                         in the BJData/UBJSON input data. B - Big-Endian format for 
-%                         integers (as required in the UBJSON specification); 
-%                         L - input integer fields are in Little-Endian order.
+%           Endian ['L'|'B']: specify the endianness of the numbers
+%                         in the BJData/UBJSON input data. Default: 'L'.
+%
+%                         Starting from JSONLab 2.9, BJData by default uses
+%                         [L] Little-Endian for both integers and floating
+%                         point numbers. This is a major departure from the
+%                         UBJSON specification, where 'B' - Big-Endian -
+%                         format is used for integer fields. UBJSON does
+%                         not specifically define Endianness for
+%                         floating-point numbers, resulting in mixed
+%                         implementations. JSONLab 2.0-2.1 used 'B' for
+%                         integers and floating-points; JSONLab 1.x uses
+%                         'B' for integers and native-endianness for
+%                         floating-point numbers.
 %           NameIsString [0|1]: for UBJSON Specification Draft 8 or 
 %                         earlier versions (JSONLab 1.0 final or earlier), 
 %                         the "name" tag is treated as a string. To load 
 %                         these UBJSON data, you need to manually set this 
 %                         flag to 1.
-%           UseMap [0|1]: if set to 1, loadjson uses a containers.Map to 
+%           UseMap [0|1]: if set to 1, loadbj uses a containers.Map to 
 %                         store map objects; otherwise use a struct object
 %           ObjectID [0|interger or list]: if set to a positive number, 
 %                         it returns the specified JSON object by index 
@@ -59,7 +76,7 @@ function data = loadbj(fname,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-    if(exist(fname,'file'))
+    if(length(fname)<4096 && exist(fname,'file'))
        fid = fopen(fname,'rb');
        string = fread(fid,inf,'uint8=>char')';
        fclose(fid);
@@ -83,7 +100,7 @@ function data = loadbj(fname,varargin)
     opt.nameisstring=jsonopt('NameIsString',0,opt);
 
     [os,maxelem,systemendian]=computer;
-    opt.flipendian_=(systemendian ~= upper(jsonopt('IntEndian','B',opt)));
+    opt.flipendian_=(systemendian ~= upper(jsonopt('Endian','L',opt)));
 
     objid=jsonopt('ObjectID',0,opt);
     maxobjid=max(objid);
@@ -173,7 +190,7 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
         if(count>=0)
             [object, adv]=parse_block(inputstr, pos, type,count,varargin{:});
             if(~isempty(dim))
-                object=reshape(object,dim);
+                object=permute(reshape(object,fliplr(dim(:)')),length(dim):-1:1);
             end
             pos=pos+adv;
             return;

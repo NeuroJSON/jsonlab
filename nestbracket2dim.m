@@ -1,6 +1,6 @@
-function [dims, maxlevel, count] = nestbracket2dim(str,brackets)
+function [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets,testndarray)
 %
-% [dims, maxlevel, count] = nestbracket2dim(str,brackets)
+% [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets)
 %
 % Extracting the dimension vector of a JSON string formatted array
 % by analyzing the pairs of opening/closing bracket tokenss; this function 
@@ -16,12 +16,17 @@ function [dims, maxlevel, count] = nestbracket2dim(str,brackets)
 %               if not given, brackets is set to '[]' to find matching square-brackets;
 %               for example, '{}' looks for a matching closing curly-bracket in
 %               the string key(pos(startpos,:end))
+%      testndarray: (optional), 1 to test if the input string contains an
+%               ND array, i.e. with uniform element lengths (recursively)
 %
 % output:
 %      dims: the speculated dimension vector with the length matching the maximum 
 %            depth of the embedded bracket pairs. When the input string encodes an
 %            N-D array, the dims vector contains all integers; however, returning
-%            an all-integer dims vector does not mean the array is rectangular.
+%            an all-integer dims vector does not mean the array is
+%            rectangular. if testndarray is set to 1, dims returns isndarray
+%      isndarray: 1 to indicate the input string contains an ND array,
+%            otherwise, 0
 %      maxlevel: return the depth of the enclosed brackets in the string, i.e. the
 %            length of the dims vector.
 %      count: the relative depth from the level 0 - scanning from the left
@@ -46,8 +51,29 @@ if(nargin<2)
 end
 str=str(str==brackets(1) | str==brackets(2) | str==',');
 count=cumsum(str==brackets(1)) - cumsum(str==brackets(2));
+isndarray=testuniform(count, max(count));
+if(nargin>2 && testndarray)
+    dims=isndarray;
+    return;
+end
 maxlevel=max(count);
 dims=histc(count,1:maxlevel);
 dims(1:end-1)=dims(1:end-1)*0.5;
 dims(2:end)=dims(2:end)./dims(1:end-1);
 dims=fliplr(dims);
+
+function isndarray=testuniform(count, maxval)
+isndarray=false;
+if(length(count)>2)
+    idx=find(count(2:end)==count(1),1);
+    if(idx==length(count)-2 && count(1)<maxval)
+        isndarray=testuniform(count(2:end-1), maxval);
+        return;
+    end
+    if(~isempty(idx) && mod(length(count)-1,idx+1)==0)
+        count2d=reshape(count(1:end-1),idx+1,[]);
+        if(all(diff(count2d')==0))
+            isndarray=true;
+        end
+    end
+end

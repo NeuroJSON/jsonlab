@@ -5,6 +5,30 @@
 ----------------------------------------------------------------------------
 
 JSONlab ChangeLog (key features marked by *):
+== JSONlab 2.9.8 (codename: Micronus Prime - beta), FangQ <q.fang (at) neu.edu> ==
+
+ 2022-01-30*[       ] [bjdata:breaking] Upgrade savebj/loadbj to BJData v1-draft 2, use little-endian by default
+ 2022-01-30*[       ] [bjdata:breaking] Fix optimized ND array element order (previously used column-major)
+ 2022-01-30*[       ] optimize loadjson and loadbj speed
+ 2022-01-30*[       ] add 'BuiltinJSON' option for savejson/loadjson to call jsonencode/jsondecode
+ 2022-01-30*[       ] more robust tests on ND array when parsing JSON numerical array construct
+ 2021-06-23 [632531f] fix inconsistency between singlet integer and float values, close #70
+ 2021-06-23 [f7d8226] prevent function calls when parsing array strings using eval, fix #75
+ 2021-06-23 [b1ae5fa] fix #73 as a regression to #22
+ 2020-09-29 [d0cb3b8] Fix for loading objects.
+ 2020-07-26 [d0fb684] Add travis badge
+ 2020-07-25 [708c36c] drop octave 3.2
+ 2020-07-25 [436d84e] debug octave 3.2
+ 2020-07-25 [0ce96ec] remove windows and osx targets from travis-ci
+ 2020-07-25 [0d8baa4] fix ruby does not support error on windows
+ 2020-07-25*[faa7921] enable travis-ci for jsonlab
+ 2020-07-08 [321ab1a] add Debian and Ubuntu installation commands
+ 2020-07-08 [e686828] update author info
+ 2020-07-08*[ce40fdf] supports ND cell array, fix #66
+ 2020-07-07 [6a8ce93] fix string encoding over 399 characters, close #65
+ 2020-06-14 [5a58faf] fix DESCRIPTION date bug
+ 2020-06-14 [9d7e94c] match octave description file and upstream version number
+ 2020-06-14 [a5b6170] fix warning about lz4encode file name
 
 == JSONlab 2.0 (codename: Magnus Prime), FangQ <q.fang (at) neu.edu> ==
 

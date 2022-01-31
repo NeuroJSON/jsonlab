@@ -7,7 +7,7 @@ function json=savebj(rootname,obj,varargin)
 % bjd=savebj(rootname,obj,'param1',value1,'param2',value2,...)
 %
 % Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
-% into a Binary JData (BJData v1 Draft-1), Universal Binary JSON (UBJSON,
+% into a Binary JData (BJData v1 Draft-2), Universal Binary JSON (UBJSON,
 % Draft-12) or a MessagePack binary stream
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
@@ -15,10 +15,13 @@ function json=savebj(rootname,obj,varargin)
 %
 % By default, this function creates BJD-compliant output. The BJD
 % specification is largely similar to UBJSON, with additional data types
-% including uint16(u), uint32(m), uint64(M) and half-precision float (h)
+% including uint16(u), uint32(m), uint64(M) and half-precision float (h).
+% Starting from BJD Draft-2 (JSONLab 3.0 beta or later), all integer and
+% floating-point numbers are stored in Little-Endian as opposed to
+% Big-Endian form as in BJD Draft-1/UBJSON Draft-12 (JSONLab 2.1 or older)
 %
 % Format specifications:
-%    Binary JData (BJD):   https://github.com/fangq/bjdata
+%    Binary JData (BJD):   https://github.com/NeuroJSON/bjdata
 %    UBJSON:               https://github.com/ubjson/universal-binary-json
 %    MessagePack:          https://github.com/msgpack/msgpack
 %
@@ -96,7 +99,8 @@ function json=savebj(rootname,obj,varargin)
 %          UBJSON [0|1]: 0: (default)-encode data based on BJData Draft 1
 %                         (supports uint16(u)/uint32(m)/uint64(M)/half(h) markers)
 %                        1: encode data based on UBJSON Draft 12 (without
-%                         u/m/M/h markers)
+%                         u/m/M/h markers);all numeric values are stored in
+%                         the Big-Endian byte order according to Draft-12
 %          FormatVersion [2|float]: set the JSONLab output version; since
 %                         v2.0, JSONLab uses JData specification Draft 3
 %                         for output format, it is incompatible with releases
@@ -107,7 +111,21 @@ function json=savebj(rootname,obj,varargin)
 %                         of the minimum length without losing accuracy (default)
 %          Debug [0|1]: output binary numbers in <%g> format for debugging
 %          Append [0|1]: if set to 1, append a new object at the end of the file.
-%          Endian ['n'|'b','l']: Endianness of the output file ('n': native, 
+%          Endian ['L'|'B']: specify the endianness of the numbers
+%                         in the BJData/UBJSON input data. Default: 'L'.
+%
+%                         Starting from JSONLab 2.9, BJData by default uses
+%                         [L] Little-Endian for both integers and floating
+%                         point numbers. This is a major departure from the
+%                         UBJSON specification, where 'B' - Big-Endian -
+%                         format is used for integer fields. UBJSON does
+%                         not specifically define Endianness for
+%                         floating-point numbers, resulting in mixed
+%                         implementations. JSONLab 2.0-2.1 used 'B' for
+%                         integers and floating-points; JSONLab 1.x uses
+%                         'B' for integers and native-endianness for
+%                         floating-point numbers.
+%          FileEndian ['n'|'b','l']: Endianness of the output file ('n': native, 
 %                         'b': big endian, 'l': little-endian)
 %          PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
@@ -125,6 +143,7 @@ function json=savebj(rootname,obj,varargin)
 %               'MeshCreator','FangQ','MeshTitle','T6 Cube',...
 %               'SpecialData',[nan, inf, -inf]);
 %      savebj(jsonmesh)
+%      savebj('',jsonmesh,'debug',1)
 %      savebj('',jsonmesh,'meshdata.bjd')
 %      savebj('mesh1',jsonmesh,'FileName','meshdata.msgpk','MessagePack',1)
 %      savebj('',jsonmesh,'ubjson',1)
@@ -164,13 +183,16 @@ opt.ubjson=bitand(jsonopt('UBJSON',0,opt), ~opt.messagepack);
 opt.keeptype=jsonopt('KeepType',0,opt);
 opt.nosubstruct_=0;
 
+[os,maxelem,systemendian]=computer;
+opt.flipendian_=(systemendian ~= upper(jsonopt('Endian','L',opt)));
+
 if(jsonopt('PreEncode',1,opt))
     obj=jdataencode(obj,'Base64',0,'UseArrayZipSize',opt.messagepack,opt);
 end
 
 dozip=opt.compression;
 if(~isempty(dozip))
-    if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
+    if(~ismember(dozip,{'zlib','gzip','lzma','lzip','lz4','lz4hc'}))
         error('compression method "%s" is not supported',dozip);
     end
     if(exist('zmat','file')~=2 && exist('zmat','file')~=3)
@@ -260,15 +282,15 @@ end
 filename=jsonopt('FileName','',opt);
 if(~isempty(filename))
     encoding = jsonopt('Encoding','',opt);
-    endian = jsonopt('Endian','n',opt);
+    fileendian = jsonopt('FileEndian','n',opt);
     writemode='w';
     if(jsonopt('Append',0,opt))
         writemode='a';
     end
     if(~exist('OCTAVE_VERSION','builtin'))
-        fid = fopen(filename, writemode, endian, encoding);
+        fid = fopen(filename, writemode, fileendian, encoding);
     else
-        fid = fopen(filename, writemode, endian);
+        fid = fopen(filename, writemode, fileendian);
     end
     fwrite(fid,json);
     fclose(fid);
@@ -774,7 +796,8 @@ if(isa(mat,'integer') || isinteger(mat) || (~varargin{1}.keeptype && isfloat(mat
                 txt=I_(uint64(mat),varargin{:});
             end
         else
-            txt=I_a(mat(:),type,size(mat),varargin{:});
+            rowmat=permute(mat,ndims(mat):-1:1);
+            txt=I_a(rowmat(:),type,size(mat),varargin{:});
         end
     else
         txt=cell2ubjson('',num2cell(mat,2),level,varargin{:});
@@ -787,7 +810,8 @@ elseif(islogical(mat))
         if(~isvector(mat) && isnest==1)
             txt=cell2ubjson('',num2cell(uint8(mat),1),level,varargin{:});
         else
-            txt=I_a(uint8(mat(:)),Imarker(1),size(mat),varargin{:});
+            rowmat=permute(mat,ndims(mat):-1:1);
+            txt=I_a(uint8(rowmat(:)),Imarker(1),size(mat),varargin{:});
         end
     end
 else
@@ -805,7 +829,8 @@ else
         if(~isvector(mat) && isnest==1)
             txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
         else
-            txt=D_a(mat(:),Fmarker(3),size(mat),varargin{:});
+            rowmat=permute(mat,ndims(mat):-1:1);
+            txt=D_a(rowmat(:),Fmarker(3),size(mat),varargin{:});
         end
     end
 end
@@ -841,10 +866,10 @@ end
 val=I_(uint32(num),varargin{:});
 if(val(1)>char(210))
     num=uint32(num);
-    val=[char(210) data2byte(swapbytes(cast(num,'uint32')),'uint8')];
+    val=[char(210) data2byte(endiancheck(cast(num,'uint32'),varargin{:}),'uint8')];
 elseif(val(1)<char(209))
     num=uint16(num);
-    val=[char(209) data2byte(swapbytes(cast(num,'uint16')),'uint8')];
+    val=[char(209) data2byte(endiancheck(cast(num,'uint16'),varargin{:}),'uint8')];
 end
 val(1)=char(val(1)-209+base1);
 
@@ -860,7 +885,7 @@ if(isfield(varargin{1},'inttype_'))
     if(isdebug)
         val=[Imarker(varargin{1}.inttype_) sprintf('<%.0f>',num)];
     else
-        val=[Imarker(varargin{1}.inttype_) data2byte(swapbytes(cast(num,cid{varargin{1}.inttype_})),'uint8')];
+        val=[Imarker(varargin{1}.inttype_) data2byte(endiancheck(cast(num,cid{varargin{1}.inttype_}),varargin{:}),'uint8')];
     end
     return;
 end
@@ -875,7 +900,7 @@ if(Imarker(1)~='U')
     end
 end
 if(Imarker(1)~='U' && num<0 && num<127)
-   val=data2byte((swapbytes(cast(num,'uint8')) & 127),'uint8');
+   val=data2byte((endiancheck(cast(num,'uint8'),varargin{:}) & 127),'uint8');
    return;
 end
 key=Imarker;
@@ -884,7 +909,7 @@ for i=1:length(cid)
     if(isdebug)
         val=[key(i) sprintf('<%.0f>',num)];
     else
-        val=[key(i) data2byte(swapbytes(cast(num,cid{i})),'uint8')];
+        val=[key(i) data2byte(endiancheck(cast(num,cid{i}),varargin{:}),'uint8')];
     end
     return;
   end
@@ -902,7 +927,7 @@ isdebug=varargin{1}.debug;
 if(isdebug)
     output=sprintf('<%g>',num);
 else
-    output=data2byte(swapbytes(num),'uint8');
+    output=data2byte(endiancheck(num,varargin{:}),'uint8');
 end
 Fmarker=varargin{1}.FM_;
 
@@ -933,7 +958,7 @@ end
 % based on UBJSON specs, all integer types are stored in big endian format
 
 cid=varargin{1}.IType_;
-data=data2byte(swapbytes(cast(num,cid{id})),'uint8');
+data=data2byte(endiancheck(cast(num,cid{id}),varargin{:}),'uint8');
 blen=varargin{1}.IByte_(id);
 
 
@@ -979,7 +1004,7 @@ if(id==0)
   error('unsupported float array');
 end
 
-data=data2byte(swapbytes(cast(num,varargin{1}.FType_{id})),'uint8');
+data=data2byte(endiancheck(cast(num,varargin{1}.FType_{id}),varargin{:}),'uint8');
 blen=varargin{1}.FByte_(id);
 
 isnest=varargin{1}.nestarray;
@@ -1032,3 +1057,11 @@ end
 function bytes=data2byte(varargin)
 bytes=typecast(varargin{:});
 bytes=char(bytes(:)');
+
+%%-------------------------------------------------------------------------
+function newdata=endiancheck(data, varargin)
+if(varargin{1}.flipendian_)
+    newdata=swapbytes(data);
+else
+    newdata=data;
+end

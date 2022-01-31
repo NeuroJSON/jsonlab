@@ -45,7 +45,7 @@ if(ismember('js',tests))
     test_jsonlab('empty cell',@savejson,{},'[]');
     test_jsonlab('empty string',@savejson,'','""','compact',1);
     test_jsonlab('string escape',@savejson,sprintf('jdata\n\b\ashall\tprevail\t"\"\\'),'"jdata\n\b\ashall\tprevail\t\"\"\\"');
-    if(exist('isstring'))
+    if(exist('string'))
         test_jsonlab('string type',@savejson,string(sprintf('jdata\n\b\ashall\tprevail')),'["jdata\n\b\ashall\tprevail"]','compact',1);
         test_jsonlab('string array',@savejson,[string('jdata'),string('shall'),string('prevail')],'["jdata","shall","prevail"]','compact',1);
     end
@@ -55,6 +55,8 @@ if(ismember('js',tests))
     test_jsonlab('char array',@savejson,['AC';'EG'],'["AC","EG"]','compact',1);
     test_jsonlab('maps',@savejson,struct('a',1,'b','test'),'{"a":1,"b":"test"}','compact',1);
     test_jsonlab('2d array',@savejson,[1,2,3;4,5,6],'[[1,2,3],[4,5,6]]','compact',1);
+    test_jsonlab('non-uniform 2d array',@savejson,{[1,2],[3,4,5],[6,7]},'[[1,2],[3,4,5],[6,7]]','compact',1);
+    test_jsonlab('non-uniform array with length multiple of first element',@savejson,{[1,2],[3,4,5,6],[7,8]},'[[1,2],[3,4,5,6],[7,8]]','compact',1);
     test_jsonlab('3d (row-major) nested array',@savejson,reshape(1:(2*3*2),2,3,2),...
          '[[[1,7],[3,9],[5,11]],[[2,8],[4,10],[6,12]]]','compact',1,'nestarray',1);
     test_jsonlab('3d (column-major) nested array',@savejson,reshape(1:(2*3*2),2,3,2),...
@@ -173,7 +175,7 @@ if(ismember('bj',tests))
     test_jsonlab('empty string',@savebj,'','SU<0>','debug',1);
     test_jsonlab('skip no-op before marker and after value',@savebj,loadbj(char(['NN[NU' char(5) 'NNNU' char(1) ']'])),'[$U#U<2><5><1>','debug',1);
     test_jsonlab('string escape',@savebj,sprintf('jdata\n\b\ashall\tprevail\t"\"\\'),sprintf('SU<25>jdata\n\b\ashall\tprevail\t\"\"\\'),'debug',1);
-    if(exist('isstring'))
+    if(exist('string'))
         test_jsonlab('string type',@savebj,string(sprintf('jdata\n\b\ashall\tprevail')),sprintf('[SU<21>jdata\n\b\ashall\tprevail]'),'debug',1);
         test_jsonlab('string array',@savebj,[string('jdata');string('shall');string('prevail')],'[[SU<5>jdataSU<5>shallSU<7>prevail]]','debug',1);
     end
@@ -182,7 +184,7 @@ if(ismember('bj',tests))
     test_jsonlab('mixed array',@savebj,{'a',1,0.9},'[CaU<1>D<0.9>]','debug',1);
     test_jsonlab('char array',@savebj,['AC';'EG'],'[SU<2>ACSU<2>EG]','debug',1);
     test_jsonlab('maps',@savebj,struct('a',1,'b','test'),'{U<1>aU<1>U<1>bSU<4>test}','debug',1);
-    test_jsonlab('2d array',@savebj,[1,2,3;4,5,6],'[$U#[$U#U<2><2><3><1><4><2><5><3><6>','debug',1);
+    test_jsonlab('2d array',@savebj,[1,2,3;4,5,6],'[$U#[$U#U<2><2><3><1><2><3><4><5><6>','debug',1);
     test_jsonlab('3d (row-major) nested array',@savebj,reshape(1:(2*3*2),2,3,2),...
          '[[[U<1>U<7>][U<3>U<9>][U<5>U<11>]][[U<2>U<8>][U<4>U<10>][U<6>U<12>]]]','debug',1,'nestarray',1);
     test_jsonlab('3d (column-major) nested array',@savebj,reshape(1:(2*3*2),2,3,2),...
@@ -194,9 +196,9 @@ if(ismember('bj',tests))
     test_jsonlab('empty sparse matrix',@savebj,sparse(2,3),...
          '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><2><3>U<15>_ArrayIsSparse_TU<11>_ArrayData_Z}','debug',1);
     test_jsonlab('real sparse matrix',@savebj,sparse([0,3,0,1,4]'),...
-         '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><5><1>U<15>_ArrayIsSparse_TU<11>_ArrayData_[$U#[$U#U<2><2><3><2><3><4><1><5><4>}','debug',1);
+         '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><5><1>U<15>_ArrayIsSparse_TU<11>_ArrayData_[$U#[$U#U<2><2><3><2><4><5><3><1><4>}','debug',1);
     test_jsonlab('complex sparse matrix',@savebj,sparse([0,3i,0,1,4i].'),...
-         '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><5><1>U<16>_ArrayIsComplex_TU<15>_ArrayIsSparse_TU<11>_ArrayData_[$U#[$U#U<2><3><3><2><0><3><4><1><0><5><0><4>}','debug',1);
+         '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><5><1>U<16>_ArrayIsComplex_TU<15>_ArrayIsSparse_TU<11>_ArrayData_[$U#[$U#U<2><3><3><2><4><5><0><1><0><3><0><4>}','debug',1);
     test_jsonlab('heterogeneous cell',@savebj,{{1,{2,3}},{4,5},{6};{7},{8,9},{10}},...
          '[[[U<1>[U<2>U<3>]][U<4>U<5>][U<6>]][[U<7>][U<8>U<9>][U<10>]]]','debug',1);
     test_jsonlab('struct array',@savebj,repmat(struct('i',1.1,'d','str'),[1,2]),...
@@ -271,4 +273,12 @@ if(ismember('bjo',tests))
     test_jsonlab('H marker for out of bound integer',@savebj,2^64-1,'HU<20>18446744073709551616','debug',1,'ubjson',1);
     test_jsonlab('do not downcast integers to the shortest format',@savebj,int32(5),'l<5>','debug',1,'keeptype',1);
     test_jsonlab('do not downcast integer array to the shortest format',@savebj,int32([5,6]),'[$l#U<2><5><6>','debug',1,'keeptype',1);
+    test_jsonlab('test little endian uint32',@savebj,typecast(uint8('abcd'),'uint32'),'mabcd','endian','L');
+    test_jsonlab('test big endian uint32',@savebj,typecast(uint8('abcd'),'uint32'),'mdcba','endian','B');
+    test_jsonlab('test little endian double',@savebj,typecast(uint8('01234567'),'double'),'D01234567','endian','L');
+    test_jsonlab('test big endian double',@savebj,typecast(uint8('01234567'),'double'),'D76543210','endian','B');
+    test_jsonlab('test default int endian for savebj',@savebj,typecast(uint8('jd'),'uint16'),'ujd');
+    test_jsonlab('test default int endian for saveubjson',@saveubjson,typecast(uint8('jd'),'uint16'),'Idj');
+    test_jsonlab('test default float endian for savebj',@savebj,typecast(uint8('1e05'),'single'),'d1e05');
+    test_jsonlab('test default float endian for saveubjson',@saveubjson,typecast(uint8('1e05'),'single'),'d50e1');
 end

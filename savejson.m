@@ -102,6 +102,10 @@ function json=savejson(rootname,obj,varargin)
 %                         'b': big endian, 'l': little-endian)
 %           PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
+%           BuiltinJSON [0|1]: if set to 1, this function attempts to call
+%                         jsonencode, if presents (MATLAB R2016b or Octave
+%                         6) first. If jsonencode does not exist or failed, 
+%                         this function falls back to the jsonlab savejson
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
@@ -158,13 +162,30 @@ opt.nan=jsonopt('NaN','"_NaN_"',opt);
 opt.num2cell_=0;
 opt.nosubstruct_=0;
 
+if(jsonopt('BuiltinJSON',0,opt) && exist('jsonencode','builtin'))
+    try
+        obj=jdataencode(obj,'Base64',1,'AnnotateArray',1,'UseArrayZipSize',1,opt);
+        if(isempty(rootname))
+            json=jsonencode(obj);
+        else
+            json=jsonencode(struct(rootname,obj));
+        end
+        if(isempty(regexp(json,'^[{\[]', 'once')))
+            json=['[',json,']'];
+        end
+        return;
+    catch
+        warning('built-in jsonencode function failed to encode the data, fallback to savejson');
+    end
+end
+
 if(jsonopt('PreEncode',1,opt))
     obj=jdataencode(obj,'Base64',1,'UseArrayZipSize',0,opt);
 end
 
 dozip=opt.compression;
 if(~isempty(dozip))
-    if(isempty(strmatch(dozip,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
+    if(~ismember(dozip,{'zlib','gzip','lzma','lzip','lz4','lz4hc'}))
         error('compression method "%s" is not supported',dozip);
     end
     if(exist('zmat','file')~=2 && exist('zmat','file')~=3)

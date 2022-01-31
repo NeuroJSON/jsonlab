@@ -3,12 +3,14 @@
 =           An open-source MATLAB/Octave JSON encoder and decoder             =
 ===============================================================================
 
-* Copyright (C) 2011-2020  Qianqian Fang <q.fang at neu.edu>
+* Copyright (C) 2011-2022  Qianqian Fang <q.fang at neu.edu>
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-* Version: 2.0 (Magnus Prime)
-* JData Specification Version: Draft 3 (http://github.com/fangq/jdata)
-* URL: http://openjdata.org/jsonlab
-
+* Version: 2.9.8 (Micronus Prime - Beta)
+* JData Specification Version: V1 Draft-3 (http://github.com/NeuroJSON/jdata)
+* Binary JData Specification Version: V1 Draft-2 (http://github.com/NeuroJSON/bjdata)
+* URL: http://neurojson.org/jsonlab
+* Acknowledgement: This project is supported by US National Institute of Health (NIH) \
+  grant `U24-NS124027 <https://taggs.hhs.gov/Detail/AwardDetail?arg_AwardNum=U24NS124027&arg_ProgOfficeCode=137>`_
 -------------------------------------------------------------------------------
 
 Table of Content:
@@ -27,92 +29,80 @@ VIII.Acknowledgement
 
 0. What's New
 
-JSONLab v2.0 - code named "Magnus Prime" - is a stable release of JSONLab and
-a new milestone towards a stable, complete reference implementation of the 
-JData Specification (http://openjdata.org) for portable scientific data storage.
+We are extremely excited to announce that JSONLab project, as the reference implementation
+for the JData and BJData specifications, is official funded by the US National Institute 
+of Health (NIH) as part of the NeuroJSON project (http://neurojson.org) since 2021. 
+The goal of the NeuroJSON project is to develop human-readable,
+scalable and future-proof neuroimaging data standards and data sharing services. All data
+produced from the NeuroJSON project will be using JSON/Binary JData formats as the
+underlying serialization standards and use the lightweight JData specification as
+general-purpose data annotation standard, all of which have been evolved from the over
+a decade development of JSONLab.
+
+JSONLab v2.9.8 - code named "Micronus - beta" - is a beta-release of JSONLab v3.0 and
+contains breaking features for `savebj`/`loadbj`. It implements the latest Binary JData
+Specification v1 Draft-2 https://github.com/NeuroJSON/bjdata/, where the default
+byte order changed from Big-Endian, as in UBJSON Draft-12/BJData Draft 2, to Little-Endian
+format. Previously, JSONLab v2.0 implements BJData Draft-1, which used Big-Endian
+as the default byte order for all numerical data.
 
 There have been many major updates added to this release since the previous 
-release v1.9.8 in Oct. 2019. A list of the major changes are summarized below
-(with key features marked by *), including the support to `_ArrayShape_` to
-efficiently encode special matrices and the addition of `jsave/jload` to save
-and restore variables in MATLAB/Octave like the `save/load` commands (experimental):
+release v2.0 in June 2020. A list of the major changes are summarized below
+(with key features marked by *), including the support to BJData Draft-2 specification,
+incorrect optimized ND-array BJData/UBJSON element order, and options to use MATLAB/Octave
+built-in jsonencode/jsondecode functions. The octave-jsonlab package has also been
+included in the official distributions of Debian Bullseye and Ubuntu 21.04 or newer.
 
-* 2020-06-13 [81feef3] skip no-op markers, update documentation
-* 2020-06-13 [4904155] jload load data to struct, test if loadbj input is buffer, update error msg
-* 2020-06-12 [c334799] change default workspace to caller for jload and jsave
-* 2020-06-10 [c883546] fix keeptype single integer bug
-* 2020-06-09*[       ] created `jdata` and `bjdata` python modules to share data with MATLAB
-* 2020-06-08*[cbde607] add savebj and loadbj to dedicate to loading and saving bjdata
-* 2020-06-08*[e2451e1] add unit testing script, fix issues found in the testing unit
-* 2020-06-06 [a44015f] accelerate fast_match_bracket, drop unicode2native for speed
-* 2020-06-06 [eefccf3] call jsonencode/decode in jsave/jload, parse embedded jdata struct
-* 2020-06-05 [9434103] support Toeplitz matrices, use case-insensitive comparison
-* 2020-06-04 [3119ce4] jdatadecode now handles _ArrayOrder_
-* 2020-06-04 [89b844c] remove forced root name, update internal test results
-* 2020-06-02*[15ca7ae] add keeptype option to jsave and saveubjson
-* 2020-06-02 [7f2cbc4] make jsave and jload work on octave
-* 2020-06-01*[8829d6b] apply data compression to strings, new datatype char
-* 2020-06-01 [270cbf6] fix loadmsgpack ND array issue
-* 2020-06-01*[919f502] add jsave and jload for portable data sharing
-* 2020-05-31 [df3a4fa] debug arrayshape related changes and test all demo scripts
-* 2020-05-31*[fc0b285] adding support to _ArrayShape_ to record special matrices
-* 2020-05-15*[d88d454] jsonlab is compatible with matlab R2008
-* 2020-05-13 [86efe89] flag to prevent embedding ND array size specifier
-* 2020-05-07 [a189a50] use more robust integer type testing
-* 2020-05-06*[82f5249] saveubjson now implments BJData spec Draft1,https://github.com/fangq/bjdata
-* 2020-05-03 [34bca22] add prj file to compile a matlab package, close #60
-* 2020-05-03 [82dfdcc] handle empty array in loadmsgpack, fix #63, patch by stfnp
-* 2020-03-08 [7499bd8] Merge pull request #61 from j2L4e/patch-1
-* 2020-02-09*[6984111] add UseMap option to avoid key name conversion
-* 2019-11-16 [e46221a] if _ArraySize_ has a single length, treat as a row vector
-* 2019-11-01 [f2bfb65] fix a uint8 upper bound bug
-* 2019-10-24 [cc4491d] avoid escaping base64 str, avoid double processing preencoded arrayzipdata
-* 2019-10-24 [4dc76ef] make example script compatible with matlab R2010
-* 2019-10-24 [ad8be26] disable underscore escaping in octave,update all tests and outputs
-* 2019-10-24 [d4275c6] reduce jsonopt calls to speed up encoding and decoding
-* 2019-10-23 [82c9e91] fix invalid jdatadecode example
-* 2019-10-23 [398539d] reoptimize for speed
-* 2019-10-22*[650b5ec] enable jdataencode in savejson and saveubjson
+* 2022-01-30*[       ] [bjdata:breaking] Upgrade savebj/loadbj to BJData v1-draft 2, use little-endian by default
+* 2022-01-30*[       ] [bjdata:breaking] Fix optimized ND array element order (previously used column-major)
+* 2022-01-30*[       ] optimize loadjson and loadbj speed
+* 2022-01-30*[       ] add 'BuiltinJSON' option for savejson/loadjson to call jsonencode/jsondecode
+* 2022-01-30*[       ] more robust tests on ND array when parsing JSON numerical array construct
+* 2021-06-23 [632531f] fix inconsistency between singlet integer and float values, close #70
+* 2021-06-23 [f7d8226] prevent function calls when parsing array strings using eval, fix #75
+* 2021-06-23 [b1ae5fa] fix #73 as a regression to #22
+* 2021-11-22*[       ] octave-jsonlab is officially in Debian Testing/Bullseye
+* 2020-09-29 [d0cb3b8] Fix for loading objects.
+* 2020-07-26 [d0fb684] Add travis badge
+* 2020-07-25 [708c36c] drop octave 3.2
+* 2020-07-25 [436d84e] debug octave 3.2
+* 2020-07-25 [0ce96ec] remove windows and osx targets from travis-ci
+* 2020-07-25 [0d8baa4] fix ruby does not support error on windows
+* 2020-07-25*[faa7921] enable travis-ci for jsonlab
+* 2020-07-08 [321ab1a] add Debian and Ubuntu installation commands
+* 2020-07-08 [e686828] update author info
+* 2020-07-08*[ce40fdf] supports ND cell array, fix #66
+* 2020-07-07 [6a8ce93] fix string encoding over 399 characters, close #65
+* 2020-06-14 [5a58faf] fix DESCRIPTION date bug
+* 2020-06-14 [9d7e94c] match octave description file and upstream version number
+* 2020-06-14 [a5b6170] fix warning about lz4encode file name
 
 
-Please note that JSONLab v2.0 is now compliant with JData Spec Draft 3; in 
-comparison, v1.9.8 is compatible with Draft 2; v1.9 and previous releases are 
-compatible with Draft 1. JSONLab v2.0 can read all data files generated by 
-v1.9.8, but v1.9.8 can not read the new UBJSON markers introduced in v2.0.
+Please note that the `savejson/loadjson` in both JSONLab v2.0-v3.0 are
+compliant with JData Spec Draft 3; the savebj/loadbj` in JSONLab v3.0 is
+compatible to BJData spec Draft 2, which contains breaking feature changes
+compared to those in JSONLab v2.0.
 
-The newly introduced `jsave/jload` functions are in the experimental stage. 
-They generate `.jamm` files which are renamed binary-JData/UBJSON files; 
-they can be 50% smaller than `.mat` files if using `jsave(...,'compression','lzma')`
-and can be readily opened among a long list of programming environments 
-such as Python, JavaScript and Go.
+The BJData spec was derived from UBJSON spec Draft 12, with the 
+following breaking differences:
 
-The `saveubjson/loadubjson` functions added support to the Binary JData specification (BJData)
-v1 Draft-1 (https://github.com/fangq/bjdata) and are now renamed as `savebj/loadbj`
-(`saveubjson/loadubjson` are kept for compatibility purposes as aliases to the new 
-functions). The BJData spec is largely compatible with UBJSON spec Draft 12, with the 
-following differences (we are working with the UBJSON maintainer to merge 
-these two specifications):
-
-* BJData adds 4 new numeric data types: `uint16 [u]`, `uint32 [m]`, `uint64 [M]` \
-  and `float16 [h]` ('''new in JSONLab v2.0''')
+* BJData adds 4 new numeric data types: ``uint16 [u]``, ``uint32 [m]``, ``uint64 [M]`` \
+  and ``float16 [h]`` (supported in JSONLab v2.0 or newer)
 * BJData supports an optimized ND array container (supported in JSONLab since 2013)
-* BJData does not convert `NaN/Inf/-Inf` to `null` (supported in JSONLab since 2013)
+* BJData does not convert ``NaN/Inf/-Inf`` to ``null`` (supported in JSONLab since 2013)
+* BJData Draft 2 changes the default byte order to Little-Endian instead of Big-Endian (JSONLab 3.0 or later)
 
-To avoid using the new type markers, one should attach `'UBJSON',1` in the `savebj`
-command as
+To avoid using the new features, one should attach ``'UBJSON',1`` and ``'Endian','B'``
+in the ``savebj`` command as
 
-   savebj('',data,'FileName','myfile.bjd','UBJSON',1);
+   savebj('',data,'FileName','myfile.bjd','UBJSON',1, 'Endian','B');
 
-To read data files generated by JSONLab v1.9 or older versions, you need to attach
-option `'FormatVersion', 1.9` in all the `loadjson/savejson` function calls.
- 
-To convert an older file (JSON/UBJSON) to the new format, you should run
+To read BJData data files generated by JSONLab v2.0, you should call
 
-   data=loadjson('my_old_data_file.json','FormatVersion',1.9)
-   savejson('',data,'FileName','new_file.json')
+   data=loadbj('my_old_data_file.bjd','Endian','B')
 
-You are strongly encouraged to convert all pre-v1.9.8 generated data files using the new
-format.
+You are strongly encouraged to convert all pre-v2.9 JSONLab generated BJD or .jamm
+files using the new format.
 
 
 -------------------------------------------------------------------------------
@@ -143,7 +133,7 @@ of scientific data. It has both the flexibility and generality as in other gener
 file specifications, such as [http://www.hdfgroup.org/HDF5/whatishdf5.html HDF5] 
 but has significantly reduced complexity and excellent readability.
 
-Towards this goal, we have developed the JData Specification (http://github.com/fangq/jdata) 
+Towards this goal, we have developed the JData Specification (http://github.com/NeuroJSON/jdata) 
 to standardize serializations of complex scientific data structures, such as
 N-D arrays, sparse/complex-valued arrays, trees, maps, tables and graphs using
 JSON/binary JSON constructs. The text and binary formatted JData files are
@@ -201,7 +191,7 @@ To enable data compression/decompression, you need to install `octave-zmat` usin
 
 === Install JSONLab on Debian ===
 
-JSONLab is currently available on Debian unstable. To install, you may run
+JSONLab is currently available on Debian Bullseye. To install, you may run
 
    sudo apt-get install octave-jsonlab
 
@@ -209,8 +199,12 @@ One can alternatively install `matlab-jsonlab` if MATLAB is available.
 
 === Install JSONLab on Ubuntu ===
 
-JSONLab is currently available on the below PPA for Ubuntu users:
+JSONLab is currently available on Ubuntu 21.04 or newer as package
+`octave-jsonlab`. To install, you may run
 
+   sudo apt-get install octave-jsonlab
+
+For older Ubuntu releases, one can add the below PPA
 https://launchpad.net/~fangq/+archive/ubuntu/ppa
 
 To install, please run
@@ -234,17 +228,17 @@ JSONLab is also available on Arch Linux. You may install it using the below comm
 
 III.Using JSONLab
 
-JSONLab provides a pair of functions, `loadjson` -- a JSON parser, and 
-`savejson` -- a MATLAB-to-JSON encoder, to read/write the text-based JSON; and 
-two equivallent pairs -- `loadubjson/saveubjson` for binary 
-JSON and `loadmsgpack/savemsgpack` for MessagePack. The `load*` functions 
+JSONLab provides a pair of functions, ``loadjson`` -- a JSON parser, and 
+``savejson`` -- a MATLAB-to-JSON encoder, to read/write the text-based JSON; and 
+three equivallent pairs -- ``loadbj/savebj`` for binary JData, ``loadubjson/saveubjson``
+for UBJSON and ``loadmsgpack/savemsgpack`` for MessagePack. The ``load*`` functions 
 for the 3 supported data formats share almost the same input parameter format; 
-similarly for the 3 `save*` functions (`savejson/saveubjson/savemsgpack`).
+similarly for the 3 ``save*`` functions (``savejson/saveubjson/savemsgpack``)
 These encoders and decoders are capable of processing/sharing almost all 
-data structures supported by MATLAB, thanks to `jdataencode/jdatadecode` - 
+data structures supported by MATLAB, thanks to ``jdataencode/jdatadecode`` - 
 a pair of in-memory data converters translating complex data structures
 to the easy-to-serialized forms according to the JData specifications.
-The detailed help information can be found in the `Contents.m` file. 
+The detailed help information can be found in the ``Contents.m`` file. 
 
 In the below section, we provide a few examples on how to us each of the 
 core functions for encoding/decoding JSON/UBJSON/MessagePack data.
@@ -426,7 +420,7 @@ JData decoding and converts the enclosed data into Python `dict`, `list`
 and `numpy` objects. Similarly, `jd.loadb()` function loads a binary 
 JData/UBJSON file and performs similar conversions. One can directly call
 `jd.load()` to open JSONLab (and derived toolboxes such as '''jnifti''': 
-https://github.com/fangq/jnifti or '''jsnirfy''': https://github.com/fangq/jsnirfy) 
+https://github.com/NeuroJSON/jnifti or '''jsnirf''': https://github.com/NeuroJSON/jsnirf) 
 generated files based on their respective file suffix.
 
 Similarly, the `jd.savet()`, `jd.saveb()` and `jd.save` functions

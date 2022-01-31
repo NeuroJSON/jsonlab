@@ -230,6 +230,10 @@
 %           JDataDecode [1|0]: if set to 1, call jdatadecode to decode
 %                         JData structures defined in the JData
 %                         Specification.
+%           BuiltinJSON [0|1]: if set to 1, this function attempts to call
+%                         jsondecode, if presents (MATLAB R2016b or Octave
+%                         6) first. If jsondecode does not exist or failed, 
+%                         this function falls back to the jsonlab parser
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -347,6 +351,10 @@
 %                         'b': big endian, 'l': little-endian)
 %           PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
+%           BuiltinJSON [0|1]: if set to 1, this function attempts to call
+%                         jsonencode, if presents (MATLAB R2016b or Octave
+%                         6) first. If jsonencode does not exist or failed, 
+%                         this function falls back to the jsonlab savejson
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
 %        string is equivallent to a field in opt and is case sensitive.
@@ -375,8 +383,15 @@
 %    or
 % data=loadbj(fname,'param1',value1,'param2',value2,...)
 %
-% Parse a Binary JData (BJData v1 Draft-1, defined in https://github.com/OpenJData/bjdata) 
+% Parse a Binary JData (BJData v1 Draft-2, defined in https://github.com/NeuroJSON/bjdata) 
 % file or memory buffer and convert into a MATLAB data structure
+%
+% By default, this function parses BJD-compliant output. The BJD
+% specification is largely similar to UBJSON, with additional data types
+% including uint16(u), uint32(m), uint64(M) and half-precision float (h).
+% Starting from BJD Draft-2 (JSONLab 3.0 beta or later), all integer and
+% floating-point numbers are parsed in Little-Endian as opposed to
+% Big-Endian form as in BJD Draft-1/UBJSON Draft-12 (JSONLab 2.1 or older)
 %
 % initially created on 2013/08/01
 %
@@ -391,16 +406,26 @@
 %           SimplifyCell [1|0]: if set to 1, loadbj will call cell2mat
 %                         for each element of the JSON data, and group 
 %                         arrays based on the cell2mat rules.
-%           IntEndian [B|L]: specify the endianness of the integer fields
-%                         in the BJData/UBJSON input data. B - Big-Endian format for 
-%                         integers (as required in the UBJSON specification); 
-%                         L - input integer fields are in Little-Endian order.
+%           Endian ['L'|'B']: specify the endianness of the numbers
+%                         in the BJData/UBJSON input data. Default: 'L'.
+%
+%                         Starting from JSONLab 2.9, BJData by default uses
+%                         [L] Little-Endian for both integers and floating
+%                         point numbers. This is a major departure from the
+%                         UBJSON specification, where 'B' - Big-Endian -
+%                         format is used for integer fields. UBJSON does
+%                         not specifically define Endianness for
+%                         floating-point numbers, resulting in mixed
+%                         implementations. JSONLab 2.0-2.1 used 'B' for
+%                         integers and floating-points; JSONLab 1.x uses
+%                         'B' for integers and native-endianness for
+%                         floating-point numbers.
 %           NameIsString [0|1]: for UBJSON Specification Draft 8 or 
 %                         earlier versions (JSONLab 1.0 final or earlier), 
 %                         the "name" tag is treated as a string. To load 
 %                         these UBJSON data, you need to manually set this 
 %                         flag to 1.
-%           UseMap [0|1]: if set to 1, loadjson uses a containers.Map to 
+%           UseMap [0|1]: if set to 1, loadbj uses a containers.Map to 
 %                         store map objects; otherwise use a struct object
 %           ObjectID [0|interger or list]: if set to a positive number, 
 %                         it returns the specified JSON object by index 
@@ -436,17 +461,20 @@
 % bjd=savebj(rootname,obj,'param1',value1,'param2',value2,...)
 %
 % Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
-% into a Binary JData (BJData v1 Draft-1), Universal Binary JSON (UBJSON,
+% into a Binary JData (BJData v1 Draft-2), Universal Binary JSON (UBJSON,
 % Draft-12) or a MessagePack binary stream
 %
 % initially created on 2013/08/17
 %
 % By default, this function creates BJD-compliant output. The BJD
 % specification is largely similar to UBJSON, with additional data types
-% including uint16(u), uint32(m), uint64(M) and half-precision float (h)
+% including uint16(u), uint32(m), uint64(M) and half-precision float (h).
+% Starting from BJD Draft-2 (JSONLab 3.0 beta or later), all integer and
+% floating-point numbers are stored in Little-Endian as opposed to
+% Big-Endian form as in BJD Draft-1/UBJSON Draft-12 (JSONLab 2.1 or older)
 %
 % Format specifications:
-%    Binary JData (BJD):   https://github.com/fangq/bjdata
+%    Binary JData (BJD):   https://github.com/NeuroJSON/bjdata
 %    UBJSON:               https://github.com/ubjson/universal-binary-json
 %    MessagePack:          https://github.com/msgpack/msgpack
 %
@@ -524,7 +552,8 @@
 %          UBJSON [0|1]: 0: (default)-encode data based on BJData Draft 1
 %                         (supports uint16(u)/uint32(m)/uint64(M)/half(h) markers)
 %                        1: encode data based on UBJSON Draft 12 (without
-%                         u/m/M/h markers)
+%                         u/m/M/h markers);all numeric values are stored in
+%                         the Big-Endian byte order according to Draft-12
 %          FormatVersion [2|float]: set the JSONLab output version; since
 %                         v2.0, JSONLab uses JData specification Draft 3
 %                         for output format, it is incompatible with releases
@@ -535,7 +564,21 @@
 %                         of the minimum length without losing accuracy (default)
 %          Debug [0|1]: output binary numbers in <%g> format for debugging
 %          Append [0|1]: if set to 1, append a new object at the end of the file.
-%          Endian ['n'|'b','l']: Endianness of the output file ('n': native, 
+%          Endian ['L'|'B']: specify the endianness of the numbers
+%                         in the BJData/UBJSON input data. Default: 'L'.
+%
+%                         Starting from JSONLab 2.9, BJData by default uses
+%                         [L] Little-Endian for both integers and floating
+%                         point numbers. This is a major departure from the
+%                         UBJSON specification, where 'B' - Big-Endian -
+%                         format is used for integer fields. UBJSON does
+%                         not specifically define Endianness for
+%                         floating-point numbers, resulting in mixed
+%                         implementations. JSONLab 2.0-2.1 used 'B' for
+%                         integers and floating-points; JSONLab 1.x uses
+%                         'B' for integers and native-endianness for
+%                         floating-point numbers.
+%          FileEndian ['n'|'b','l']: Endianness of the output file ('n': native, 
 %                         'b': big endian, 'l': little-endian)
 %          PreEncode [1|0]: if set to 1, call jdataencode first to preprocess
 %                         the input data before saving
@@ -553,6 +596,7 @@
 %               'MeshCreator','FangQ','MeshTitle','T6 Cube',...
 %               'SpecialData',[nan, inf, -inf]);
 %      savebj(jsonmesh)
+%      savebj('',jsonmesh,'debug',1)
 %      savebj('',jsonmesh,'meshdata.bjd')
 %      savebj('mesh1',jsonmesh,'FileName','meshdata.msgpk','MessagePack',1)
 %      savebj('',jsonmesh,'ubjson',1)
@@ -576,8 +620,9 @@
 % This function is an alias to loadbj
 %
 % input:
-%      fname: input file name, if fname contains "{}" or "[]", fname
-%             will be interpreted as a UBJSON string
+%      fname: input file name, if the file with such name exists, it will
+%             be read, otherwise, this function will attempt to parse the
+%             string in fname as a UBJSON stream
 %      opt: a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs - the param string is equivallent
 %           to a field in opt. The supported options can be found by typing
@@ -606,20 +651,21 @@
 % ubj=saveubjson(rootname,obj,opt)
 % ubj=saveubjson(rootname,obj,'param1',value1,'param2',value2,...)
 %
-% Convert a MATLAB object  (cell, struct, array, table, map, handles ...) 
-% into a Universal Binary JSON (UBJSON, Draft 12) or a MessagePack binary stream
+% Convert a MATLAB object  (cell, struct, array, table, map, graphs ...) 
+% into a Universal Binary JSON (UBJSON, Draft-12) or a MessagePack binary stream
 %
 % initially created on 2013/08/17
 %
 % Format specifications:
-%    Binary JData (BJData):https://github.com/fangq/bjdata
+%    Binary JData (BJData):https://github.com/NeuroJSON/bjdata
 %    UBJSON:               https://github.com/ubjson/universal-binary-json
 %    MessagePack:          https://github.com/msgpack/msgpack
 %
-% This function is the same as calling "savebj(...,'ubjson',1)". By , 
-% default this function creates UBJSON-compliant output without the
+% This function is the same as calling "savebj(..,'ubjson',1,'endian','B')"
+% By default this function creates UBJSON-compliant output without the
 % newly added uint16(u), uint32(m), uint64(M) and half-precision float (h)
-% data types.
+% data types and use Big-Endian for all numerical values as in UBJSON
+% Draft-12.
 %
 % This function by default still enables an optimized ND-array format for efficient  
 % array storage. To ensure the output compatible to UBJSON Draft-12, one should use
@@ -641,7 +687,7 @@
 %           Please type "help savebj" for details for all supported options.
 %
 % output:
-%      json: a binary string in the UBJSON format (see http://ubjson.org)
+%      ubj: a binary string in the UBJSON format (see http://ubjson.org)
 %
 % examples:
 %      jsonmesh=struct('MeshVertex3',[0 0 0;1 0 0;0 1 0;1 1 0;0 0 1;1 0 1;0 1 1;1 1 1],... 
@@ -720,7 +766,7 @@
 %      fname: (optional) output file name; if not given, save to 'jamdata.jamm'
 %           if fname has a '.json' or '.jdt' suffix, a text-based
 %           JSON/JData file will be created (slow); if the suffix is '.jamm' or
-%           '.jdb', a Binary JData (https://github.com/fangq/bjdata/) file will be created.
+%           '.jdb', a Binary JData (https://github.com/NeuroJSON/bjdata/) file will be created.
 %      opt: (optional) a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs - the param string is equivallent
 %           to a field in opt. opt can have the following 
@@ -780,7 +826,7 @@
 %                         parse the json file and then decode the output by
 %                         jdatadecode; input file must have a suffix of .jdt
 %
-%           all options for loadubjson/loadjson (depends on file suffix)
+%           all options for loadbj/loadjson (depends on file suffix)
 %           can be used to adjust the parsing options
 %
 % output:
@@ -1033,7 +1079,7 @@
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
 %
 
-%==== function varargout = lz4hcencode(varargin) ====
+%==== function varargout = lz4encode(varargin) ====
 %
 % output = lz4encode(input)
 %    or
@@ -1392,9 +1438,9 @@
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 
-%==== function [dims, maxlevel, count] = nestbracket2dim(str,brackets) ====
+%==== function [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets,testndarray) ====
 %
-% [dims, maxlevel, count] = nestbracket2dim(str,brackets)
+% [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets)
 %
 % Extracting the dimension vector of a JSON string formatted array
 % by analyzing the pairs of opening/closing bracket tokenss; this function 
@@ -1409,12 +1455,17 @@
 %               if not given, brackets is set to '[]' to find matching square-brackets;
 %               for example, '{}' looks for a matching closing curly-bracket in
 %               the string key(pos(startpos,:end))
+%      testndarray: (optional), 1 to test if the input string contains an
+%               ND array, i.e. with uniform element lengths (recursively)
 %
 % output:
 %      dims: the speculated dimension vector with the length matching the maximum 
 %            depth of the embedded bracket pairs. When the input string encodes an
 %            N-D array, the dims vector contains all integers; however, returning
-%            an all-integer dims vector does not mean the array is rectangular.
+%            an all-integer dims vector does not mean the array is
+%            rectangular. if testndarray is set to 1, dims returns isndarray
+%      isndarray: 1 to indicate the input string contains an ND array,
+%            otherwise, 0
 %      maxlevel: return the depth of the enclosed brackets in the string, i.e. the
 %            length of the dims vector.
 %      count: the relative depth from the level 0 - scanning from the left

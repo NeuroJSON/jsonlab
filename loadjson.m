@@ -62,6 +62,10 @@ function data = loadjson(fname,varargin)
 %           JDataDecode [1|0]: if set to 1, call jdatadecode to decode
 %                         JData structures defined in the JData
 %                         Specification.
+%           BuiltinJSON [0|1]: if set to 1, this function attempts to call
+%                         jsondecode, if presents (MATLAB R2016b or Octave
+%                         6) first. If jsondecode does not exist or failed, 
+%                         this function falls back to the jsonlab parser
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -101,6 +105,18 @@ function data = loadjson(fname,varargin)
        end
     else
        error_pos('input file does not exist');
+    end
+    
+    if(jsonopt('BuiltinJSON',0,opt) && exist('jsondecode','builtin'))
+        try
+            newstring=regexprep(string,'[\r\n]','');
+            newdata=jsondecode(newstring);
+            newdata=jdatadecode(newdata,'Base64',1,'Recursive',1,varargin{:});
+            data=newdata;
+            return;
+        catch
+            warning('built-in jsondecode function failed to parse the file, fallback to loadjson');
+        end
     end
 
     pos = 1; inputlen = length(string); inputstr = string;
@@ -205,8 +221,9 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
 
                         % next handle 2D array, these are most common ones
                         if(maxlevel==2 && ~isempty(regexp(arraystr(2:end),'^\s*\[','once')))
+                            isndarray=nestbracket2dim(arraystr,'[]',1);
                             rowstart=find(arraystr(2:end)=='[',1)+1;
-                            if(rowstart)
+                            if(rowstart && isndarray)
                                 [obj, nextidx]=parse2darray(inputstr,pos+rowstart,arraystr);
                                 if(nextidx>=length(arraystr)-1)
                                     object=obj;
@@ -227,8 +244,8 @@ function [object, pos,index_esc] = parse_array(inputstr, pos, esc, index_esc, va
                         % in the future can replace 1d and 2d cases
                         if(maxlevel>2 && ~isempty(regexp(arraystr(2:end),'^\s*\[\s*\[','once')))
                             astr=arraystr;
-                            dims=nestbracket2dim(astr);
-                            if(any(dims==0) || all(mod(dims(:),1) == 0)) % all dimensions are integers - this can be problematic
+                            [dims,isndarray]=nestbracket2dim(astr);
+                            if(isndarray && (any(dims==0) || all(mod(dims(:),1) == 0))) % all dimensions are integers - this can be problematic
                                 astr=arraystr;
                                 astr(astr=='[')='';
                                 astr(astr==']')='';

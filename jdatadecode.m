@@ -123,7 +123,7 @@ function newdata=jdatadecode(data,varargin)
             if(isfield(data,N_('_ArrayZipType_')))
                 zipmethod=data(j).(N_('_ArrayZipType_'));
             end
-            if(~isempty(strmatch(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc'})))
+            if(ismember(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc'}))
                 decompfun=str2func([zipmethod 'decode']);
                 arraytype=data(j).(N_('_ArrayType_'));
                 chartype=0;

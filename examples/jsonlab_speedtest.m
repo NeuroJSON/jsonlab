@@ -8,9 +8,9 @@ tsave=zeros(len,1);
 tload=zeros(len,1);
 for i=1:len
     tic;
-    json=savejson('data',struct('d1',rand(datalen(i),3),'d2',rand(datalen(i),3)>0.5));
+    json=savebj('data',struct('d1',rand(datalen(i),3),'d2',rand(datalen(i),3)>0.5));
     tsave(i)=toc;
-    data=loadjson(json);
+    data=loadbj(json);
     tload(i)=toc-tsave(i);
     fprintf(1,'matrix size: %d\n',datalen(i));
 end

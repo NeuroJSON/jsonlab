@@ -14,7 +14,7 @@ function varargout=jsave(filename, varargin)
 %      fname: (optional) output file name; if not given, save to 'jamdata.jamm'
 %           if fname has a '.json' or '.jdt' suffix, a text-based
 %           JSON/JData file will be created (slow); if the suffix is '.jamm' or
-%           '.jdb', a Binary JData (https://github.com/fangq/bjdata/) file will be created.
+%           '.jdb', a Binary JData (https://github.com/NeuroJSON/bjdata/) file will be created.
 %      opt: (optional) a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs - the param string is equivallent
 %           to a field in opt. opt can have the following 
@@ -65,7 +65,8 @@ body=struct;
 
 metadata=struct('CreateDate',datestr(now,29),...
                 'CreateTime',datestr(now,'hh:mm:ss'),...
-                'OriginalName',filename);
+                'OriginalName',filename,...
+                'BJDataVersion','v1_draft-2');
 
 vers=ver('MATLAB');
 if(isempty(vers))
