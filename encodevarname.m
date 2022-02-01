@@ -38,7 +38,11 @@ function str = encodevarname(str,varargin)
 %
 
     if(~isvarname(str(1)))
-        str=sprintf('x0x%X_%s',char(str(1))+0,str(2:end));
+        if(exist('unicode2native','builtin'))
+            str=sprintf('x0x%s_%s',sprintf('%X',unicode2native(str(1))),str(2:end));
+        else
+            str=sprintf('x0x%X_%s',char(str(1))+0,str(2:end));
+        end
     end
     if(isvarname(str))
         return;
