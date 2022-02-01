@@ -14,54 +14,54 @@ For product information, visit www.mathworks.com.
 >> >> >> >> >> ===============================================
 >> example1.json
 {
-	"data": {
-		"firstName": "John",
-		"lastName": "Smith",
-		"age": 25,
-		"address": {
-			"streetAddress": "21 2nd Street",
-			"city": "New York",
-			"state": "NY",
-			"postalCode": "10021"
+	"data":{
+		"firstName":"John",
+		"lastName":"Smith",
+		"age":25,
+		"address":{
+			"streetAddress":"21 2nd Street",
+			"city":"New York",
+			"state":"NY",
+			"postalCode":"10021"
 		},
-		"phoneNumber": [
+		"phoneNumber":[
 			{
-				"type": "home",
-				"number": "212 555-1234"
+				"type":"home",
+				"number":"212 555-1234"
 			},
 			{
-				"type": "fax",
-				"number": "646 555-4567"
+				"type":"fax",
+				"number":"646 555-4567"
 			}
 		]
 	}
 }
 
-{"data": {"firstName": "John","lastName": "Smith","age": 25,"address": {"streetAddress": "21 2nd Street","city": "New York","state": "NY","postalCode": "10021"},"phoneNumber": [{"type": "home","number": "212 555-1234"},{"type": "fax","number": "646 555-4567"}]}}
+{"data":{"firstName":"John","lastName":"Smith","age":25,"address":{"streetAddress":"21 2nd Street","city":"New York","state":"NY","postalCode":"10021"},"phoneNumber":[{"type":"home","number":"212 555-1234"},{"type":"fax","number":"646 555-4567"}]}}
 
 ===============================================
 >> example2.json
 {
-	"data": {
-		"glossary": {
-			"title": "example glossary",
-			"GlossDiv": {
-				"title": "S",
-				"GlossList": {
-					"GlossEntry": {
-						"ID": "SGML",
-						"SortAs": "SGML",
-						"GlossTerm": "Standard Generalized Markup Language",
-						"Acronym": "SGML",
-						"Abbrev": "ISO 8879:1986",
-						"GlossDef": {
-							"para": "A meta-markup language, used to create markup languages such as DocBook.",
-							"GlossSeeAlso": [
+	"data":{
+		"glossary":{
+			"title":"example glossary",
+			"GlossDiv":{
+				"title":"S",
+				"GlossList":{
+					"GlossEntry":{
+						"ID":"SGML",
+						"SortAs":"SGML",
+						"GlossTerm":"Standard Generalized Markup Language",
+						"Acronym":"SGML",
+						"Abbrev":"ISO 8879:1986",
+						"GlossDef":{
+							"para":"A meta-markup language, used to create markup languages such as DocBook.",
+							"GlossSeeAlso":[
 								"GML",
 								"XML"
 							]
 						},
-						"GlossSee": "markup"
+						"GlossSee":"markup"
 					}
 				}
 			}
@@ -69,28 +69,28 @@ For product information, visit www.mathworks.com.
 	}
 }
 
-{"data": {"glossary": {"title": "example glossary","GlossDiv": {"title": "S","GlossList": {"GlossEntry": {"ID": "SGML","SortAs": "SGML","GlossTerm": "Standard Generalized Markup Language","Acronym": "SGML","Abbrev": "ISO 8879:1986","GlossDef": {"para": "A meta-markup language, used to create markup languages such as DocBook.","GlossSeeAlso": ["GML","XML"]},"GlossSee": "markup"}}}}}}
+{"data":{"glossary":{"title":"example glossary","GlossDiv":{"title":"S","GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as DocBook.","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}}}
 
 ===============================================
 >> example3.json
 {
-	"data": {
-		"menu": {
-			"id": "file",
-			"value": "_&File",
-			"popup": {
-				"menuitem": [
+	"data":{
+		"menu":{
+			"id":"file",
+			"value":"_&File",
+			"popup":{
+				"menuitem":[
 					{
-						"value": "_&New",
-						"onclick": "CreateNewDoc(\"'\\\"Untitled\\\"'\")"
+						"value":"_&New",
+						"onclick":"CreateNewDoc(\"'\\\"Untitled\\\"'\")"
 					},
 					{
-						"value": "_&Open",
-						"onclick": "OpenDoc()"
+						"value":"_&Open",
+						"onclick":"OpenDoc()"
 					},
 					{
-						"value": "_&Close",
-						"onclick": "CloseDoc()"
+						"value":"_&Close",
+						"onclick":"CloseDoc()"
 					}
 				]
 			}
@@ -98,26 +98,32 @@ For product information, visit www.mathworks.com.
 	}
 }
 
-{"data": {"menu": {"id": "file","value": "_&File","popup": {"menuitem": [{"value": "_&New","onclick": "CreateNewDoc(\"'\\\"Untitled\\\"'\")"},{"value": "_&Open","onclick": "OpenDoc()"},{"value": "_&Close","onclick": "CloseDoc()"}]}}}}
+{"data":{"menu":{"id":"file","value":"_&File","popup":{"menuitem":[{"value":"_&New","onclick":"CreateNewDoc(\"'\\\"Untitled\\\"'\")"},{"value":"_&Open","onclick":"OpenDoc()"},{"value":"_&Close","onclick":"CloseDoc()"}]}}}}
 
 ===============================================
 >> example4.json
 {
-	"data": [
+	"data":[
 		{
-			"sample": {
-				"rho": 1
+			"sample":{
+				"rho":1
 			}
 		},
 		{
-			"sample": {
-				"rho": 2
+			"sample":{
+				"rho":2
 			}
 		},
 		[
-			[1,0],
-			[1,1],
-			[1,2]
+				[
+					[1,0]
+				],
+				[
+					[1,1]
+				],
+				[
+					[1,2]
+				]
 		],
 		[
 			"Paper",
@@ -137,7 +143,7 @@ For product information, visit www.mathworks.com.
 	]
 }
 
-{"data": [{"sample": {"rho": 1}},{"sample": {"rho": 2}},[[1,0],[1,1],[1,2]],["Paper","Scissors","Stone"],["a","b\\","c\"","d\\\"","e\"[","f\\\"[","g[\\","h[\\\""]]}
+{"data":[{"sample":{"rho":1}},{"sample":{"rho":2}},[[[1,0]],[[1,1]],[[1,2]]],["Paper","Scissors","Stone"],["a","b\\","c\"","d\\\"","e\"[","f\\\"[","g[\\","h[\\\""]]}
 
 >> >> ===============================================
 >> example1.json
@@ -153,5 +159,5 @@ GlossEntry{UIDSUSGMLUSortAsSUSGMLU	GlossTermSU$Standard Generalized Markup L
 CloseDoc()}]}}}}
 ===============================================
 >> example4.json
-{Udata[{Usample{UrhoU}}{Usample{UrhoU}}[[$U#U [$U#U[$U#U][SUPaperSUScissorsSUStone][CaSUb\SUc"SUd\"SUe"[SUf\"[SUg[\SUh[\"]]}
+{Udata[{Usample{UrhoU}}{Usample{UrhoU}}[[[$U#U [$U#U[$U#U]][SUPaperSUScissorsSUStone][CaSUb\SUc"SUd\"SUe"[SUf\"[SUg[\SUh[\"]]}
 >> 

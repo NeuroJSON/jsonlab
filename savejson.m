@@ -90,7 +90,7 @@ function json=savejson(rootname,obj,varargin)
 %                         element count is larger than this number.
 %           CompressStringSize [400|int]: only to compress a string if the total 
 %                         element count is larger than this number.
-%           FormatVersion [2|float]: set the JSONLab output version; since
+%           FormatVersion [3|float]: set the JSONLab output version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
@@ -148,7 +148,7 @@ opt.nestarray=jsonopt('NestArray',0,opt);
 opt.compact=jsonopt('Compact',0,opt);
 opt.singletcell=jsonopt('SingletCell',1,opt);
 opt.singletarray=jsonopt('SingletArray',0,opt);
-opt.formatversion=jsonopt('FormatVersion',2,opt);
+opt.formatversion=jsonopt('FormatVersion',3,opt);
 opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
 opt.compressstringsize=jsonopt('CompressStringSize',opt.compressarraysize*4,opt);
 opt.intformat=jsonopt('IntFormat','%.0f',opt);
@@ -315,17 +315,16 @@ end
 isnum2cell=varargin{1}.num2cell_;
 if(isnum2cell)
     item=squeeze(item);
-    format=varargin{1}.formatversion;
-    if(format>1.9 && ~isvector(item))
+    if(~isvector(item))
         item=permute(item,ndims(item):-1:1);
     end
 end
 
 dim=size(item);
-if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
-    item=reshape(item,dim(1),numel(item)/dim(1));
-    dim=size(item);
-end
+% if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
+%     item=reshape(item,dim(1),numel(item)/dim(1));
+%     dim=size(item);
+% end
 len=numel(item);
 ws=varargin{1}.whitespaces_;
 padding0=repmat(ws.tab,1,level);

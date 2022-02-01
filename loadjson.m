@@ -48,7 +48,7 @@ function data = loadjson(fname,varargin)
 %           ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
 %                         (introduced in MATLAB R2016b) to char arrays; if set to 1,
 %                         loadjson skips this conversion.
-%           FormatVersion [2|float]: set the JSONLab format version; since
+%           FormatVersion [3|float]: set the JSONLab format version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
@@ -131,7 +131,7 @@ function data = loadjson(fname,varargin)
     opt.arraytokenidx_=arraytokenidx;
     opt.simplifycell=jsonopt('SimplifyCell',1,opt);
     opt.simplifycellarray=jsonopt('SimplifyCellArray',opt.simplifycell,opt);
-    opt.formatversion=jsonopt('FormatVersion',2,opt);
+    opt.formatversion=jsonopt('FormatVersion',3,opt);
     opt.fastarrayparser=jsonopt('FastArrayParser',1,opt);
     opt.parsestringarray=jsonopt('ParseStringArray',0,opt);
     opt.usemap=jsonopt('UseMap',0,opt);
