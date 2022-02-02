@@ -210,7 +210,7 @@ function [object, pos, mmap] = parse_array(inputstr,  pos, varargin) % JSON arra
             end
             pos=pos+adv;
             if(nargout>2)
-                mmap{1}{2}=[mmap{1}{2},pos-mmap{1}{2}+1];
+                mmap{1}{2}=[mmap{1}{2},pos-mmap{1}{2}];
             end
             return;
         else
