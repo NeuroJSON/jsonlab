@@ -1,8 +1,8 @@
-function data = loadbj(fname,varargin)
+function [data, mmap] = loadbj(fname,varargin)
 %
 % data=loadbj(fname,opt)
 %    or
-% data=loadbj(fname,'param1',value1,'param2',value2,...)
+% [data, mmap]=loadbj(fname,'param1',value1,'param2',value2,...)
 %
 % Parse a Binary JData (BJData v1 Draft-2, defined in https://github.com/NeuroJSON/bjdata) 
 % file or memory buffer and convert into a MATLAB data structure
@@ -108,14 +108,26 @@ function data = loadbj(fname,varargin)
         maxobjid=inf;
     end
 
+    mmap={};
+    opt.jsonpath_='$';
     jsoncount=1;
     while pos <= inputlen
         [cc, pos]=next_char(inputstr, pos);
         switch(cc)
             case '{'
-                [data{jsoncount}, pos] = parse_object(inputstr, pos, opt);
+                if(nargout>1)
+                    [data{jsoncount}, pos, newmmap] = parse_object(inputstr, pos, opt);
+                    mmap=[mmap(:);newmmap(:)];
+                else
+                    [data{jsoncount}, pos] = parse_object(inputstr, pos, opt);
+                end
             case '['
-                [data{jsoncount}, pos] = parse_array(inputstr, pos, opt);
+                if(nargout>1)
+                    [data{jsoncount}, pos, newmmap] = parse_array(inputstr, pos, opt);
+                    mmap=[mmap(:);newmmap(:)];
+                else
+                    [data{jsoncount}, pos] = parse_array(inputstr, pos, opt);
+                end
             case {'S','C','H','i','U','I','u','l','m','L','M','h','d','D','T','F','Z','N'}
                 [data{jsoncount}, pos] = parse_value(inputstr, pos, opt);
             otherwise
@@ -158,7 +170,11 @@ function [data, adv]=parse_block(inputstr, pos, type,count,varargin)
 end
 %%-------------------------------------------------------------------------
 
-function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is written in row-major order
+function [object, pos, mmap] = parse_array(inputstr,  pos, varargin) % JSON array is written in row-major order
+    if(nargout>2)
+        mmap={{[varargin{1}.jsonpath_ '.[*]'],pos}};
+        origpath=varargin{1}.jsonpath_;
+    end
     pos=parse_char(inputstr, pos, '[');
     object = cell(0, 1);
     dim=[];
@@ -193,6 +209,9 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
                 object=permute(reshape(object,fliplr(dim(:)')),length(dim):-1:1);
             end
             pos=pos+adv;
+            if(nargout>2)
+                mmap{1}{2}=[mmap{1}{2},pos-mmap{1}{2}+1];
+            end
             return;
         else
             endpos=match_bracket(inputstr,pos);
@@ -201,13 +220,22 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
             [object, adv]=parse_block(inputstr, pos, type,count,varargin{:});
             pos=pos+adv;
             pos=parse_char(inputstr, pos, ']');
+            if(nargout>2)
+                mmap{1}{2}=[mmap{1}{2},pos-mmap{1}{2}+1];
+            end
             return;
         end
     end
     [cc,pos]=next_char(inputstr,pos);
     if cc ~= ']'
          while 1
-            [val, pos] = parse_value(inputstr, pos, varargin{:});
+            if(nargout>2)
+                varargin{1}.jsonpath_=[origpath '.' sprintf('[%d]',length(object))];
+                [val, pos, newmmap] = parse_value(inputstr, pos, varargin{:});
+                mmap=[mmap(:);newmmap(:)];
+            else
+                [val, pos] = parse_value(inputstr, pos, varargin{:});
+            end
             object{end+1} = val;
             [cc,pos]=next_char(inputstr,pos);
             if cc == ']'
@@ -241,6 +269,9 @@ function [object, pos] = parse_array(inputstr,  pos, varargin) % JSON array is w
     end
     if(count==-1)
         pos=parse_char(inputstr, pos, ']');
+    end
+    if(nargout>2)
+        mmap{1}{2}=[mmap{1}{2},pos-mmap{1}{2}+1];
     end
 end
 
@@ -327,35 +358,38 @@ end
 
 %%-------------------------------------------------------------------------
 
-function [val, pos] = parse_value(inputstr, pos, varargin)
-    [cc,pos]=next_char(inputstr,pos);
+function varargout = parse_value(inputstr, pos, varargin)
+    [cc,varargout{2}]=next_char(inputstr,pos);
+    if(nargout>2)
+            varargout{3}={};
+    end
     switch(cc)
         case {'S','C','H'}
-            [val, pos] = parseStr(inputstr, pos, varargin{:});
+            [varargout{1:2}] = parseStr(inputstr, varargout{2}, varargin{:});
             return;
         case '['
-            [val, pos] = parse_array(inputstr, pos, varargin{:});
+            [varargout{1:nargout}] = parse_array(inputstr, varargout{2}, varargin{:});
             return;
         case '{'
-            [val, pos] = parse_object(inputstr, pos, varargin{:});
+            [varargout{1:nargout}] = parse_object(inputstr, varargout{2}, varargin{:});
             return;
         case {'i','U','I','u','l','m','L','M','h','d','D'}
-            [val, pos] = parse_number(inputstr, pos, varargin{:});
+            [varargout{1:2}] = parse_number(inputstr, varargout{2}, varargin{:});
             return;
         case 'T'
-            val = true;
-            pos = pos + 1;
+            varargout{1} = true;
+            varargout{2} = varargout{2} + 1;
             return;
         case 'F'
-            val = false;
-            pos = pos + 1;
+            varargout{1} = false;
+            varargout{2} = varargout{2} + 1;
             return;
         case {'Z','N'}
-            val = [];
-            pos = pos + 1;
+            varargout{1} = [];
+            varargout{2} = varargout{2} + 1;
             return;
     end
-    error_pos('Value expected at position %d', inputstr, pos);
+    error_pos('Value expected at position %d', inputstr, varargout{2});
 end
 %%-------------------------------------------------------------------------
 
@@ -370,7 +404,10 @@ function pos=error_pos(msg, inputstr, pos)
 end
 
 %%-------------------------------------------------------------------------
-function [object, pos] = parse_object(inputstr, pos, varargin)
+function [object, pos, mmap] = parse_object(inputstr, pos, varargin)
+    if(nargout>2)
+        mmap={{varargin{1}.jsonpath_,pos}};
+    end
     pos=parse_char(inputstr,pos,'{');
     usemap=varargin{1}.usemap;
     if(usemap)
@@ -401,7 +438,17 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
             if isempty(str)
                 error_pos('Name of value at position %d cannot be empty', inputstr, pos);
             end
-            [val, pos] = parse_value(inputstr, pos, varargin{:});
+            if(nargout>2)
+                varargin{1}.jsonpath_=[mmap{1}{1},'.',str];
+                mmap{end+1}={varargin{1}.jsonpath_,pos-length(str)-2};
+            end
+            if(nargout>2)
+                [val, pos,newmmap] = parse_value(inputstr, pos, varargin{:});
+                mmap{end}{2}=[mmap{end}{2}, pos-mmap{end}{2}];
+                mmap=[mmap(:);newmmap(:)];
+            else
+                [val, pos] = parse_value(inputstr, pos, varargin{:});
+            end
             num=num+1;
             if(usemap)
                 object(str)=val;
@@ -416,6 +463,9 @@ function [object, pos] = parse_object(inputstr, pos, varargin)
     end
     if(count==-1)
         pos=parse_char(inputstr, pos, '}');
+    end
+    if(nargout>2)
+        mmap{1}={[mmap{1}{1} '.*'],[mmap{1}{2}, pos-mmap{1}{2}]};
     end
 end
 
