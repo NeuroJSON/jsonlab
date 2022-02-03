@@ -136,6 +136,7 @@ function [data, mmap] = loadbj(fname,varargin)
 	if(jsoncount>=maxobjid)
 	    break;
 	end
+        opt.jsonpath_=sprintf('$%d',jsoncount);
         jsoncount=jsoncount+1;
     end % while
 

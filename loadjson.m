@@ -5,7 +5,7 @@ function [data, mmap] = loadjson(fname,varargin)
 % [data, mmap]=loadjson(fname,'param1',value1,'param2',value2,...)
 %
 % parse a JSON (JavaScript Object Notation) file or string and return a
-% matlab data structure with optional memory-map table
+% matlab data structure with optional memory-map (mmap) table
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 % created on 2011/09/09, including previous works from 
@@ -178,6 +178,7 @@ function [data, mmap] = loadjson(fname,varargin)
 	if(jsoncount>=maxobjid)
 	    break;
 	end
+        opt.jsonpath_=sprintf('$%d',jsoncount);
         jsoncount=jsoncount+1;
     end % while
 
@@ -243,30 +244,8 @@ function [object, pos,index_esc, mmap] = parse_array(inputstr, pos, esc, index_e
                             end
                         end
 
-                        % next handle 2D array, these are most common ones
-                        if(maxlevel==2 && ~isempty(regexp(arraystr(2:end),'^\s*\[','once')))
-                            [dims,isndarray]=nestbracket2dim(arraystr);
-                            rowstart=find(arraystr(2:end)=='[',1)+1;
-                            if(rowstart && isndarray)
-                                [obj, nextidx]=parsendarray(arraystr,dims);
-                                if(nextidx>=length(arraystr)-1)
-                                    object=obj;
-                                    if(format>1.9)
-                                        object=object.';
-                                    end
-                                    pos=endpos;
-                                    pos=parse_char(inputstr, pos, ']');
-                                    if(pbar>0)
-                                        waitbar(pos/length(inStr),pbar,'loading ...');
-                                    end
-                                    return;
-                                end
-                            end
-                        end
-
                         % for N-D packed array in a nested array construct, 
-                        % in the future can replace 1d and 2d cases
-                        if(maxlevel>2 && ~isempty(regexp(arraystr(2:end),'^\s*\[\s*\[','once')))
+                        if(maxlevel>=2 && ~isempty(regexp(arraystr(2:end),'^\s*\[','once')))
                             [dims,isndarray]=nestbracket2dim(arraystr);
                             rowstart=find(arraystr(2:end)=='[',1)+1;
                             if(rowstart && isndarray)
