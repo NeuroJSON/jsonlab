@@ -123,7 +123,7 @@ function newdata=jdatadecode(data,varargin)
             if(isfield(data,N_('_ArrayZipType_')))
                 zipmethod=data(j).(N_('_ArrayZipType_'));
             end
-            if(ismember(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc'}))
+            if(ismember(zipmethod,{'zlib','gzip','lzma','lzip','lz4','lz4hc','base64'}))
                 decompfun=str2func([zipmethod 'decode']);
                 arraytype=data(j).(N_('_ArrayType_'));
                 chartype=0;
@@ -131,7 +131,7 @@ function newdata=jdatadecode(data,varargin)
                     chartype=1;
                     arraytype='uint8';
                 end
-                if(needbase64)
+                if(needbase64 && strcmp(zipmethod,'base64')==0)
                     ndata=reshape(typecast(decompfun(base64decode(data(j).(N_('_ArrayZipData_')))),arraytype),dims);
                 else
                     ndata=reshape(typecast(decompfun(data(j).(N_('_ArrayZipData_'))),arraytype),dims);
