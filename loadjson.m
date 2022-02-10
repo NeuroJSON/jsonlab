@@ -192,7 +192,12 @@ function [data, mmap] = loadjson(fname,varargin)
     end
 
     if(jsonopt('JDataDecode',1,varargin{:})==1)
-        data=jdatadecode(data,'Base64',1,'Recursive',1,varargin{:});
+        try
+            data=jdatadecode(data,'Base64',1,'Recursive',1,varargin{:});
+        catch ME
+            warning(['Failed to decode embedded JData annotations, '...
+                'return raw JSON data\n\nError: %s\n%s'], ME.identifier, ME.message);
+        end
     end
     
     if(isfield(opt,'progressbar_'))
