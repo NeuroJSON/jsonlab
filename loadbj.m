@@ -154,7 +154,8 @@ function [data, mmap] = loadbj(fname,varargin)
             data=jdatadecode(data,'Base64',0,'Recursive',1,varargin{:});
         catch ME
             warning(['Failed to decode embedded JData annotations, '...
-                'return raw JSON data\n\nError: %s\n%s'], ME.identifier, ME.message);
+                'return raw JSON data\n\njdatadecode error: %s\n%s\nCall stack:\n%s\n'], ...
+                ME.identifier, ME.message, savejson('',ME.stack));
         end
     end
 end
