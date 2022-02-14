@@ -3,7 +3,7 @@ function json=jsonset(fname,mmap,varargin)
 % json=jsonset(fname,mmap,'$.jsonpath1',newval1,'$.jsonpath2','newval2',...)
 %
 % Fast writing of JSON data records to stream or disk using memory-map 
-% (mmap) returned by loadjson and JSONPath-like keys
+% (mmap) returned by loadjson/loadbj and JSONPath-like keys
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 % initially created on 2022/02/02
@@ -22,11 +22,20 @@ function json=jsonset(fname,mmap,varargin)
 %            written
 %
 % examples:
-%      str='[[1,2],"a",{"c":2}]{"k":"test"}';
-%      [dat, mmap]=loadjson(str);
-%      savejson('',dat,'filename','mydata.json','compact',1);
-%      json=jsonset(str,mmap,'$.[2].c','5')
-%      json=jsonset('mydata.json',mmap,'$.[2].c','"c":5')
+%      % create test data
+%       d.arr={[1,2],'a',struct('c',2)}; d.obj=struct('k','test') 
+%      % convert to json string
+%       str=savejson('',d,'compact',1)
+%      % parse and return mmap
+%       [dat, mmap]=loadjson(str);
+%      % display mmap entries
+%       savejson('',mmap)
+%      % replace value using mmap
+%       json=jsonset(str,mmap,'$.arr.[2].c','5')
+%      % save same json string to file (must set savebinary 1)
+%       savejson('',d,'filename','file.json','compact',1,'savebinary',1);
+%      % fast write to file
+%       json=jsonset('file.json',mmap,'$.arr.[2].c','5')
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -37,7 +46,9 @@ function json=jsonset(fname,mmap,varargin)
 if(regexp(fname,'^\s*(?:\[.*\])|(?:\{.*\})\s*$','once'))
     inputstr=fname;
 else
-    fid=fopen(fname,'wb');
+    if(~exist('memmapfile','file'))
+        fid=fopen(fname,'r+b');
+    end
 end
 
 mmap=[mmap{:}];
@@ -55,22 +66,23 @@ for i=1:2:length(varargin)
     if(regexp(varargin{i},'^\$'))
         [tf,loc]=ismember(varargin{i},keylist);
         if(tf)
-            rec={'uint8',[1,mmap{loc*2}(2)],  'x'};
+            bmap=mmap{loc*2};
             if(ischar(varargin{i+1}))
                 val=varargin{i+1};
             else
                 val=savejson('',varargin{i+1},'compact',1);
             end
-            if(length(val)<=rec{1,2}(2))
-                val=[val repmat(' ',[1,rec{1,2}(2)-length(val)])];
+            if(length(val)<=bmap(2))
+                val=[val repmat(' ',[1,bmap(2)-length(val)])];
                 if(exist('inputstr','var'))
-                    inputstr(mmap{loc*2}(1):mmap{loc*2}(1)+mmap{loc*2}(2)-1)=val;
+                    inputstr(bmap(1):bmap(1)+bmap(2)-1)=val;
                 else
                     if(exist('memmapfile','file'))
-                        fmap=memmapfile(fname,'writable',true,'offset',mmap{loc*2}(1),'format', rec);
-                        fmap.x=val;
+                        rec={'uint8', [1 bmap(2)],  'x'};
+                        fmap=memmapfile(fname,'writable',true,'offset', bmap(1)-1, 'format', rec, 'repeat',1);
+                        fmap.Data.x=uint8(val);
                     else
-                        fseek(fid,mmap{loc*2}(1)-1,'bof');
+                        fseek(fid,bmap(1)-1,'bof');
                         fwrite(fid,val);
                     end
                     json{end+1}={varargin{i},val};

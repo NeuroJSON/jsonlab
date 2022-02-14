@@ -24,7 +24,7 @@ function run_jsonlab_test(tests)
 %
 
 if(nargin==0)
-    tests={'js','jso','bj','bjo'};
+    tests={'js','jso','bj','bjo','jmap','bmap'};
 end
 
 %%
@@ -284,4 +284,50 @@ if(ismember('bjo',tests))
     test_jsonlab('test default int endian for saveubjson',@saveubjson,typecast(uint8('jd'),'uint16'),'Idj');
     test_jsonlab('test default float endian for savebj',@savebj,typecast(uint8('1e05'),'single'),'d1e05');
     test_jsonlab('test default float endian for saveubjson',@saveubjson,typecast(uint8('12345678'),'double'),'D87654321');
+end
+
+%%
+if(ismember('jmap',tests))
+    fprintf(sprintf('%s\n',char(ones(1,79)*61)));
+    fprintf('Test JSON mmap\n');
+    fprintf(sprintf('%s\n',char(ones(1,79)*61)));
+
+    test_jsonlab('mmap of a 1D numerical array',@savejson,loadjson('[1,2,3]','mmaponly',1),'[["$",[1,7]]]','compact',1);
+    test_jsonlab('mmap of a 1D mixed array',@savejson,loadjson('[1,"2",3]','mmaponly',1),'[["$",[1,9]]]','compact',1);
+    test_jsonlab('mmap of a 2D array',@savejson,loadjson('[[1,2,3],[4,5,6]]','mmaponly',1),'[["$",[1,17]]]','compact',1);
+    test_jsonlab('mmap of concatenated json',@savejson,loadjson('[1,2,3][4,5,6]','mmaponly',1),'[["$",[1,7]],["$1",[8,7]]]','compact',1);
+    test_jsonlab('mmap of concatenated json objects',@savejson,loadjson('[1,2,3]{"a":[4,5]}','mmaponly',1),'[["$",[1,7]],["$1",[8,11]],["$1.a",[13,5]]]','compact',1);
+    test_jsonlab('mmap of an array with an object',@savejson,loadjson('[1,2,{"a":3}]','mmaponly',1),...
+        '[["$",[1,13]],["$.[0]",[2,1]],["$.[1]",[4,1]],["$.[2]",[6,7]],["$.[2].a",[11,1]]]','compact',1);
+    test_jsonlab('mmap of an object',@savejson,loadjson('{"a":1,"b":[2,3]}','mmaponly',1),...
+        '[["$",[1,17]],["$.a",[6,1]],["$.b",[12,5]]]','compact',1);
+    test_jsonlab('mmap of object with white-space',@savejson,loadjson('{"a":1 , "b"  :  [2,3]}','mmaponly',1),...
+        '[["$",[1,23]],["$.a",[6,1]],["$.b",[18,5]]]','compact',1);
+    test_jsonlab('mmapinclude option',@savejson,loadjson('[[1,2,3],{"a":[4,5]}]','mmaponly',1,'mmapinclude','.a'),...
+        '[["$.[1].a",[15,5]]]','compact',1);
+    test_jsonlab('mmapexclude option',@savejson,loadjson('[[1,2,3],{"a":[4,5]}]','mmaponly',1,'mmapexclude',{'[0]','[1]','[2]'}),...
+        '[["$",[1,21]]]','compact',1);
+    test_jsonlab('json with indentation',@savejson,loadjson(savejson({[1,2,3],struct('a',[4,5])}),'mmaponly',1,'mmapinclude','.a'),...
+        '[["$.[1].a",[22,7]]]','compact',1);
+end
+
+%%
+if(ismember('bmap',tests))
+    fprintf(sprintf('%s\n',char(ones(1,79)*61)));
+    fprintf('Test Binary JSON mmap\n');
+    fprintf(sprintf('%s\n',char(ones(1,79)*61)));
+
+    test_jsonlab('mmap of a 1D numerical array',@savejson,loadbj(savebj([1,2,3]),'mmaponly',1),'[["$",[1,9]]]','compact',1);
+    test_jsonlab('mmap of a 1D mixed array',@savejson,loadbj(savebj({1,'2',3}),'mmaponly',1),'[["$",[1,8]],["$.[0]",[2,2]],["$.[1]",[4,2]],["$.[2]",[6,2]]]','compact',1);
+    test_jsonlab('mmap of a 2D array',@savejson,loadbj(savebj([[1,2,3],[4,5,6]]),'mmaponly',1),'[["$",[1,12]]]','compact',1);
+    test_jsonlab('mmap of an array with an object',@savejson,loadbj(savebj({1,2,struct('a',3)}),'mmaponly',1),...
+        '[["$",[1,13]],["$.[0]",[2,2]],["$.[1]",[4,2]],["$.[2]",[6,7]],["$.[2].a",[10,2]]]','compact',1);
+    test_jsonlab('mmap of an object',@savejson,loadbj(savebj(struct('a',1,'b',[2,3])),'mmaponly',1),...
+        '[["$",[1,18]],["$.a",[5,2]],["$.b",[10,8]]]','compact',1);
+    test_jsonlab('mmapinclude option',@savejson,loadbj(savebj({[1,2,3],struct('a',[4,5])}),'mmaponly',1,'mmapinclude','.a'),...
+        '[["$.[1].a",[15,8]]]','compact',1);
+    test_jsonlab('mmapexclude option',@savejson,loadbj(savebj({[1,2,3],struct('a',[4,5])}),'mmaponly',1,'mmapexclude',{'[0]','[1]','[2]'}),...
+        '[["$",[1,24]]]','compact',1);
+    test_jsonlab('json with indentation',@savejson,loadbj(savebj({[1,2,3],struct('a',[4,5])}),'mmaponly',1,'mmapinclude','.a'),...
+        '[["$.[1].a",[15,8]]]','compact',1);
 end

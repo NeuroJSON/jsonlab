@@ -255,7 +255,7 @@ if(~isempty(filename))
         mode='a';
     end
     if(jsonopt('SaveBinary',0,opt)==1)
-        if(isempty(encoding))
+        if(~isempty(encoding))
             fid = fopen(filename, [mode 'b'],endian,encoding);
         else
             fid = fopen(filename, [mode 'b'],endian);
