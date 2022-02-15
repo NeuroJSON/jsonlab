@@ -12,7 +12,7 @@ function [data, mmap] = loadbj(fname,varargin)
 % including uint16(u), uint32(m), uint64(M) and half-precision float (h).
 % Starting from BJD Draft-2 (JSONLab 3.0 beta or later), all integer and
 % floating-point numbers are parsed in Little-Endian as opposed to
-% Big-Endian form as in BJD Draft-1/UBJSON Draft-12 (JSONLab 2.1 or older)
+% Big-Endian form as in BJD Draft-1/UBJSON Draft-12 (JSONLab 2.0 or older)
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 % initially created on 2013/08/01
@@ -71,6 +71,12 @@ function [data, mmap] = loadbj(fname,varargin)
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
 %           and [...] are converted to arrays
+%      mmap: (optional) a cell array in the form of
+%           {{jsonpath1,[start,length]}, {jsonpath2,[start,length]}, ...}
+%           where jsonpath_i is a string in the form of JSONPath, and
+%           start is an integer referring to the offset from the begining
+%           of the stream, and length is the JSON object string length.
+%           For more details, please see the help section of loadjson.m
 %
 % examples:
 %      obj=struct('string','value','array',[1 2 3]);

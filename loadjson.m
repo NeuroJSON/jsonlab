@@ -80,11 +80,60 @@ function [data, mmap] = loadjson(fname,varargin)
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
 %           and [...] are converted to arrays
-%      mmap: (optional) a cell array in the form of 
-%           {{jsonpath1,[start,length]}, {jsonpath2,[start,length]}, ...}
-%           where jsonpath_i is a string in the form of JSONPath [1], and
-%           start is an integer referring to the offset from the begining
-%           of the stream, and length is the JSON object string length.
+%      mmap: (optional) a cell array as memory-mapping table in the form of
+%             {{jsonpath1,[start,length,<whitespace>]},
+%              {jsonpath2,[start,length,<whitespace>]}, ...}
+%           where jsonpath_i is a string in the JSONPath [1,2] format, and
+%           "start" is an integer referring to the offset from the begining
+%           of the stream, and "length" is the JSON object string length.
+%           An optional 3rd integer "whitespace" may appear to record the
+%           preceding whitespace length in case expansion of the data
+%           record is needed when using the mmap.
+%
+%           Memory-mapping table (mmap) is useful when fast reading/writing
+%           specific data records inside a large JSON file without needing
+%           to load/parse/overwrite the entire file.
+%
+%           The JSONPath keys used in mmap is largely compatible to the
+%           upstream specification defined in [1], with a slight extension
+%           to handle contatenated JSON files.
+%
+%           In the mmap jsonpath key, a '$' denotes the root object, a '.'
+%           denotes a child of the preceding element; '.key' points to the
+%           value segment of the child named "key" of the preceding
+%           object; '.[i]' denotes the (i+1)th member of the preceding
+%           element, which must be an array. For example, a key
+%
+%           $.obj1.obj2.[0].obj3
+%
+%           defines the memory-map of the "value" section in the below
+%           hierarchy:
+%             {
+%                "obj1":{
+%            	     "obj2":[
+%                       {"obj3":value},
+%                       ...
+%                    ],
+%                    ...
+%                 }
+%             }
+%           Please note that "value" can be any valid JSON value, including
+%           an array, an object, a string or numerical value.
+%
+%           To handle concatenated JSON objects (including ndjson,
+%           http://ndjson.org/), such as
+%
+%             {"root1": {"obj1": ...}}
+%             ["root2", value1, value2, {"obj2": ...}]
+%             {"root3": ...}
+%
+%           we use '$' or '$0' for the first root-object, and '$1' refers
+%           to the 2nd root object (["root2",...]) and '$2' referrs to the
+%           3rd root object, and so on. Please note that this syntax is an
+%           extension from the JSONPath documentation [1,2]
+%
+%           [1] https://goessner.net/articles/JsonPath/
+%           [2] http://jsonpath.herokuapp.com/
 %
 % examples:
 %      dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
@@ -151,7 +200,7 @@ function [data, mmap] = loadjson(fname,varargin)
     opt.parsestringarray=jsonopt('ParseStringArray',0,opt);
     opt.usemap=jsonopt('UseMap',0,opt);
     opt.arraydepth_=1;
-    mmaponly=jsonopt('MmapOnly',0,opt);
+    opt.mmaponly=jsonopt('MmapOnly',0,opt);
 
     if(jsonopt('ShowProgress',0,opt)==1)
         opt.progressbar_=waitbar(0,'loading ...');
@@ -163,7 +212,7 @@ function [data, mmap] = loadjson(fname,varargin)
         maxobjid=inf;
     end
     opt.jsonpath_='$';
-    if(nargout>1 || mmaponly)
+    if(nargout>1 || opt.mmaponly)
         mmap={};
     end
     jsoncount=1;
@@ -171,19 +220,19 @@ function [data, mmap] = loadjson(fname,varargin)
         [cc,pos,w1]=next_char(inputstr, pos);
         switch(cc)
             case '{'
-                if(nargout>1 || mmaponly)
-                    mmap{end+1}={opt.jsonpath_,pos-w1};
+                if(nargout>1 || opt.mmaponly)
+                    mmap{end+1}={opt.jsonpath_,[pos, 0, w1]};
                     [data{jsoncount},pos,index_esc,newmmap] = parse_object(inputstr, pos, esc, index_esc,opt);
-                    mmap{end}{2}=[mmap{end}{2},pos-mmap{end}{2}];
+                    mmap{end}{2}(2)=pos-mmap{end}{2}(1);
                     mmap=[mmap(:);newmmap(:)];
                 else
                     [data{jsoncount},pos,index_esc] = parse_object(inputstr, pos, esc, index_esc,opt);
                 end
             case '['
-                if(nargout>1 || mmaponly)
-                    mmap{end+1}={opt.jsonpath_,pos-w1};
+                if(nargout>1 || opt.mmaponly)
+                    mmap{end+1}={opt.jsonpath_,[pos,0,w1]};
                     [data{jsoncount},pos,index_esc,newmmap] = parse_array(inputstr, pos, esc, index_esc,opt);
-                    mmap{end}{2}=[mmap{end}{2},pos-mmap{end}{2}];
+                    mmap{end}{2}(2)=pos-mmap{end}{2}(1);
                     mmap=[mmap(:);newmmap(:)];
                 else
                     [data{jsoncount},pos,index_esc] = parse_array(inputstr, pos, esc, index_esc,opt);
@@ -206,10 +255,11 @@ function [data, mmap] = loadjson(fname,varargin)
     if(jsoncount==1 && iscell(data))
         data=data{1};
     end
-    if(nargout>1 || mmaponly)
+    if(nargout>1 || opt.mmaponly)
         mmap=mmap';
         mmap=filterjsonmmap(mmap, jsonopt('MMapExclude',{},opt), 0);
         mmap=filterjsonmmap(mmap, jsonopt('MMapInclude',{},opt), 1);
+        mmap=cellfun(@(x) {x{1},x{2}(1:(2+int8(length(x{2})>=3 && (x{2}(3)>0))))}, mmap, 'UniformOutput', false);
     end
     if(jsonopt('JDataDecode',1,varargin{:})==1)
         try
@@ -220,7 +270,7 @@ function [data, mmap] = loadjson(fname,varargin)
                 ME.identifier, ME.message, savejson('',ME.stack));
         end
     end
-    if(mmaponly)
+    if(opt.mmaponly)
         data=mmap;
     end
     if(isfield(opt,'progressbar_'))
@@ -307,13 +357,14 @@ function [object, pos,index_esc, mmap] = parse_array(inputstr, pos, esc, index_e
         catch
         end
         if(isempty(endpos) || pos~=endpos)
+            w2=0;
             while 1
                 varargin{1}.arraydepth_=arraydepth+1;
                 if(nargout>3)
                     varargin{1}.jsonpath_=[origpath '.' sprintf('[%d]',length(object))];
-                    mmap{end+1}={varargin{1}.jsonpath_, pos};
+                    mmap{end+1}={varargin{1}.jsonpath_, [pos, 0, w2]};
                     [val, pos, index_esc, newmmap] = parse_value(inputstr, pos, esc, index_esc,varargin{:});
-                    mmap{end}{2}=[mmap{end}{2}, pos-mmap{end}{2}];
+                    mmap{end}{2}(2)=pos-mmap{end}{2}(1);
                     mmap=[mmap(:);newmmap(:)];
                 else
                     [val, pos,index_esc] = parse_value(inputstr, pos, esc, index_esc,varargin{:});
@@ -323,7 +374,7 @@ function [object, pos,index_esc, mmap] = parse_array(inputstr, pos, esc, index_e
                 if cc == ']'
                     break;
                 end
-                pos=parse_char(inputstr, pos, ',');
+                [pos, w1, w2]=parse_char(inputstr, pos, ',');
             end
         end
     end
@@ -528,14 +579,12 @@ function [object, pos, index_esc, mmap] = parse_object(inputstr, pos, esc, index
             if isempty(str)
                 pos=error_pos('Name of value at position %d cannot be empty',inputstr,pos);
             end
-            pos=parse_char(inputstr, pos, ':');
+            [pos, w1, w2]=parse_char(inputstr, pos, ':');
             if(nargout>3)
                 varargin{1}.jsonpath_=[origpath,'.',str];
-                mmap{end+1}={varargin{1}.jsonpath_,pos};
-            end
-            if(nargout>3)
+                mmap{end+1}={varargin{1}.jsonpath_,[pos,0,w2]};
                 [val, pos,index_esc, newmmap] = parse_value(inputstr, pos, esc, index_esc, varargin{:});
-                mmap{end}{2}=[mmap{end}{2}, pos-mmap{end}{2}];
+                mmap{end}{2}(2)=pos-mmap{end}{2}(1);
                 mmap=[mmap(:);newmmap(:)];
             else
                 [val, pos,index_esc] = parse_value(inputstr, pos, esc, index_esc, varargin{:});

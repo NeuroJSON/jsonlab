@@ -70,7 +70,7 @@ function json=savejson(rootname,obj,varargin)
 %                         wrapped inside a function call as 'foo(...);'
 %           UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
-%           SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
+%           SaveBinary [1|0]: 1 - save the JSON file in binary mode; 0 - text mode.
 %           Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
 %           Compression  'zlib', 'gzip', 'lzma', 'lzip', 'lz4' or 'lz4hc': specify array 
 %                         compression method; currently only supports 6 methods. The
@@ -254,11 +254,11 @@ if(~isempty(filename))
     if(jsonopt('Append',0,opt))
         mode='a';
     end
-    if(jsonopt('SaveBinary',0,opt)==1)
-        if(~isempty(encoding))
-            fid = fopen(filename, [mode 'b'],endian,encoding);
-        else
+    if(jsonopt('SaveBinary',1,opt)==1)
+        if(isempty(encoding))
             fid = fopen(filename, [mode 'b'],endian);
+        else
+            fid = fopen(filename, [mode 'b'],endian,encoding);
         end
         fwrite(fid,json);
     else
