@@ -151,7 +151,7 @@ function [data, mmap] = loadbj(fname,varargin)
                     [data{jsoncount}, pos] = parse_array(inputstr, pos, opt);
                 end
             case {'S','C','H','i','U','I','u','l','m','L','M','h','d','D','T','F','Z','N'}
-                [data{jsoncount}, pos] = parse_value(inputstr, pos, opt);
+                [data{jsoncount}, pos] = parse_value(inputstr, pos, [], opt);
             otherwise
                 error_pos('Outer level structure must be an object or an array', inputstr, pos);
         end
@@ -194,6 +194,28 @@ end
 %%-------------------------------------------------------------------------
 
 function [data, adv]=parse_block(inputstr, pos, type,count,varargin)
+    if(count>=0 && ~isempty(type) && strfind('HSC{[TFN', type))
+        adv=0;
+        switch(type)
+            case {'S', 'H', '{', '['}
+                    data=cell(1,count);
+                    adv=pos;
+                    for i=1:count
+                            [data{i}, pos] = parse_value(inputstr, pos, type, varargin{:});
+                    end
+                    adv=pos-adv;
+            case 'C'
+                    data=inputstr(pos:pos+count);
+                    adv=count;
+            case 'T'
+                    data=true(1,count);
+            case 'F'
+                    data=false(1,count);
+            case 'N'
+                    data=cell(1,count);
+        end
+        return;
+    end
     [cid,len]=elem_info(inputstr, pos, type);
     datastr=inputstr(pos:pos+len*count-1);
     newdata=uint8(datastr);
@@ -262,11 +284,11 @@ function [object, pos, mmap] = parse_array(inputstr,  pos, varargin) % JSON arra
             if(nargout>2)
                 varargin{1}.jsonpath_=[origpath '.' sprintf('[%d]',length(object))];
                 mmap{end+1}={varargin{1}.jsonpath_, pos};
-                [val, pos, newmmap] = parse_value(inputstr, pos, varargin{:});
+                [val, pos, newmmap] = parse_value(inputstr, pos, [], varargin{:});
                 mmap{end}{2}=[mmap{end}{2}, pos-mmap{end}{2}];
                 mmap=[mmap(:);newmmap(:)];
             else
-                [val, pos] = parse_value(inputstr, pos, varargin{:});
+                [val, pos] = parse_value(inputstr, pos, [], varargin{:});
             end
             object{end+1} = val;
             [cc,pos]=next_char(inputstr,pos);
@@ -342,13 +364,16 @@ end
 
 %%-------------------------------------------------------------------------
 
-function [str, pos] = parseStr(inputstr, pos, varargin)
-    type=inputstr(pos);
-    if type ~= 'S' && type ~= 'C' && type ~= 'H'
-        error_pos('String starting with S expected at position %d',inputstr, pos);
-    else
-        pos = pos + 1;
+function [str, pos] = parseStr(inputstr, pos, type, varargin)
+    if(isempty(type))
+        type=inputstr(pos);
+        if type ~= 'S' && type ~= 'C' && type ~= 'H'
+            error_pos('String starting with S expected at position %d',inputstr, pos);
+        else
+            pos = pos + 1;
+        end
     end
+
     if(type == 'C')
         str=inputstr(pos);
         pos=pos+1;
@@ -387,14 +412,19 @@ end
 
 %%-------------------------------------------------------------------------
 
-function varargout = parse_value(inputstr, pos, varargin)
-    [cc,varargout{2}]=next_char(inputstr,pos);
+function varargout = parse_value(inputstr, pos, type, varargin)
+    if(length(type)==1)
+            cc=type;
+            varargout{2}=pos;
+    else
+            [cc,varargout{2}]=next_char(inputstr,pos);
+    end
     if(nargout>2)
             varargout{3}={};
     end
     switch(cc)
         case {'S','C','H'}
-            [varargout{1:2}] = parseStr(inputstr, varargout{2}, varargin{:});
+            [varargout{1:2}] = parseStr(inputstr, varargout{2}, type, varargin{:});
             return;
         case '['
             [varargout{1:nargout}] = parse_array(inputstr, varargout{2}, varargin{:});
@@ -461,7 +491,7 @@ function [object, pos, mmap] = parse_object(inputstr, pos, varargin)
         num=0;
         while 1
             if(varargin{1}.nameisstring)
-                [str, pos] = parseStr(inputstr, pos, varargin{:});
+                [str, pos] = parseStr(inputstr, pos, [], varargin{:});
             else
                 [str, pos] = parse_name(inputstr, pos, varargin{:});
             end
@@ -471,11 +501,11 @@ function [object, pos, mmap] = parse_object(inputstr, pos, varargin)
             if(nargout>2)
                 varargin{1}.jsonpath_=[origpath,'.',str];
                 mmap{end+1}={varargin{1}.jsonpath_,pos};
-                [val, pos,newmmap] = parse_value(inputstr, pos, varargin{:});
+                [val, pos,newmmap] = parse_value(inputstr, pos, [], varargin{:});
                 mmap{end}{2}=[mmap{end}{2}, pos-mmap{end}{2}];
                 mmap=[mmap(:);newmmap(:)];
             else
-                [val, pos] = parse_value(inputstr, pos, varargin{:});
+                [val, pos] = parse_value(inputstr, pos, [], varargin{:});
             end
             num=num+1;
             if(usemap)
