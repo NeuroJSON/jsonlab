@@ -201,18 +201,14 @@ function [data, adv]=parse_block(inputstr, pos, type,count,varargin)
                 data=cell(1,count);
                 adv=pos;
                 for i=1:count
-                        [data{i}, pos] = parse_value(inputstr, pos, type, varargin{:});
+                    [data{i}, pos] = parse_value(inputstr, pos, type, varargin{:});
                 end
                 adv=pos-adv;
             case 'C'
                 data=inputstr(pos:pos+count);
                 adv=count;
-            case 'T'
-                data=true(1,count);
-            case 'F'
-                data=false(1,count);
-            case 'N'
-                data=cell(1,count);
+            case {'T','F','N'}
+                error_pos(sprintf('For security reasons, optimized type %c is disabled at position %%d', type),inputstr, pos);
             otherwise
                 error_pos(sprintf('Unsupported optimized type %c at position %%d', type),inputstr, pos);
         end
@@ -221,7 +217,6 @@ function [data, adv]=parse_block(inputstr, pos, type,count,varargin)
     [cid,len]=elem_info(inputstr, pos, type);
     datastr=inputstr(pos:pos+len*count-1);
     newdata=uint8(datastr);
-    %id=strfind('iUIulmLMhdD',type);
     if(varargin{1}.flipendian_)
         newdata=swapbytes(typecast(newdata,cid));
     end
