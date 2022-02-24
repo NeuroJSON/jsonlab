@@ -194,25 +194,27 @@ end
 %%-------------------------------------------------------------------------
 
 function [data, adv]=parse_block(inputstr, pos, type,count,varargin)
-    if(count>=0 && ~isempty(type) && strfind('HSC{[TFN', type))
+    if(count>=0 && ~isempty(type) && isempty(strfind('iUIulmLMdDh', type)))
         adv=0;
         switch(type)
             case {'S', 'H', '{', '['}
-                    data=cell(1,count);
-                    adv=pos;
-                    for i=1:count
-                            [data{i}, pos] = parse_value(inputstr, pos, type, varargin{:});
-                    end
-                    adv=pos-adv;
+                data=cell(1,count);
+                adv=pos;
+                for i=1:count
+                        [data{i}, pos] = parse_value(inputstr, pos, type, varargin{:});
+                end
+                adv=pos-adv;
             case 'C'
-                    data=inputstr(pos:pos+count);
-                    adv=count;
+                data=inputstr(pos:pos+count);
+                adv=count;
             case 'T'
-                    data=true(1,count);
+                data=true(1,count);
             case 'F'
-                    data=false(1,count);
+                data=false(1,count);
             case 'N'
-                    data=cell(1,count);
+                data=cell(1,count);
+            otherwise
+                error_pos(sprintf('Unsupported optimized type %c at position %%d', type),inputstr, pos);
         end
         return;
     end
