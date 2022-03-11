@@ -153,7 +153,7 @@ function [data, mmap] = loadbj(fname,varargin)
             case {'S','C','H','i','U','I','u','l','m','L','M','h','d','D','T','F','Z','N'}
                 [data{jsoncount}, pos] = parse_value(inputstr, pos, [], opt);
             otherwise
-                error_pos('Outer level structure must be an object or an array', inputstr, pos);
+                error_pos('Root level structure must start with a valid marker "{[SCHiUIulmLMhdDTFZN"', inputstr, pos);
         end
         if(jsoncount>=maxobjid)
             break;
