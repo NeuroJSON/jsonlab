@@ -23,7 +23,7 @@ function json=savejson(rootname,obj,varargin)
 %           opt can have the following fields (first in [.|.] is the default)
 %
 %           FileName [''|string]: a file name to save the output JSON data
-%           FloatFormat ['%.10g'|string]: format to show each numeric element
+%           FloatFormat ['%.16g'|string]: format to show each numeric element
 %                         of a 1D/2D array;
 %           IntFormat ['%.0f'|string]: format to display integer elements
 %                         of a 1D/2D array;
@@ -152,7 +152,7 @@ opt.formatversion=jsonopt('FormatVersion',3,opt);
 opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
 opt.compressstringsize=jsonopt('CompressStringSize',opt.compressarraysize*4,opt);
 opt.intformat=jsonopt('IntFormat','%.0f',opt);
-opt.floatformat=jsonopt('FloatFormat','%.10g',opt);
+opt.floatformat=jsonopt('FloatFormat','%.16g',opt);
 opt.unpackhex=jsonopt('UnpackHex',1,opt);
 opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
 opt.parselogical=jsonopt('ParseLogical',0,opt);
