@@ -576,8 +576,8 @@ function [object, pos, index_esc, mmap] = parse_object(inputstr, pos, esc, index
     if cc ~= '}'
         while 1
             [str, pos, index_esc] = parseStr(inputstr, pos, esc, index_esc, varargin{:});
-            if isempty(str)
-                pos=error_pos('Name of value at position %d cannot be empty',inputstr,pos);
+            if isempty(str) && ~usemap
+                str='x0x0_'; % empty name is valid in JSON, decodevarname('x0x0_') restores '\0'
             end
             [pos, w1, w2]=parse_char(inputstr, pos, ':');
             if(nargout>3)

@@ -493,7 +493,7 @@ function [object, pos, mmap] = parse_object(inputstr, pos, varargin)
                 [str, pos] = parse_name(inputstr, pos, varargin{:});
             end
             if isempty(str)
-                error_pos('Name of value at position %d cannot be empty', inputstr, pos);
+                str='x0x0_'; % empty name is valid in BJData/UBJSON, decodevarname('x0x0_') restores '\0'
             end
             if(nargout>2)
                 varargin{1}.jsonpath_=[origpath,'.',str];
