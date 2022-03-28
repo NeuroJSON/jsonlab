@@ -35,6 +35,8 @@ function newdata=jdatadecode(data,varargin)
 %                         for octave, the default value is an empty string ''.
 %               FullArrayShape: [0|1] if set to 1, converting _ArrayShape_ 
 %                         objects to full matrices, otherwise, stay sparse
+%               MaxLinkLevel: [0|int] When expanding _DataLink_ pointers,
+%                         this sets the maximum level of recursion
 %               FormatVersion: [2|float]: set the JSONLab output version; 
 %                         since v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -64,6 +66,7 @@ function newdata=jdatadecode(data,varargin)
         opt=varargin2struct(varargin{:});
     end
     opt.fullarrayshape=jsonopt('FullArrayShape',0,opt);
+    opt.maxlinklevel=jsonopt('MaxLinkLevel',0,opt);
 
     %% process non-structure inputs
     if(~isstruct(data))
@@ -454,6 +457,34 @@ function newdata=jdatadecode(data,varargin)
         end
         if(len==1)
             newdata=newdata{1};
+        end
+    end
+
+    %% handle data link
+    if(isfield(data,N_('_DataLink_')))
+        if(ischar(data.N('_DataLink_')))
+            datalink=data.N('_DataLink_');
+            [pat, ref]=regexp(datalink, '(^.+)(:($\d*\..*)*', 'match', 'tokens');
+            if(~isempty(pat) && ~isempty(ref))
+                [fpath, fname, fext]=fileparts(ref{1});
+                switch(lower(fext))
+                    case {'.json','.jnii','.jdt','.jdat','.jmsh','.jnirs'}
+                        newdata=loadjson([fpath, filesep, fname], varargin{:});
+                    case {'.bjd' ,'.bnii','.jdb','.jbat','.bmsh','.bnirs', '.jamm'}
+                        newdata=loadbj([fpath, filesep, fname], varargin{:});
+                    case {'.ubj'}
+                        newdata=loadubjson([fpath, filesep, fname], varargin{:});
+                    case {'.msgpack'}
+                        newdata=loadmsgpack([fpath, filesep, fname], varargin{:});
+                    case {'.h5','.hdf5','.snirf'}  % this requires EasyH5 toolbox
+                        newdata=loadh5([fpath, filesep, fname], varargin{:});
+                    otherwise
+                        warning('datalink file is not supported');
+                end
+                if(length(ref)>=2)
+                    newdata=getfromjsonpath(newdata,ref{2}{1});
+                end
+            end
         end
     end
 

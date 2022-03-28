@@ -822,7 +822,7 @@ else
             txt=cell2ubjson('',num2cell(mat,1),level,varargin{:});
         else
             rowmat=permute(mat,ndims(mat):-1:1);
-            txt=D_a(rowmat(:),Fmarker(3),size(mat),varargin{:});
+            txt=D_a(rowmat(:),Fmarker(isa(rowmat,'double')+2),size(mat),varargin{:});
         end
     end
 end
