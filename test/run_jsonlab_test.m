@@ -50,7 +50,9 @@ if(ismember('js',tests))
         test_jsonlab('string array',@savejson,[string('jdata'),string('shall'),string('prevail')],'["jdata","shall","prevail"]','compact',1);
     end
     test_jsonlab('empty name',@savejson,loadjson('{"":""}'),'{"":""}','compact',1);
-    test_jsonlab('empty name with map',@savejson,loadjson('{"":""}','usemap',1),'{"":""}','compact',1);
+    if(exist('containers.Map'))
+        test_jsonlab('empty name with map',@savejson,loadjson('{"":""}','usemap',1),'{"":""}','compact',1);
+    end
     test_jsonlab('row vector',@savejson,[1,2,3],'[1,2,3]');
     test_jsonlab('column vector',@savejson,[1;2;3],'[[1],[2],[3]]','compact',1);
     test_jsonlab('mixed array',@savejson,{'a',1,0.9},'["a",1,0.9]','compact',1);
@@ -185,7 +187,9 @@ if(ismember('bj',tests))
         test_jsonlab('string array',@savebj,[string('jdata');string('shall');string('prevail')],'[[SU<5>jdataSU<5>shallSU<7>prevail]]','debug',1);
     end
     test_jsonlab('empty name',@savebj,loadbj(['{U' 0 'U' 2 '}']),'{U<0>U<2>}','debug',1);
-    test_jsonlab('empty name with map',@savebj,loadbj(['{U' 0 'U' 2 '}'],'usemap',1),'{U<0>U<2>}','debug',1);
+    if(exist('containers.Map'))
+        test_jsonlab('empty name with map',@savebj,loadbj(['{U' 0 'U' 2 '}'],'usemap',1),'{U<0>U<2>}','debug',1);
+    end
     test_jsonlab('row vector',@savebj,[1,2,3],'[$U#U<3><1><2><3>','debug',1);
     test_jsonlab('column vector',@savebj,[1;2;3],'[$U#[$U#U<2><3><1><1><2><3>','debug',1);
     test_jsonlab('mixed array',@savebj,{'a',1,0.9},'[CaU<1>D<0.9>]','debug',1);
