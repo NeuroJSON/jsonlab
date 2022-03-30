@@ -101,14 +101,11 @@ function [data, mmap] = loadbj(fname,varargin)
        error_pos('input file does not exist or buffer is invalid');
     end
 
-    pos = 1; inputlen = length(string); inputstr = string;
-    arraytoken=find(inputstr=='[' | inputstr==']' | inputstr=='"');
-    jstr=regexprep(inputstr,'\\\\','  ');
-    escquote=regexp(jstr,'\\"');
-    arraytoken=sort([arraytoken escquote]);
+    pos = 1;
+    inputlen = length(string);
+    inputstr = string;
 
     opt=varargin2struct(varargin{:});
-    opt.arraytoken_=arraytoken;
     opt.simplifycell=jsonopt('SimplifyCell',1,opt);
     opt.simplifycellarray=jsonopt('SimplifyCellArray',0,opt);
     opt.usemap=jsonopt('UseMap',0,opt);
