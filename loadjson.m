@@ -162,11 +162,13 @@ function [data, mmap] = loadjson(fname,varargin)
            end
        catch
            try
-               string = urlread(['file://',fname]);
+               string = urlread(fname);
            catch
                string = urlread(['file://',fullfile(pwd,fname)]);
            end
        end
+    elseif(regexpi(fname,'^\s*(http|https|ftp|file)://'))
+       string = urlread(fname);
     else
        error_pos('input file does not exist');
     end

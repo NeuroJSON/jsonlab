@@ -461,28 +461,30 @@ function newdata=jdatadecode(data,varargin)
     end
 
     %% handle data link
-    if(isfield(data,N_('_DataLink_')))
-        if(ischar(data.N('_DataLink_')))
-            datalink=data.N('_DataLink_');
-            [pat, ref]=regexp(datalink, '(^.+)(:($\d*\..*)*', 'match', 'tokens');
-            if(~isempty(pat) && ~isempty(ref))
-                [fpath, fname, fext]=fileparts(ref{1});
+    if(opt.maxlinklevel>0 && isfield(data,N_('_DataLink_')))
+        if(ischar(data.(N_('_DataLink_'))))
+            datalink=data.(N_('_DataLink_'));
+            ref=regexp(datalink, '^(?<proto>[a-zA-Z]+://)*(?<path>[^:]+)(?<delim>\:)*(?<jsonpath>\$\d*\..*)*', 'names');
+            if(~isempty(ref.path))
+                uripath=[ref.proto ref.path];
+                [fpath, fname, fext]=fileparts(uripath);
+                opt.maxlinklevel=opt.maxlinklevel-1;
                 switch(lower(fext))
                     case {'.json','.jnii','.jdt','.jdat','.jmsh','.jnirs'}
-                        newdata=loadjson([fpath, filesep, fname], varargin{:});
+                        newdata=loadjson(uripath, opt);
                     case {'.bjd' ,'.bnii','.jdb','.jbat','.bmsh','.bnirs', '.jamm'}
-                        newdata=loadbj([fpath, filesep, fname], varargin{:});
+                        newdata=loadbj(uripath, opt);
                     case {'.ubj'}
-                        newdata=loadubjson([fpath, filesep, fname], varargin{:});
+                        newdata=loadubjson(uripath, opt);
                     case {'.msgpack'}
-                        newdata=loadmsgpack([fpath, filesep, fname], varargin{:});
+                        newdata=loadmsgpack(uripath, opt);
                     case {'.h5','.hdf5','.snirf'}  % this requires EasyH5 toolbox
-                        newdata=loadh5([fpath, filesep, fname], varargin{:});
+                        newdata=loadh5(uripath, opt);
                     otherwise
-                        warning('datalink file is not supported');
+                        warning('_DataLink_ file type is not supported');
                 end
-                if(length(ref)>=2)
-                    newdata=getfromjsonpath(newdata,ref{2}{1});
+                if(~isempty(ref.jsonpath))
+                    newdata=getfromjsonpath(newdata,ref.jsonpath);
                 end
             end
         end
