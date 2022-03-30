@@ -464,7 +464,7 @@ function newdata=jdatadecode(data,varargin)
     if(opt.maxlinklevel>0 && isfield(data,N_('_DataLink_')))
         if(ischar(data.(N_('_DataLink_'))))
             datalink=data.(N_('_DataLink_'));
-            ref=regexp(datalink, '^(?<proto>[a-zA-Z]+://)*(?<path>[^:]+)(?<delim>\:)*(?<jsonpath>\$\d*\..*)*', 'names');
+            ref=regexp(datalink, '^(?<proto>[a-zA-Z]+://)*(?<path>.+)(?<delim>\:)()*(?<jsonpath>(?<=:)\$\d*\..*)*', 'names');
             if(~isempty(ref.path))
                 uripath=[ref.proto ref.path];
                 [fpath, fname, fext]=fileparts(uripath);
