@@ -481,7 +481,12 @@ function newdata=jdatadecode(data,varargin)
                     case {'.h5','.hdf5','.snirf'}  % this requires EasyH5 toolbox
                         newdata=loadh5(uripath, opt);
                     otherwise
-                        warning('_DataLink_ file type is not supported');
+                        % _DataLink_ url does not specify type, assuming JSON format
+                        if(regexpi(datalink,'^\s*(http|https|ftp|file)://'))
+                            newdata=loadjson(uripath, opt);
+                        else
+                            warning('_DataLink_ url is not supported')
+                        end
                 end
                 if(~isempty(ref.jsonpath))
                     newdata=getfromjsonpath(newdata,ref.jsonpath);
