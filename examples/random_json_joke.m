@@ -6,7 +6,7 @@ function jokes=random_json_joke(num, url)
 % web. In the below example, the jokeapi.dev feed returns a JSON record via
 % RESTFul URL, the returned record contains a subfield called `joke`, which
 % can be retrieved via the JSONPath $.joke attched after the URL, separated
-% by a collon. The general _DataLink_ URL is in the form of "URL:$jsonpath"
+% by a colon. The general _DataLink_ URL is in the form of "URL:$jsonpath"
 
 if(nargin==0)
     num=1;
