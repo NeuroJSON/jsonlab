@@ -14,6 +14,14 @@ JData Workspace
 JData Specificaton
  jdatadecode
  jdataencode
+Interface
+ loadjd
+ savejd
+JSON Mmap
+ jsonget
+ jsonset
+ filterjsonmmap
+ getfromjsonpath
 Compression and Decompression
  base64decode
  base64encode

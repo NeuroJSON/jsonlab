@@ -6,6 +6,8 @@
 %   decodevarname      - newname = decodevarname(name)
 %   encodevarname      - newname = encodevarname(name)
 %   fast_match_bracket - [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
+%   filterjsonmmap     - mmap=filterjsonmmap(mmap, patterns, isinclude)
+%   getfromjsonpath    - obj=getfromjsonpath(root, jsonpath)
 %   gzipdecode         - output = gzipdecode(input)
 %   gzipencode         - output = gzipencode(input)
 %   isoctavemesh       - [isoctave verinfo]=isoctavemesh
@@ -13,10 +15,13 @@
 %   jdataencode        - jdata=jdataencode(data)
 %   jsave              - jsave(fname,'param1',value1,'param2',value2,...)
 %   jload              - vars=jload(fname,'param1',value1,'param2',value2,...)
+%   jsonget            - json=jsonget(fname,mmap,'path1','path2',...)
 %   jsonopt            - val=jsonopt(key,default,optstruct)
-%   loadbj             - data=loadbj(fname,opt)
-%   loadjson           - data=loadjson(fname,opt)
-%   loadmsgpack        - PARSEMSGPACK parses a msgpack byte buffer into Matlab data structures
+%   jsonset            - json=jsonset(fname,mmap,'path1',value1,'path2',value2,...)
+%   loadbj             - [data, mmap] = loadbj(fname,opt)
+%   loadjd             - data=loadjd(fname)
+%   loadjson           - [data, mmap]=loadjson(fname,opt)
+%   loadmsgpack        - data = loadmsgpack(fname,varargin)
 %   loadubjson         - data=loadubjson(fname,opt)
 %   lz4decode          - output = lz4decode(input)
 %   lz4encode          - output = lz4encode(input)
@@ -30,6 +35,7 @@
 %   mergestruct        - s=mergestruct(s1,s2)
 %   nestbracket2dim    - [dims, maxlevel, count] = nestbracket2dim(str,brackets)
 %   savebj             - bjd=savebj(rootname,obj,filename)
+%   savejd             - jd=savejd(rootname,obj,filename)
 %   savejson           - json=savejson(rootname,obj,filename)
 %   savemsgpack        - msgpk=savemsgpack(rootname,obj,filename)
 %   saveubjson         - json=saveubjson(rootname,obj,filename)
@@ -146,6 +152,8 @@
 %                         for octave, the default value is an empty string ''.
 %               FullArrayShape: [0|1] if set to 1, converting _ArrayShape_ 
 %                         objects to full matrices, otherwise, stay sparse
+%               MaxLinkLevel: [0|int] When expanding _DataLink_ pointers,
+%                         this sets the maximum level of recursion
 %               FormatVersion: [2|float]: set the JSONLab output version; 
 %                         since v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
@@ -167,13 +175,14 @@
 
 %%=== # JSON ===
 
-%==== function data = loadjson(fname,varargin) ====
+%==== function [data, mmap] = loadjson(fname,varargin) ====
 %
 % data=loadjson(fname,opt)
 %    or
-% data=loadjson(fname,'param1',value1,'param2',value2,...)
+% [data, mmap]=loadjson(fname,'param1',value1,'param2',value2,...)
 %
-% parse a JSON (JavaScript Object Notation) file or string
+% parse a JSON (JavaScript Object Notation) file or string and return a
+% matlab data structure with optional memory-map (mmap) table
 %
 % created on 2011/09/09, including previous works from 
 %
@@ -216,7 +225,7 @@
 %           ParseStringArray [0|1]: if set to 0, loadjson converts "string arrays" 
 %                         (introduced in MATLAB R2016b) to char arrays; if set to 1,
 %                         loadjson skips this conversion.
-%           FormatVersion [2|float]: set the JSONLab format version; since
+%           FormatVersion [3|float]: set the JSONLab format version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
@@ -234,15 +243,78 @@
 %                         jsondecode, if presents (MATLAB R2016b or Octave
 %                         6) first. If jsondecode does not exist or failed, 
 %                         this function falls back to the jsonlab parser
+%           MmapOnly [0|1]: if set to 1, this function only returns mmap
+%           MMapInclude 'str1' or  {'str1','str2',..}: if provided, the
+%                         returned mmap will be filtered by only keeping
+%                         entries containing any one of the string patterns
+%                         provided in a cell
+%           MMapExclude 'str1' or  {'str1','str2',..}: if provided, the
+%                         returned mmap will be filtered by removing
+%                         entries containing any one of the string patterns
+%                         provided in a cell
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
 %           and [...] are converted to arrays
+%      mmap: (optional) a cell array as memory-mapping table in the form of
+%             {{jsonpath1,[start,length,<whitespace>]},
+%              {jsonpath2,[start,length,<whitespace>]}, ...}
+%           where jsonpath_i is a string in the JSONPath [1,2] format, and
+%           "start" is an integer referring to the offset from the begining
+%           of the stream, and "length" is the JSON object string length.
+%           An optional 3rd integer "whitespace" may appear to record the
+%           preceding whitespace length in case expansion of the data
+%           record is needed when using the mmap.
+%
+%           Memory-mapping table (mmap) is useful when fast reading/writing
+%           specific data records inside a large JSON file without needing
+%           to load/parse/overwrite the entire file.
+%
+%           The JSONPath keys used in mmap is largely compatible to the
+%           upstream specification defined in [1], with a slight extension
+%           to handle contatenated JSON files.
+%
+%           In the mmap jsonpath key, a '$' denotes the root object, a '.'
+%           denotes a child of the preceding element; '.key' points to the
+%           value segment of the child named "key" of the preceding
+%           object; '.[i]' denotes the (i+1)th member of the preceding
+%           element, which must be an array. For example, a key
+%
+%           $.obj1.obj2.[0].obj3
+%
+%           defines the memory-map of the "value" section in the below
+%           hierarchy:
+%             {
+%                "obj1":{
+%            	     "obj2":[
+%                       {"obj3":value},
+%                       ...
+%                    ],
+%                    ...
+%                 }
+%             }
+%           Please note that "value" can be any valid JSON value, including
+%           an array, an object, a string or numerical value.
+%
+%           To handle concatenated JSON objects (including ndjson,
+%           http://ndjson.org/), such as
+%
+%             {"root1": {"obj1": ...}}
+%             ["root2", value1, value2, {"obj2": ...}]
+%             {"root3": ...}
+%
+%           we use '$' or '$0' for the first root-object, and '$1' refers
+%           to the 2nd root object (["root2",...]) and '$2' referrs to the
+%           3rd root object, and so on. Please note that this syntax is an
+%           extension from the JSONPath documentation [1,2]
+%
+%           [1] https://goessner.net/articles/JsonPath/
+%           [2] http://jsonpath.herokuapp.com/
 %
 % examples:
 %      dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
 %      dat=loadjson(['examples' filesep 'example1.json'])
-%      dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',0)
+%      [dat, mmap]=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',0)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -272,7 +344,7 @@
 %           opt can have the following fields (first in [.|.] is the default)
 %
 %           FileName [''|string]: a file name to save the output JSON data
-%           FloatFormat ['%.10g'|string]: format to show each numeric element
+%           FloatFormat ['%.16g'|string]: format to show each numeric element
 %                         of a 1D/2D array;
 %           IntFormat ['%.0f'|string]: format to display integer elements
 %                         of a 1D/2D array;
@@ -319,7 +391,7 @@
 %                         wrapped inside a function call as 'foo(...);'
 %           UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
 %                         back to the string form
-%           SaveBinary [0|1]: 1 - save the JSON file in binary mode; 0 - text mode.
+%           SaveBinary [1|0]: 1 - save the JSON file in binary mode; 0 - text mode.
 %           Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
 %           Compression  'zlib', 'gzip', 'lzma', 'lzip', 'lz4' or 'lz4hc': specify array 
 %                         compression method; currently only supports 6 methods. The
@@ -339,7 +411,7 @@
 %                         element count is larger than this number.
 %           CompressStringSize [400|int]: only to compress a string if the total 
 %                         element count is larger than this number.
-%           FormatVersion [2|float]: set the JSONLab output version; since
+%           FormatVersion [3|float]: set the JSONLab output version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
@@ -377,11 +449,11 @@
 
 %%=== # BJData ===
 
-%==== function data = loadbj(fname,varargin) ====
+%==== function [data, mmap] = loadbj(fname,varargin) ====
 %
 % data=loadbj(fname,opt)
 %    or
-% data=loadbj(fname,'param1',value1,'param2',value2,...)
+% [data, mmap]=loadbj(fname,'param1',value1,'param2',value2,...)
 %
 % Parse a Binary JData (BJData v1 Draft-2, defined in https://github.com/NeuroJSON/bjdata) 
 % file or memory buffer and convert into a MATLAB data structure
@@ -391,7 +463,7 @@
 % including uint16(u), uint32(m), uint64(M) and half-precision float (h).
 % Starting from BJD Draft-2 (JSONLab 3.0 beta or later), all integer and
 % floating-point numbers are parsed in Little-Endian as opposed to
-% Big-Endian form as in BJD Draft-1/UBJSON Draft-12 (JSONLab 2.1 or older)
+% Big-Endian form as in BJD Draft-1/UBJSON Draft-12 (JSONLab 2.0 or older)
 %
 % initially created on 2013/08/01
 %
@@ -436,10 +508,25 @@
 %                         for output format, it is incompatible with all
 %                         previous releases; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
+%           MmapOnly [0|1]: if set to 1, this function only returns mmap
+%           MMapInclude 'str1' or  {'str1','str2',..}: if provided, the
+%                         returned mmap will be filtered by only keeping
+%                         entries containing any one of the string patterns
+%                         provided in a cell
+%           MMapExclude 'str1' or  {'str1','str2',..}: if provided, the
+%                         returned mmap will be filtered by removing
+%                         entries containing any one of the string patterns
+%                         provided in a cell
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
 %           and [...] are converted to arrays
+%      mmap: (optional) a cell array in the form of
+%           {{jsonpath1,[start,length]}, {jsonpath2,[start,length]}, ...}
+%           where jsonpath_i is a string in the form of JSONPath, and
+%           start is an integer referring to the offset from the begining
+%           of the stream, and length is the JSON object string length.
+%           For more details, please see the help section of loadjson.m
 %
 % examples:
 %      obj=struct('string','value','array',[1 2 3]);
@@ -840,6 +927,220 @@
 %      jload mydat.jamm
 %      jload('mydat.jamm','vars', {'v1','v2',...}) % load selected variables
 %      varlist=jload('mydat.jamm','simplifycell',1)
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+
+%%=== # Interface ===
+
+%==== function varargout=loadjd(filename, varargin) ====
+%
+%    data=loadjd(inputfile)
+%       or
+%    [data, mmap]=loadjd(inputfile, 'Param1',value1, 'Param2',value2,...)
+%
+%    Parse a hierarchical container data file, including JSON,
+%    binary JSON (BJData/UBJSON/MessagePack) and HDF5, and output
+%    the parsed data in a MATLAB/Octave data structure
+%
+%
+%    input:
+%        inputfile: the input hierarchical container data file, supporting:
+%                *.json,.jnii,.jdt,.jmsh,.jnirs: JSON/JData based data files, see http://neurojson.org/jdata/draft2
+%                *.bjd,.bnii,.jdb,.bmsh,.bnirs: binary JData (BJData) files, see http://neurojson.org/bjdata/draft2
+%                *.ubj: UBJSON-encoded files, see http://ubjson.org
+%                *.msgpack: MessagePack-encoded files, see http://msgpack.org
+%                *.h5,.hdf5,.snirf: HDF5 files, see https://www.hdfgroup.org/
+%        options: (optional) for JSON/JData files, these are optional 'param',value pairs
+%                supported by loadjson.m; for BJData/UBJSON/MessagePack files, these are
+%                options supported by loadbj.m; for HDF5 files, these are options
+%                supported by loadh5.m (part of EasyH5 toolbox, http://github.com/fangq/easyh5/)
+%
+%    output:
+%        data: a structure (array) or cell (array) storing the hierarchical data
+%              in the container data file
+%        mmap: (optional) output storing the JSON/binary JSON memory-map table for fast
+%              disk access. see help info for loadjson or loadbj for more details.
+%
+%    examples:
+%        obj=struct('string','value','array',[1 2 3]);
+%        savejd('obj', obj, 'datafile.json')
+%        newobj=loadjd('datafile.json');
+%
+%    license:
+%        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+
+%==== function varargout=savejd(varargin) ====
+%
+%    savejd(rootname, obj, outputfile)
+%       or
+%    buffer=savejd(obj)
+%    buffer=savejd(rootname, obj)
+%    savejd(rootname, obj, opt)
+%    savejd(rootname, obj, 'filename', outputfile, 'Param1',value1, 'Param2',value2,...)
+%
+%    Save a complex MATLAB/Octave data structure to a hierarchical
+%    container data file including JSON, binary JSON
+%    (BJData/UBJSON/MessagePack) and HDF5
+%
+%
+%    input:
+%        rootname: the name of the root-object, when set to '', the root name
+%           is ignored, however, when opt.ForceRootName is set to 1 (see help savejson),
+%           the MATLAB variable name will be used as the root name.
+%        obj: a MATLAB object (array, cell, cell array, struct, struct array,
+%             class instance).
+%        outputfile: the output file name to the hierarchical container file
+%                *.json,.jnii,.jdt,.jmsh,.jnirs: JSON/JData based data files, see http://neurojson.org/jdata/draft2
+%                *.bjd,.bnii,.jdb,.bmsh,.bnirs: binary JData (BJData) files, see http://neurojson.org/bjdata/draft2
+%                *.ubj: UBJSON-encoded files, see http://ubjson.org
+%                *.msgpack: MessagePack-encoded files, see http://msgpack.org
+%                *.h5,.hdf5,.snirf: HDF5 files, see https://www.hdfgroup.org/
+%        opt: (optional) for JSON/JData files, these are optional 'param',value pairs
+%                supported by loadjson.m; for BJData/UBJSON/MessagePack files, these are
+%                options supported by loadbj.m; for HDF5 files, these are options
+%                supported by loadh5.m (part of EasyH5 toolbox, http://github.com/fangq/easyh5/)
+%
+%    output:
+%        data: a structure (array) or cell (array) storing the hierarchical data
+%              in the container data file
+%        mmap: optional output storing the JSON/binary JSON memory-map table for fast
+%              disk access. see help info for loadjson or loadbj for more details.
+%
+%    examples:
+%        obj=struct('string','value','array',[1 2 3]);
+%        savejd('obj', obj, 'datafile.json')
+%        newobj=loadjd('datafile.json');
+%
+%    license:
+%        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+
+%%=== # Memory-map ===
+
+%==== function json=jsonget(fname,mmap,varargin) ====
+%
+% json=jsonget(fname,mmap,'$.jsonpath1','$.jsonpath2',...)
+%
+% Fast reading of JSON data records using memory-map (mmap) returned by
+% loadjson and JSONPath-like keys
+%
+% initially created on 2022/02/02
+%
+% input:
+%      fname: a JSON/BJData/UBJSON string or stream, or a file name
+%      mmap: memory-map returned by loadjson/loadbj of the same data
+%            important: mmap must be produced from the same file/string,
+%            otherwise calling this function may cause data corruption
+%      '$.jsonpath1,2,3,...':  a series of strings in the form of JSONPath
+%            as the key to each of the record to be retrieved; if no paths
+%            are given, all items in mmap are retrieved
+%
+% output:
+%      json: a cell array, made of elements {'$.jsonpath_i',json_string_i}
+%
+% examples:
+%      str='[[1,2],"a",{"c":2}]{"k":"test"}';
+%      [dat, mmap]=loadjson(str);
+%      savejson('',dat,'filename','mydata.json','compact',1);
+%      json=jsonget(str,mmap,'$.[0]','$.[2].c')
+%      json=jsonget('mydata.json',mmap,'$.[0]','$.[2].c')
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+
+%==== function json=jsonset(fname,mmap,varargin) ====
+%
+% json=jsonset(fname,mmap,'$.jsonpath1',newval1,'$.jsonpath2','newval2',...)
+%
+% Fast writing of JSON data records to stream or disk using memory-map 
+% (mmap) returned by loadjson/loadbj and JSONPath-like keys
+%
+% initially created on 2022/02/02
+%
+% input:
+%      fname: a JSON/BJData/UBJSON string or stream, or a file name
+%      mmap: memory-map returned by loadjson/loadbj of the same data
+%            important: mmap must be produced from the same file/string,
+%            otherwise calling this function may cause data corruption
+%      '$.jsonpath1,2,3,...':  a series of strings in the form of JSONPath
+%            as the key to each of the record to be written
+%
+% output:
+%      json: the modified JSON string or, in the case fname is a filename,
+%            the cell string made of jsonpaths that are successfully
+%            written
+%
+% examples:
+%      % create test data
+%       d.arr={[1,2],'a',struct('c',2)}; d.obj=struct('k','test') 
+%      % convert to json string
+%       str=savejson('',d,'compact',1)
+%      % parse and return mmap
+%       [dat, mmap]=loadjson(str);
+%      % display mmap entries
+%       savejson('',mmap)
+%      % replace value using mmap
+%       json=jsonset(str,mmap,'$.arr.[2].c','5')
+%      % save same json string to file (must set savebinary 1)
+%       savejson('',d,'filename','file.json','compact',1,'savebinary',1);
+%      % fast write to file
+%       json=jsonset('file.json',mmap,'$.arr.[2].c','5')
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+
+%==== function obj=getfromjsonpath(root, jsonpath) ====
+%
+%    obj=getfromjsonpath(root, jsonpath)
+%
+%    Query and retrieve elements from matlab data structures using JSONPath
+%
+%
+%    input:
+%        root: a matlab data structure like an array, cell, struct, etc
+%        jsonpath: a string in the format of JSONPath, see loadjson help
+%
+%    output:
+%        obj: if the specified element exist, obj returns the result
+%
+%    example:
+%        getfromjsonpath(struct('a',[1,2,3]), '$.a.[1]')      % returns 2
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%
+
+%==== function mmap=filterjsonmmap(mmap, patterns, isinclude) ====
+%
+% mmap=filterjsonmmap(mmap, patterns, isinclude)
+%
+% filter JSON mmap keys based on inclusive or exclusive string patterns
+%
+% initially created on 2022/02/13
+%
+% input:
+%      mmap: memory-map returned by loadjson/loadbj of the same data
+%            important: mmap must be produced from the same file/string,
+%            otherwise calling this function may cause data corruption
+%      patterns: a string or a cell array of strings, each string will 
+%            be tested to match the JSONPath keys in mmap
+%      isinclude: 1 (default) to include all mmap entries that match at
+%            least one of the patterns, and 0 - exclude those that match
+%
+% output:
+%      mmap: a filtered JSON mmap
+%
+% examples:
+%      str='{"arr":[[1,2],"a",{"c":2}],"obj":{"k":"test"}}';
+%      [dat, mmap]=loadjson(str);
+%      savejson('',mmap)
+%      newmmap=filterjsonmmap(mmap,{'arr.[1]', 'obj.k'});
+%      savejson('',newmmap)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 

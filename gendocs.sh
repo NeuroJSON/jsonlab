@@ -29,10 +29,12 @@ func_bjdata="loadbj savebj"
 func_ubjson="loadubjson saveubjson"
 func_msgpack="loadmsgpack savemsgpack"
 func_space="jsave jload"
+func_interface="loadjd savejd"
+func_mmap="jsonget jsonset getfromjsonpath filterjsonmmap"
 func_zip="zlibencode zlibdecode gzipencode gzipdecode lzmaencode lzmadecode
           lzipencode lzipdecode lz4encode lz4decode lz4hcencode lz4hcdecode
 	  base64encode base64decode encodevarname decodevarname"
-func_helper="jsonopt mergestruct varargin2struct match_bracket 
+func_helper="jsonopt mergestruct varargin2struct match_bracket
           fast_match_bracket nestbracket2dim"
 
 echo %%=== "#" JData specification ===
@@ -52,6 +54,12 @@ print_group $func_msgpack
 
 echo %%=== "#" Workspace ===
 print_group $func_space
+
+echo %%=== "#" Interface ===
+print_group $func_interface
+
+echo %%=== "#" Memory-map ===
+print_group $func_mmap
 
 echo %%=== "#" Compression and decompression ===
 print_group $func_zip
