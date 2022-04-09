@@ -1,4 +1,4 @@
-function json=savejson(rootname,obj,varargin)
+function output=savejson(rootname,obj,varargin)
 %
 % json=savejson(obj)
 %    or
@@ -270,6 +270,8 @@ if(~isempty(filename))
         fwrite(fid,json,'char');
     end
     fclose(fid);
+else
+    output=json;
 end
 
 %%-------------------------------------------------------------------------

@@ -52,7 +52,7 @@ if(nargin<1)
 end
 
 if(nargin>2)
-    if(ischar(varargin{3}))
+    if(nargin==3 && ischar(varargin{3}))
         filename=varargin{3};
     else
         opt=varargin2struct(varargin{3:end});
