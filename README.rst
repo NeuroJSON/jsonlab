@@ -114,7 +114,7 @@ following breaking differences:
 - BJData supports an optimized ND array container (supported in JSONLab since 2013)
 - BJData does not convert ``NaN/Inf/-Inf`` to ``null`` (supported in JSONLab since 2013)
 - BJData Draft 2 changes the default byte order to Little-Endian instead of Big-Endian (JSONLab 3.0 or later)
-- BJData only permits non-zero-fixed-length data types a
+- BJData only permits non-zero-fixed-length data types as the optimized array type, i.e. only `UiuImlMLhdDC` are allowed
 
 To avoid using the new features, one should attach ``'UBJSON',1`` and ``'Endian','B'``
 in the ``savebj`` command as
