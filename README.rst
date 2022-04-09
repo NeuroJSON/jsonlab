@@ -27,11 +27,11 @@ Table of Contents
 What's New
 ============
 
-We are extremely excited to announce that JSONLab project, as the reference implementation
-for the JData and BJData specifications, is official funded by the US National Institute 
-of Health (NIH) as part of the NeuroJSON project (http://neurojson.org) since 2021. 
-The goal of the NeuroJSON project is to develop human-readable,
-scalable and future-proof neuroimaging data standards and data sharing services. All data
+We are excited to announce that JSONLab project, as the reference implementation
+for both the JData and BJData specifications, is official funded by the US National Institute 
+of Health (NIH) as part of the NeuroJSON project (http://neurojson.org).
+The goal of the NeuroJSON project is to develop human-readable, scalable and 
+future-proof neuroimaging data standards and data sharing services. All data
 produced from the NeuroJSON project will be using JSON/Binary JData formats as the
 underlying serialization standards and use the lightweight JData specification as
 general-purpose data annotation standard, all of which have been evolved from the over
@@ -51,6 +51,31 @@ incorrect optimized ND-array BJData/UBJSON element order, and options to use MAT
 built-in ``jsonencode/jsondecode`` functions. The octave-jsonlab package has also been
 included in the official distributions of Debian Bullseye and Ubuntu 21.04 or newer.
 
+- 2022-04-01*[fb711bb] add loadjd and savejd as the unified JSON/binary JSON file interface
+- 2022-03-30 [4433a21] improve datalink uri handling to consider : inside uri
+- 2022-03-30 [6368409] make datalink URL query more robust
+- 2022-03-29 [dd9e9c6] when file suffix is missing, assume JSON feed
+- 2022-03-29*[07c58f3] initial support for _DataLink_ of online/local file with JSONPath ref
+- 2022-03-29 [897b7ba] fix test for older octave
+- 2022-03-20 [bf03eff] force msgpack to use big-endian
+- 2022-03-13 [46bbfa9] support empty name key, which is valid in JSON, fix #79
+- 2022-03-12 [9ab040a] increase default float number digits from 10 to 16, fix #78
+- 2022-03-11 [485ea29] update error message on the valid root-level markers
+- 2022-02-23 [aa3913e] disable TFN marker in optimized header due to security risk and low benefit
+- 2022-02-23 [f2c3223] support SCH{[ markers in optimized container type
+- 2022-02-14 [540f95c] add optional preceding whitespace, explain format
+- 2022-02-13 [3dfa904] debugged and tested mmap, add mmapinclude and mmapexclude options
+- 2022-02-10*[6150ae1] handle uncompressed raw data (only base64 encoded) in jdatadecode
+- 2022-02-10 [88a59eb] give a warning when jdatadecode fails, but still return the raw data
+- 2022-02-03*[05edb7a] fast reading and writing json data record using mmap and jsonpath
+- 2022-02-02*[b0f0ebd] return disk-map or memory-map table in loadjson
+- 2022-02-01 [0888218] correct typos and add additional descriptions in README
+- 2022-02-01*[03133c7] fix row-major ('formatversion',1.8) ND array storage order, update demo outputs
+- 2022-02-01 [5998c70] revert variable name encoding to support unicode strings
+- 2022-01-31 [16454e7] test flexible whitespaces in 1D/2D arrays, test mixed array from string
+- 2022-01-31*[5c1ef15] accelerate fastarrayparser by 200%! jsonlab_speedtest cuts from 11s to 5.8s
+- 2022-01-30 [9b25e20] fix octave 3.8 error on travis, it does not support single
+- 2022-01-30 [5898f6e] add octave 5.2 to travis
 - 2022-01-30*[2e3344c] [bjdata:breaking] Upgrade ``savebj/loadbj`` to BJData v1-draft 2, use little-endian by default
 - 2022-01-30*[2e3344c] [bjdata:breaking] Fix optimized ND array element order (previously used column-major)
 - 2022-01-30*[2e3344c] optimize loadjson and loadbj speed
@@ -89,6 +114,7 @@ following breaking differences:
 - BJData supports an optimized ND array container (supported in JSONLab since 2013)
 - BJData does not convert ``NaN/Inf/-Inf`` to ``null`` (supported in JSONLab since 2013)
 - BJData Draft 2 changes the default byte order to Little-Endian instead of Big-Endian (JSONLab 3.0 or later)
+- BJData only permits non-zero-fixed-length data types a
 
 To avoid using the new features, one should attach ``'UBJSON',1`` and ``'Endian','B'``
 in the ``savebj`` command as
