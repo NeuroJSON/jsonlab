@@ -1,10 +1,10 @@
-.. image:: ./images/jsonlab-banner.png
+.. image:: https://neurojson.org/wiki/upload/neurojson_banner_long.png
 
 ########################################################################################
  JSONLab: compact, portable, robust JSON/binary-JSON encoder/decoder for MATLAB/Octave
 ########################################################################################
 
-* Copyright (C) 2011-2022  Qianqian Fang <q.fang at neu.edu>
+* Copyright (c) 2011-2022  Qianqian Fang <q.fang at neu.edu>
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
 * Version: 2.9.8 (Micronus Prime - Beta)
 * URL: http://neurojson.org/jsonlab
