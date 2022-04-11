@@ -319,9 +319,9 @@ is provided for JSON, binary JSON and HDF5, including ``loadjd`` and ``savejd``
 for reading and writing below files types:
 
 - JSON based files: ``.json`, ``.jdt`` (text JData file), ``.jmsh`` (text JMesh file),
-  `.jnii` (text JNIfTI file), ``.jnirs`` (text JSNIRF file)
+  ``.jnii`` (text JNIfTI file), ``.jnirs`` (text JSNIRF file)
 - BJData based files: ``.bjd`, ``.jdb` (binary JData file), ``.bmsh`` (binary JMesh file),
-  `.bnii` (binary JNIfTI file), ``.bnirs`` (binary JSNIRF file), ``.jamm`` (MATLAB session file)
+  ``.bnii`` (binary JNIfTI file), ``.bnirs`` (binary JSNIRF file), ``.jamm`` (MATLAB session file)
 - UBJSON based files: ``.ubj``
 - MessagePack based files: ``.msgpack``
 - HDF5 based files: ``.h5``, ``.hdf5``, ``.snirf`` (SNIRF fNIRS data files) - require `EasyH5 toolbox <https://github.com/fangq/easyh5>`_

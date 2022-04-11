@@ -91,9 +91,11 @@ function [data, mmap] = loadbj(fname,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
+    opt=varargin2struct(varargin{:});
+
     if(length(fname)<4096 && exist(fname,'file'))
        fid = fopen(fname,'rb');
-       string = fread(fid,inf,'uint8=>char')';
+       string = fread(fid,jsonopt('MaxBuffer',inf,opt),'uint8=>char')';
        fclose(fid);
     elseif(regexp(fname, '^\s*[\[\{SCHiUIulmLMhdDTFZN]'))
        string=fname;
@@ -105,7 +107,6 @@ function [data, mmap] = loadbj(fname,varargin)
     inputlen = length(string);
     inputstr = string;
 
-    opt=varargin2struct(varargin{:});
     opt.simplifycell=jsonopt('SimplifyCell',1,opt);
     opt.simplifycellarray=jsonopt('SimplifyCellArray',0,opt);
     opt.usemap=jsonopt('UseMap',0,opt);

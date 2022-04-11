@@ -91,17 +91,20 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/fast_match_bracket.m</file>
       <file>${PROJECT_ROOT}/gendocs.sh</file>
       <file>${PROJECT_ROOT}/genlog.sh</file>
-      <file>${PROJECT_ROOT}/gzipdecode.m</file>
+      <file>${PROJECT_ROOT}/gendocs.sh</file>
+      <file>${PROJECT_ROOT}/getfromjsonpath.m</file>
       <file>${PROJECT_ROOT}/gzipencode.m</file>
       <file>${PROJECT_ROOT}/isoctavemesh.m</file>
       <file>${PROJECT_ROOT}/jdatadecode.m</file>
       <file>${PROJECT_ROOT}/jdataencode.m</file>
       <file>${PROJECT_ROOT}/images/jsonlab-logo.png</file>
+      <file>${PROJECT_ROOT}/jsonget.m</file>
       <file>${PROJECT_ROOT}/jsonopt.m</file>
+      <file>${PROJECT_ROOT}/jsonset.m</file>
       <file>${PROJECT_ROOT}/jsave.m</file>
       <file>${PROJECT_ROOT}/jload.m</file>
-      <file>${PROJECT_ROOT}/savebj.m</file>
       <file>${PROJECT_ROOT}/loadbj.m</file>
+      <file>${PROJECT_ROOT}/loadjd.m</file>
       <file>${PROJECT_ROOT}/loadjson.m</file>
       <file>${PROJECT_ROOT}/loadmsgpack.m</file>
       <file>${PROJECT_ROOT}/loadubjson.m</file>
@@ -117,6 +120,8 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/mergestruct.m</file>
       <file>${PROJECT_ROOT}/nestbracket2dim.m</file>
       <file>${PROJECT_ROOT}/package.json</file>
+      <file>${PROJECT_ROOT}/savebj.m</file>
+      <file>${PROJECT_ROOT}/savejd.m</file>
       <file>${PROJECT_ROOT}/savejson.m</file>
       <file>${PROJECT_ROOT}/savemsgpack.m</file>
       <file>${PROJECT_ROOT}/saveubjson.m</file>
@@ -138,15 +143,15 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
     </matlab>
     <platform>
       <unix>true</unix>
-      <mac>false</mac>
-      <windows>false</windows>
-      <win2k>false</win2k>
-      <winxp>false</winxp>
-      <vista>false</vista>
+      <mac>true</mac>
+      <windows>true</windows>
+      <win2k>true</win2k>
+      <winxp>true</winxp>
+      <vista>true</vista>
       <linux>true</linux>
-      <solaris>false</solaris>
+      <solaris>true</solaris>
       <osver>4.15.0-96-generic</osver>
-      <os32>false</os32>
+      <os32>true</os32>
       <os64>true</os64>
       <arch>glnxa64</arch>
       <matlab>true</matlab>
