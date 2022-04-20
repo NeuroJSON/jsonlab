@@ -335,7 +335,7 @@ function [object, pos,index_esc, mmap] = parse_array(inputstr, pos, esc, index_e
                                     pos=endpos;
                                     pos=parse_char(inputstr, pos, ']');
                                     if(pbar>0)
-                                        waitbar(pos/length(inStr),pbar,'loading ...');
+                                        waitbar(pos/length(inputstr),pbar,'loading ...');
                                     end
                                     return;
                                 end

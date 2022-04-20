@@ -63,7 +63,7 @@ json={};
 
 if(isstruct(fname) || iscell(fname) || isa(fname,'table') || isa(fname,'containers.Map'))
     for i=1:length(keylist)
-        json{end+1}=getobjfrompath(fname,keylist{i});
+        json{end+1}=getfromjsonpath(fname,keylist{i});
     end
     if(length(json)==1)
         json=json{1};
