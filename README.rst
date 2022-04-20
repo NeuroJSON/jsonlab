@@ -7,9 +7,9 @@
 * Copyright (c) 2011-2022  Qianqian Fang <q.fang at neu.edu>
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
 * Version: 2.9.8 (Micronus Prime - Beta)
-* URL: http://neurojson.org/jsonlab
-* JData Specification Version: V1 Draft-3 (http://neurojson.org/jdata/draft3)
-* Binary JData Specification Version: V1 Draft-2 (http://neurojson.org/bjdata/draft2)
+* URL: https://neurojson.org/jsonlab
+* JData Specification Version: V1 Draft-3 (https://neurojson.org/jdata/draft3)
+* Binary JData Specification Version: V1 Draft-2 (https://neurojson.org/bjdata/draft2)
 * Compatibility: MATLAB R2008 or newer, GNU Octave 3.8 or newer
 * Acknowledgement: This project is supported by US National Institute of Health (NIH) 
   grant `U24-NS124027 <https://reporter.nih.gov/project-details/10308329>`_
@@ -29,9 +29,9 @@ What's New
 ============
 
 We are excited to announce that the JSONLab project, as the official reference library
-for both the `JData <http://neurojson.org/jdata/draft3>`_ and `BJData <http://neurojson.org/bjdata/draft2>`_
+for both the `JData <https://neurojson.org/jdata/draft3>`_ and `BJData <https://neurojson.org/bjdata/draft2>`_
 specifications, is funded by the US National Institute of Health (NIH) as
-part of the NeuroJSON project (http://neurojson.org).
+part of the NeuroJSON project (https://neurojson.org).
 The goal of the NeuroJSON project is to develop human-readable, scalable and 
 future-proof neuroimaging data standards and data sharing services. All data
 produced from the NeuroJSON project will be using JSON/Binary JData formats as the
@@ -46,7 +46,7 @@ new features include
 1. exporting JSON Memory-Map for rapid disk-map like JSON/binary JSON reading
    and writing, 
 2. supporting JSONPath query to MATLAB data and JSON/binary JSON file and streams, 
-3. (**breaking**) upgrading the supported BJData spec to `V1 Draft 2 <http://neurojson.org/bjdata/draft2>`_
+3. (**breaking**) upgrading the supported BJData spec to `V1 Draft 2 <https://neurojson.org/bjdata/draft2>`_
    where the default numerical data byte order changed from Big-Endian to **Little-Endian**,
 4. adding initial support to JData `_DataLink_ <https://github.com/NeuroJSON/jdata/blob/master/JData_specification.md#data-referencing-and-links>`_ 
    decoding to link multiple JSON/binary JSON files
@@ -58,6 +58,7 @@ new interface functions ``savejd/loadjd``, and options to use MATLAB/Octave buil
 ``jsonencode/jsondecode`` functions. The ``octave-jsonlab`` package has also been
 included in the official distributions of Debian Bullseye and Ubuntu 21.04 or newer.
 
+- 2022-04-19*[2278bb1] stop escaping / to \/ in JSON string, see https://mondotondo.com/2010/12/29/the-solidus-issue/
 - 2022-04-01*[fb711bb] add loadjd and savejd as the unified JSON/binary JSON file interface
 - 2022-03-30 [4433a21] improve datalink uri handling to consider : inside uri
 - 2022-03-30 [6368409] make datalink URL query more robust

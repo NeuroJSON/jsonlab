@@ -12,8 +12,8 @@ function varargout=loadjd(filename, varargin)
 %
 %    input:
 %        inputfile: the input hierarchical container data file, supporting:
-%                *.json,.jnii,.jdt,.jmsh,.jnirs: JSON/JData based data files, see http://neurojson.org/jdata/draft2
-%                *.bjd,.bnii,.jdb,.bmsh,.bnirs: binary JData (BJData) files, see http://neurojson.org/bjdata/draft2
+%                *.json,.jnii,.jdt,.jmsh,.jnirs: JSON/JData based data files, see https://neurojson.org/jdata/draft2
+%                *.bjd,.bnii,.jdb,.bmsh,.bnirs: binary JData (BJData) files, see https://neurojson.org/bjdata/draft2
 %                *.ubj: UBJSON-encoded files, see http://ubjson.org
 %                *.msgpack: MessagePack-encoded files, see http://msgpack.org
 %                *.h5,.hdf5,.snirf: HDF5 files, see https://www.hdfgroup.org/
