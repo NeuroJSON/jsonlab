@@ -51,6 +51,8 @@ if(nargin<1)
     error('you must provide file name');
 end
 
+opt=struct;
+
 if(nargin>2)
     if(nargin==3 && ischar(varargin{3}))
         filename=varargin{3};
@@ -74,7 +76,14 @@ elseif(regexpi(filename,'\.h5$|\.hdf5$|\.snirf$'))
     if(~exist('saveh5','file'))
         error('you must first install EasyH5 from http://github.com/fangq/easyh5/');
     end
-    [varargout{1:nargout}]=saveh5(varargin{:});
+    if(~isfield(opt,'rootname'))
+        if(nargin>=3 && ischar(varargin{1}))
+            opt.rootname=varargin{1};
+        else
+            opt.rootname=inputname(2);
+        end
+    end
+    [varargout{1:nargout}]=saveh5(varargin{2},filename, opt);
 else
     error('file suffix must be one of .json,.jnii,.jdt,.jmsh,.jnirs,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf');
 end
