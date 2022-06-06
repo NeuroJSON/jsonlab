@@ -31,11 +31,11 @@ function json=jsonset(fname,mmap,varargin)
 %      % display mmap entries
 %       savejson('',mmap)
 %      % replace value using mmap
-%       json=jsonset(str,mmap,'$.arr.[2].c','5')
+%       json=jsonset(str,mmap,'$.arr[2].c','5')
 %      % save same json string to file (must set savebinary 1)
 %       savejson('',d,'filename','file.json','compact',1,'savebinary',1);
 %      % fast write to file
-%       json=jsonset('file.json',mmap,'$.arr.[2].c','5')
+%       json=jsonset('file.json',mmap,'$.arr[2].c','5')
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 

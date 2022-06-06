@@ -9,6 +9,7 @@
 * URL: https://neurojson.org/jsonlab
 * JData Specification Version: V1 Draft-3 (http://github.com/NeuroJSON/jdata)
 * Binary JData Specification Version: V1 Draft-2 (http://github.com/NeuroJSON/bjdata)
+* JSON-Mmap Specification Version: V1 Draft-1 (https://neurojson.org/jsonmmap/draft1)
 * Compatibility: MATLAB R2008 or newer, GNU Octave 3.8 or newer
 * Acknowledgement: This project is supported by US National Institute of Health (NIH) \
   grant [https://reporter.nih.gov/project-details/10308329 U24-NS124027]
@@ -45,7 +46,7 @@ JSONLab v2.9.8 - code named "Micronus - beta" - is the beta-release of the next 
 JSONLab v3.0 - containing a number of key feature enhancement and bug fixes. The major 
 new features include
 
-# exporting JSON Memory-Map for rapid disk-map like JSON/binary JSON reading and writing, 
+# exporting JSON Memory-Map for rapid disk-map like JSON/binary JSON reading and writing, implementing [https://github.com/NeuroJSON/jsonmmap JSON-Mmap Spec v1 Draft 1]
 # supporting JSONPath query to MATLAB data and JSON/binary JSON file and streams, 
 # ('''breaking''') upgrading the supported BJData spec to [https://neurojson.org/bjdata/draft2 V1 Draft 2] \
   where the default numerical data byte order changed from Big-Endian to '''Little-Endian'''

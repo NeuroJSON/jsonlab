@@ -24,8 +24,8 @@ function json=jsonget(fname,mmap,varargin)
 %      str='[[1,2],"a",{"c":2}]{"k":"test"}';
 %      [dat, mmap]=loadjson(str);
 %      savejson('',dat,'filename','mydata.json','compact',1);
-%      json=jsonget(str,mmap,'$.[0]','$.[2].c')
-%      json=jsonget('mydata.json',mmap,'$.[0]','$.[2].c')
+%      json=jsonget(str,mmap,'$[0]','$[2].c')
+%      json=jsonget('mydata.json',mmap,'$[0]','$[2].c')
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 

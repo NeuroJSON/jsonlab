@@ -10,6 +10,7 @@
 * URL: https://neurojson.org/jsonlab
 * JData Specification Version: V1 Draft-3 (https://neurojson.org/jdata/draft3)
 * Binary JData Specification Version: V1 Draft-2 (https://neurojson.org/bjdata/draft2)
+* JSON-Mmap Specification Version: V1 Draft-1 (https://neurojson.org/jsonmmap/draft1)
 * Compatibility: MATLAB R2008 or newer, GNU Octave 3.8 or newer
 * Acknowledgement: This project is supported by US National Institute of Health (NIH) 
   grant `U24-NS124027 <https://reporter.nih.gov/project-details/10308329>`_
@@ -44,7 +45,7 @@ JSONLab v3.0 - containing a number of key feature enhancement and bug fixes. The
 new features include
 
 1. exporting JSON Memory-Map for rapid disk-map like JSON/binary JSON reading
-   and writing, 
+   and writing, implementing `JSON-Mmap Spec v1 Draft 1 <https://github.com/NeuroJSON/jsonmmap>`_
 2. supporting JSONPath query to MATLAB data and JSON/binary JSON file and streams, 
 3. (**breaking**) upgrading the supported BJData spec to `V1 Draft 2 <https://neurojson.org/bjdata/draft2>`_
    where the default numerical data byte order changed from Big-Endian to **Little-Endian**,
@@ -180,7 +181,7 @@ flexibility and generality similar to other more sophisticated formats such
 as `HDF5 <http://www.hdfgroup.org/HDF5/whatishdf5.html>`_, but are significantly 
 simpler with a much greater software ecosystem.
 
-Towards this goal, we have developed the JData Specification (http://github.com/fangq/jdata) 
+Towards this goal, we have developed the JData Specification (http://github.com/NeuroJSON/jdata) 
 to standardize serializations of complex scientific data structures, such as
 N-D arrays, sparse/complex-valued arrays, trees, maps, tables and graphs using
 JSON/binary JSON constructs. The text and binary formatted JData files are
@@ -325,7 +326,7 @@ for reading and writing below files types:
   ``.bnii`` (binary JNIfTI file), ``.bnirs`` (binary JSNIRF file), ``.jamm`` (MATLAB session file)
 - UBJSON based files: ``.ubj``
 - MessagePack based files: ``.msgpack``
-- HDF5 based files: ``.h5``, ``.hdf5``, ``.snirf`` (SNIRF fNIRS data files) - require `EasyH5 toolbox <https://github.com/fangq/easyh5>`_
+- HDF5 based files: ``.h5``, ``.hdf5``, ``.snirf`` (SNIRF fNIRS data files) - require `EasyH5 toolbox <https://github.com/NeuroJSON/easyh5>`_
 
 
 In the below section, we provide a few examples on how to us each of the 
@@ -508,8 +509,8 @@ In short, to conveniently read/write data files created by JSONLab into Python,
 whether they are JSON based or binary JData/UBJSON based, one just need to download
 the below two light-weight python modules:
 
-* **jdata**: PyPi: https://pypi.org/project/jdata/  ; Github: https://github.com/fangq/pyjdata
-* **bjdata** PyPi: https://pypi.org/project/bjdata/ ; Github: https://github.com/fangq/pybj
+* **jdata**: PyPi: https://pypi.org/project/jdata/  ; Github: https://github.com/NeuroJSON/pyjdata
+* **bjdata** PyPi: https://pypi.org/project/bjdata/ ; Github: https://github.com/NeuroJSON/pybj
 
 To install these modules on Python 2.x, please first check if your system has
 ``pip`` and ``numpy``, if not, please install it by running (using Ubuntu/Debian as example)

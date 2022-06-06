@@ -81,14 +81,18 @@ function [data, mmap] = loadjson(fname,varargin)
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
 %           and [...] are converted to arrays
 %      mmap: (optional) a cell array as memory-mapping table in the form of
-%             {{jsonpath1,[start,length,<whitespace>]},
-%              {jsonpath2,[start,length,<whitespace>]}, ...}
+%             {{jsonpath1,[start,length,<whitespace_pre>]},
+%              {jsonpath2,[start,length,<whitespace_pre>]}, ...}
 %           where jsonpath_i is a string in the JSONPath [1,2] format, and
 %           "start" is an integer referring to the offset from the begining
 %           of the stream, and "length" is the JSON object string length.
-%           An optional 3rd integer "whitespace" may appear to record the
-%           preceding whitespace length in case expansion of the data
+%           An optional 3rd integer "whitespace_pre" may appear to record
+%           the preceding whitespace length in case expansion of the data
 %           record is needed when using the mmap.
+%
+%           The format of the mmap table retruned from this function
+%           follows the JSON-Mmap Specification Draft 1 [3] defined by the
+%           NeuroJSON project, see https://neurojson.org/jsonmmap/draft1/
 %
 %           Memory-mapping table (mmap) is useful when fast reading/writing
 %           specific data records inside a large JSON file without needing
@@ -101,10 +105,10 @@ function [data, mmap] = loadjson(fname,varargin)
 %           In the mmap jsonpath key, a '$' denotes the root object, a '.'
 %           denotes a child of the preceding element; '.key' points to the
 %           value segment of the child named "key" of the preceding
-%           object; '.[i]' denotes the (i+1)th member of the preceding
+%           object; '[i]' denotes the (i+1)th member of the preceding
 %           element, which must be an array. For example, a key
 %
-%           $.obj1.obj2.[0].obj3
+%           $.obj1.obj2[0].obj3
 %
 %           defines the memory-map of the "value" section in the below
 %           hierarchy:
@@ -134,6 +138,7 @@ function [data, mmap] = loadjson(fname,varargin)
 %
 %           [1] https://goessner.net/articles/JsonPath/
 %           [2] http://jsonpath.herokuapp.com/
+%           [3] https://neurojson.org/jsonmmap/draft1/
 %
 % examples:
 %      dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
@@ -363,7 +368,7 @@ function [object, pos,index_esc, mmap] = parse_array(inputstr, pos, esc, index_e
             while 1
                 varargin{1}.arraydepth_=arraydepth+1;
                 if(nargout>3)
-                    varargin{1}.jsonpath_=[origpath '.' sprintf('[%d]',length(object))];
+                    varargin{1}.jsonpath_=[origpath sprintf('[%d]',length(object))];
                     mmap{end+1}={varargin{1}.jsonpath_, [pos, 0, w2]};
                     [val, pos, index_esc, newmmap] = parse_value(inputstr, pos, esc, index_esc,varargin{:});
                     mmap{end}{2}(2)=pos-mmap{end}{2}(1);

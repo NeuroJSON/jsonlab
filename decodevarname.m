@@ -25,9 +25,9 @@ function newname = decodevarname(name,varargin)
 %        decodevarname('a_')   % returns a_ as it is a valid variable name
 %        decodevarname('x0xE58F98__0xE9878F_')  % returns '变量' 
 %
-%    this file is part of EasyH5 Toolbox: https://github.com/fangq/easyh5
+%    this file is part of EasyH5 Toolbox: https://github.com/NeuroJSON/easyh5
 %
-%    License: GPLv3 or 3-clause BSD license, see https://github.com/fangq/easyh5 for details
+%    License: GPLv3 or 3-clause BSD license, see https://github.com/NeuroJSON/easyh5 for details
 %
 
 newname=name;

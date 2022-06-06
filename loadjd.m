@@ -20,7 +20,7 @@ function varargout=loadjd(filename, varargin)
 %        options: (optional) for JSON/JData files, these are optional 'param',value pairs
 %                supported by loadjson.m; for BJData/UBJSON/MessagePack files, these are
 %                options supported by loadbj.m; for HDF5 files, these are options
-%                supported by loadh5.m (part of EasyH5 toolbox, http://github.com/fangq/easyh5/)
+%                supported by loadh5.m (part of EasyH5 toolbox, http://github.com/NeuroJSON/easyh5/)
 %
 %    output:
 %        data: a structure (array) or cell (array) storing the hierarchical data
@@ -53,7 +53,7 @@ elseif(regexpi(filename,'\.msgpack$'))
     [varargout{1:nargout}]=loadmsgpack(filename,varargin{:});
 elseif(regexpi(filename,'\.h5$|\.hdf5$|\.snirf$'))
     if(~exist('loadh5','file'))
-        error('you must first install EasyH5 from http://github.com/fangq/easyh5/');
+        error('you must first install EasyH5 from http://github.com/NeuroJSON/easyh5/');
     end
     [varargout{1:nargout}]=loadh5(filename,varargin{:});
 else

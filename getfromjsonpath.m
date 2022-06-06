@@ -14,7 +14,7 @@ function obj=getfromjsonpath(root, jsonpath)
 %        obj: if the specified element exist, obj returns the result
 %
 %    example:
-%        getfromjsonpath(struct('a',[1,2,3]), '$.a.[1]')      % returns 2
+%        getfromjsonpath(struct('a',[1,2,3]), '$.a[1]')      % returns 2
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -23,6 +23,7 @@ function obj=getfromjsonpath(root, jsonpath)
 %
 
 obj=root;
+jsonpath=regexprep(jsonpath,'([^.])(\[\d+\])','$1.$2');
 [pat,paths]=regexp(jsonpath,'\.*([^\s\.]+)\.*','match','tokens');
 if(~isempty(pat) && ~isempty(paths))
 for i=1:length(paths)

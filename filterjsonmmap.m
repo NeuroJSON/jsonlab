@@ -23,7 +23,7 @@ function mmap=filterjsonmmap(mmap, patterns, isinclude)
 %      str='{"arr":[[1,2],"a",{"c":2}],"obj":{"k":"test"}}';
 %      [dat, mmap]=loadjson(str);
 %      savejson('',mmap)
-%      newmmap=filterjsonmmap(mmap,{'arr.[1]', 'obj.k'});
+%      newmmap=filterjsonmmap(mmap,{'arr[1]', 'obj.k'});
 %      savejson('',newmmap)
 %
 % license:
