@@ -397,7 +397,7 @@ function [object, pos,index_esc, mmap] = parse_array(inputstr, pos, esc, index_e
                       object=cat(catdim,object{:});
                       object=permute(object,ndims(object):-1:1);
                   else
-                      object=cell2mat(object')';
+                      object=cell2mat(object.').';
                   end
                   if(iscell(oldobj) && isstruct(object) && numel(object)>1 && varargin{1}.simplifycellarray==0)
                       object=oldobj;
@@ -407,7 +407,7 @@ function [object, pos,index_esc, mmap] = parse_array(inputstr, pos, esc, index_e
           end
       end
       if(~iscell(object) && size(object,1)>1 && ndims(object)==2)
-            object=object';
+            object=object.';
       end
     end
     pos=parse_char(inputstr, pos, ']');
