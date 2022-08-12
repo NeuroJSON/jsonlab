@@ -294,7 +294,8 @@ if(~isempty(filename))
     end
     fwrite(fid,json);
     fclose(fid);
-else
+end
+if(nargout>0)
     output=json;
 end
 

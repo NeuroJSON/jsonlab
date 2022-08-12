@@ -270,7 +270,9 @@ if(~isempty(filename))
         fwrite(fid,json,'char');
     end
     fclose(fid);
-else
+end
+
+if(nargout>0)
     output=json;
 end
 
