@@ -135,7 +135,7 @@ if(nargin==1)
 else
    varname=inputname(2);
 end
-if(length(varargin)==1 && ischar(varargin{1}))
+if(length(varargin)==1 && (ischar(varargin{1}) || isa(varargin{1}, 'string')))
    opt=struct('filename',varargin{1});
 else
    opt=varargin2struct(varargin{:});
