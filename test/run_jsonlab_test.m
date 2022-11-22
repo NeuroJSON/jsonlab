@@ -43,6 +43,8 @@ if(ismember('js',tests))
     test_jsonlab('boolean as 01',@savejson,[true,false],'[1,0]','compact',1);
     test_jsonlab('empty array',@savejson,[],'[]');
     test_jsonlab('empty cell',@savejson,{},'[]');
+    test_jsonlab('empty struct',@savejson,struct,'{}','compact',1);
+    test_jsonlab('empty struct with fields',@savejson,repmat(struct('a',1),0,1),'[]');
     test_jsonlab('empty string',@savejson,'','""','compact',1);
     test_jsonlab('string escape',@savejson,sprintf('jdata\n\b\ashall\tprevail\t"\"\\'),'"jdata\n\b\ashall\tprevail\t\"\"\\"');
     if(exist('string'))

@@ -139,12 +139,14 @@ if(num>1)  % struct array
        newitem=cell2mat(newitem);
     catch
     end
-else       % a single struct
+elseif(num==1) % a single struct
     names=fieldnames(item);
     newitem=struct;
     for i=1:length(names)
         newitem.(names{i})=obj2jd(item.(names{i}),varargin{:});
     end
+else
+    newitem=item;
 end
 
 %%-------------------------------------------------------------------------
