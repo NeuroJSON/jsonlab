@@ -244,6 +244,8 @@ function [data, mmap] = loadjson(fname,varargin)
                 else
                     [data{jsoncount},pos,index_esc] = parse_array(inputstr, pos, esc, index_esc,opt);
                 end
+            case char(65279) % skip unexpected character from PHP
+                pos = 2; 
             otherwise
                 pos=error_pos('Outer level structure must be an object or an array',inputstr,pos);
         end
