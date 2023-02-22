@@ -3,6 +3,7 @@ function key = jdatahash(data, algorithm, varargin)
 %    key = jdatahash(data)
 %        or
 %    key = jdatahash(data, algorithm)
+%    key = jdatahash(data, algorithm, 'param1', value1, ...)
 %
 %    computing the hash key for a string or a numeric array (data elements
 %    are serialized in the row-major order first)
@@ -12,14 +13,14 @@ function key = jdatahash(data, algorithm, varargin)
 %    input:
 %        data: a string or a numeric array
 %        algorithm: a string denoting the data hashing algorithm (case
-%              insensitive); default is 'sha256'; supported options include
+%              insensitive); default is 'sha-256'; supported options include
 %
-%        for both MATLAB/Octave: 'sha256' (default), 'sha1', 'md5'
-%        Octave-only: 'md2', 'md4', 'sha224', 'sha384', 'sha512'
+%        for both MATLAB/Octave: 'sha-256' (default), 'sha-1' ,'sha-384', 'sha-512', 'md2', 'md5'
+%        Octave-only: 'md4'
 %
 %    examples:
-%        jdatahash('neurojson')
-%        key = jdatahash('reusable data', 'md5')
+%        sha256key = jdatahash('neurojson')
+%        md5key = jdatahash('reusable data', 'md5')
 %
 %    license:
 %        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -37,8 +38,9 @@ end
 
 opt=varargin2struct(varargin{:});
 
-if(jsonopt(opt))
-data = permute(data, ndims(data):-1:1);
+if(jsonopt('rowmajor', 1, opt))
+    data = permute(data, ndims(data):-1:1);
+end
 
 if(isoctavemesh && exist('hash'))
     algorithm(algorithm=='-')=[];
