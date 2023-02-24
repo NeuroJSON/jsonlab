@@ -24,7 +24,7 @@ function run_jsonlab_test(tests)
 %
 
 if(nargin==0)
-    tests={'js','jso','bj','bjo','jmap','bmap'};
+    tests={'js','jso','bj','bjo','jmap','bmap','bugs'};
 end
 
 %%
@@ -344,4 +344,13 @@ if(ismember('bmap',tests))
         '[["$",[1,24]]]','compact',1);
     test_jsonlab('test multiple root objects with N padding',@savejson,loadbj([savebj({[1,2,3],struct('a',[4,5])}) 'NNN' savebj(struct('b',[4,5]))],'mmaponly',1,'mmapinclude','.b'),...
         '[["$1.b",[32,8]]]','compact',1);
+end
+
+%%
+if(ismember('bugs',tests))
+    fprintf(sprintf('%s\n',char(ones(1,79)*61)));
+    fprintf('Test bug fixes\n');
+    fprintf(sprintf('%s\n',char(ones(1,79)*61)));
+    test_jsonlab('simplify cell arrays mixing numbers and chars',@savejson,loadjson('[1,0,"-","L",900]'),'[1,0,"-","L",900]','compact',1);
+    test_jsonlab('simplify cell arrays with string elements',@savejson,loadjson('["j","s","o","n"]'),'["j","s","o","n"]','compact',1);
 end
