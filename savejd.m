@@ -64,7 +64,7 @@ end
 if(~exist('filename','var'))
     filename='.json';
 end
-if(regexpi(filename,'\.json$|\.jnii$|\.jdt$|\.jdat$|\.jmsh$|\.jnirs$'))
+if(regexpi(filename,'\.json$|\.jnii$|\.jdt$|\.jdat$|\.jmsh$|\.jnirs$|\.jbids$'))
     [varargout{1:nargout}]=savejson(varargin{:});
 elseif(regexpi(filename,'\.bjd$|\.bnii$|\.jdb$|\.jbat$|\.bmsh$|\.bnirs$'))
     [varargout{1:nargout}]=savebj(varargin{:});
