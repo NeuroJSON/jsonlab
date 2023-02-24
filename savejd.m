@@ -20,7 +20,7 @@ function varargout=savejd(varargin)
 %        obj: a MATLAB object (array, cell, cell array, struct, struct array,
 %             class instance).
 %        outputfile: the output file name to the hierarchical container file
-%                *.json,.jnii,.jdt,.jmsh,.jnirs: JSON/JData based data files, see https://neurojson.org/jdata/draft2
+%                *.json,.jnii,.jdt,.jmsh,.jnirs,.jbids: JSON/JData based data files, see https://neurojson.org/jdata/draft2
 %                *.bjd,.bnii,.jdb,.bmsh,.bnirs: binary JData (BJData) files, see https://neurojson.org/bjdata/draft2
 %                *.ubj: UBJSON-encoded files, see http://ubjson.org
 %                *.msgpack: MessagePack-encoded files, see http://msgpack.org
@@ -64,9 +64,9 @@ end
 if(~exist('filename','var'))
     filename='.json';
 end
-if(regexpi(filename,'\.json$|\.jnii$\.jdt$\.jdat$|\.jmsh$|\.jnirs$'))
+if(regexpi(filename,'\.json$|\.jnii$|\.jdt$|\.jdat$|\.jmsh$|\.jnirs$'))
     [varargout{1:nargout}]=savejson(varargin{:});
-elseif(regexpi(filename,'\.bjd$|\.bnii$\.jdb$\.jbat$|\.bmsh$|\.bnirs$'))
+elseif(regexpi(filename,'\.bjd$|\.bnii$|\.jdb$|\.jbat$|\.bmsh$|\.bnirs$'))
     [varargout{1:nargout}]=savebj(varargin{:});
 elseif(regexpi(filename,'\.ubj$'))
     [varargout{1:nargout}]=saveubjson(varargin{:});
@@ -85,5 +85,5 @@ elseif(regexpi(filename,'\.h5$|\.hdf5$|\.snirf$'))
     end
     [varargout{1:nargout}]=saveh5(varargin{2},filename, opt);
 else
-    error('file suffix must be one of .json,.jnii,.jdt,.jmsh,.jnirs,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf');
+    error('file suffix must be one of .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf');
 end
