@@ -8,7 +8,7 @@ function [data, mmap] = loadjson(fname,varargin)
 % matlab data structure with optional memory-map (mmap) table
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
-% created on 2011/09/09, including previous works from 
+% created on 2011/09/09, including previous works from
 %
 %         Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
 %            created on 2009/11/02
@@ -387,8 +387,8 @@ function [object, pos,index_esc, mmap] = parse_array(inputstr, pos, esc, index_e
     end
 
     if(varargin{1}.simplifycell)
-      if(iscell(object) && ~isempty(object) && (isnumeric(object{1}) || isstruct(object{1})) )
-          if(all(cellfun(@(e) isequal(size(object{1}), size(e)) , object(2:end))))
+      if(iscell(object) && ~isempty(object) && (all(cellfun(@isnumeric, object)) || all(cellfun(@isstruct, object))))
+          if(all(cellfun(@(e) isequal(size(object{1}), size(e)), object(2:end))))
               try
                   oldobj=object;
                   if(iscell(object) && length(object)>1 && ndims(object{1})>=2)
