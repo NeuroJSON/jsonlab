@@ -1,0 +1,52 @@
+name: JSONLab CI
+
+on: [push, pull_request]
+
+jobs:
+  octave_test:
+    name: Octave tests
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, windows-2019]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Install dependencies (Linux only)
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo apt-get update && sudo apt-get install -y octave
+      - name: Install dependencies (Windows only)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-5.2.0_1-w64-64.7z --output octave_5.2.7z
+          7z x octave_5.2.7z -ooctave -y
+          echo "$PWD/octave/octave-5.2.0-w64-64/mingw64/bin" >> $GITHUB_PATH
+      - name: Run octave test
+        run: |
+          octave-cli --version
+          octave-cli --eval "addpath(pwd);cd test;run_jsonlab_test"
+          octave-cli --eval "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest"
+
+  matlab_test:
+    name: MATLAB test
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-11, windows-2019]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v1
+      - name: Run MATLAB test
+        run: |
+          echo "addpath(pwd);cd test;run_jsonlab_test" | matlab -nojvm -nodesktop
+          echo "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest" | matlab -nojvm -nodesktop
