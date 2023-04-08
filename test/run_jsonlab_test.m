@@ -3,7 +3,7 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test
 %   or
 % run_jsonlab_test(tests)
-% run_jsonlab_test({'js','jso','bj','bjo'})
+% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','bugs'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -16,6 +16,9 @@ function run_jsonlab_test(tests)
 %         'jso': test savejson/loadjson special options
 %         'bj':  test savebj/loadbj
 %         'bjo': test savebj/loadbj special options
+%         'jmap': test jsonmmap features in loadjson
+%         'bmap': test jsonmmap features in loadbj
+%         'bugs': test specific bug fixes
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 

@@ -7,7 +7,7 @@ jobs:
     name: Octave tests
     strategy:
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, windows-2019]
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, macos-11, windows-2019]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -18,15 +18,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: 'recursive'
-      - name: Install dependencies (Linux only)
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install -y octave
-      - name: Install dependencies (Windows only)
-        if: ${{ runner.os == 'Windows' }}
+      - name: Install dependencies
         run: |
-          curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-5.2.0_1-w64-64.7z --output octave_5.2.7z
-          7z x octave_5.2.7z -ooctave -y
-          echo "$PWD/octave/octave-5.2.0-w64-64/mingw64/bin" >> $GITHUB_PATH
+          [[ "$RUNNER_OS" == "Linux" ]] && sudo apt-get update && sudo apt-get install -y octave
+          [[ "$RUNNER_OS" == "macOS" ]] && brew install octave
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-8.1.0-w64-64.7z --output octave_8.1.7z
+            7z x octave_8.1.7z -ooctave -y
+            echo "$PWD/octave/octave-8.1.0-w64-64/mingw64/bin" >> $GITHUB_PATH
+          fi
       - name: Run octave test
         run: |
           octave-cli --version

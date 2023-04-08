@@ -101,7 +101,7 @@ function [data, mmap] = loadbj(fname,varargin)
        fid = fopen(fname,'rb');
        string = fread(fid,jsonopt('MaxBuffer',inf,opt),'uint8=>char')';
        fclose(fid);
-    elseif(length(fname) && ~isempty(find(fname(1)=='[{SCHiUIulmLMhdDTFZN]')))
+    elseif(length(fname) && any(fname(1)=='[{SCHiUIulmLMhdDTFZN'))
        string=fname;
     else
        error_pos('input file does not exist or buffer is invalid');
