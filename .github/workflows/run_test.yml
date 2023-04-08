@@ -47,6 +47,10 @@ jobs:
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v1
       - name: Run MATLAB test
-        run: |
-          echo "addpath(pwd);cd test;run_jsonlab_test" | matlab -nojvm -nodesktop
-          echo "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest" | matlab -nojvm -nodesktop
+        uses: matlab-actions/run-command@v1
+        with:
+          command: addpath(pwd);cd test;run_jsonlab_test
+      - name: Run MATLAB examples
+        uses: matlab-actions/run-command@v1
+        with:
+          command: addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest
