@@ -11,9 +11,9 @@ function varargout=jsave(filename, varargin)
 % created on 2020/05/31
 %
 % input:
-%      fname: (optional) output file name; if not given, save to 'jamdata.jamm'
+%      fname: (optional) output file name; if not given, save to 'default.pmat'
 %           if fname has a '.json' or '.jdt' suffix, a text-based
-%           JSON/JData file will be created (slow); if the suffix is '.jamm' or
+%           JSON/JData file will be created (slow); if the suffix is '.pmat' or
 %           '.jdb', a Binary JData (https://github.com/NeuroJSON/bjdata/) file will be created.
 %      opt: (optional) a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs - the param string is equivallent
@@ -34,9 +34,9 @@ function varargout=jsave(filename, varargin)
 %      varlist: a list of variables loaded
 %
 % examples:
-%      jsave  % save all variables in the 'caller' workspace to jamdata.jamm
-%      jsave('mydat.jamm','vars', {'v1','v2',...}) % save selected variables
-%      jsave('mydat.jamm','compression','lzma')
+%      jsave  % save all variables in the 'caller' workspace to jamdata.pmat
+%      jsave('mydat.pmat','vars', {'v1','v2',...}) % save selected variables
+%      jsave('mydat.pmat','compression','lzma')
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -45,7 +45,7 @@ function varargout=jsave(filename, varargin)
 %
 
 if(nargin==0)
-    filename=[pwd filesep 'jamdata.jamm'];
+    filename=[pwd filesep 'default.pmat'];
 end
 
 opt=varargin2struct(varargin{:});

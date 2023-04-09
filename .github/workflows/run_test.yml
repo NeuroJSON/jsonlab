@@ -6,6 +6,7 @@ jobs:
   octave_test:
     name: Octave tests
     strategy:
+      # provided octave versions: ubuntu-20.04 = 5.2, ubuntu-22.04 = 6.4, macos-11 = 8.1, windows-2019 = 7.3
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, macos-11, windows-2019]
     runs-on: ${{ matrix.os }}
@@ -23,9 +24,9 @@ jobs:
           [[ "$RUNNER_OS" == "Linux" ]] && sudo apt-get update && sudo apt-get install -y octave
           [[ "$RUNNER_OS" == "macOS" ]] && brew install octave
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-8.1.0-w64-64.7z --output octave_8.1.7z
-            7z x octave_8.1.7z -ooctave -y
-            echo "$PWD/octave/octave-8.1.0-w64-64/mingw64/bin" >> $GITHUB_PATH
+            curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-7.3.0-w64-64.7z --output octave_7.3.0.7z
+            7z x octave_7.3.0.7z -ooctave -y
+            echo "$PWD/octave/octave-7.3.0-w64-64/mingw64/bin" >> $GITHUB_PATH
           fi
       - name: Run octave test
         run: |

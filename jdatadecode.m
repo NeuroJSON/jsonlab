@@ -476,7 +476,7 @@ function newdata=jdatadecode(data,varargin)
                 switch(lower(fext))
                     case {'.json','.jnii','.jdt','.jdat','.jmsh','.jnirs'}
                         newdata=loadjson(uripath, opt);
-                    case {'.bjd' ,'.bnii','.jdb','.jbat','.bmsh','.bnirs', '.jamm'}
+                    case {'.bjd' ,'.bnii','.jdb','.jbat','.bmsh','.bnirs', '.pmat'}
                         newdata=loadbj(uripath, opt);
                     case {'.ubj'}
                         newdata=loadubjson(uripath, opt);
