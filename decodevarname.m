@@ -39,7 +39,7 @@ elseif(nargin>1)
 end
 
 if(isunpack)
-    if(isempty(regexp(name,'0x([0-9a-fA-F]+)_','once')))
+    if(isempty(strfind(name, '0x')) || isempty(regexp(name,'0x([0-9a-fA-F]+)_','once')))
         return
     end
     if(exist('native2unicode','builtin'))

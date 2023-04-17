@@ -641,7 +641,7 @@ function newstr=unescapejsonstring(str)
         catch
         end
     end
-    if(~ischar(str))
+    if(~ischar(str) || isempty(find(str=='\', 1)))
         return;
     end
     escapechars={'\\','\"','\/','\a','\b','\f','\n','\r','\t','\v'};
