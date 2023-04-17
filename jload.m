@@ -13,9 +13,9 @@ function varargout=jload(filename, varargin)
 % created on 2020/05/31
 %
 % input:
-%      fname: (optional) input file name; if not given, load 'jamdata.jamm'
+%      fname: (optional) input file name; if not given, load 'default.pmat'
 %           if fname has a '.json' or '.jdt' suffix, a text-based
-%           JSON/JData file will be expected; if the suffix is '.jamm' or
+%           JSON/JData file will be expected; if the suffix is '.pmat' or
 %           '.jdb', a Binary JData file will be expected.
 %      opt: (optional) a struct to store parsing options, opt can be replaced by 
 %           a list of ('param',value) pairs - the param string is equivallent
@@ -41,10 +41,10 @@ function varargout=jload(filename, varargin)
 %               load the variables to the current workspace ('caller')
 %
 % examples:
-%      jload  % load all variables in jamdata.jamm to the 'caller' workspace 
-%      jload mydat.jamm
-%      jload('mydat.jamm','vars', {'v1','v2',...}) % load selected variables
-%      varlist=jload('mydat.jamm','simplifycell',1)
+%      jload  % load all variables in default.pmat to the 'caller' workspace 
+%      jload mydat.pmat
+%      jload('mydat.pmat','vars', {'v1','v2',...}) % load selected variables
+%      varlist=jload('mydat.pmat','simplifycell',1)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -53,7 +53,7 @@ function varargout=jload(filename, varargin)
 %
 
 if(nargin==0)
-    filename=[pwd filesep 'jamdata.jamm'];
+    filename=[pwd filesep 'default.pmat'];
 end
 
 opt=varargin2struct(varargin{:});

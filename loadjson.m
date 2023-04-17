@@ -514,7 +514,7 @@ end
 
 function [num, pos] = parse_number(inputstr, pos, varargin)
     currstr=inputstr(pos:min(pos+30,end));
-    [num, one, err, delta] = sscanf(currstr, '%f', 1);
+    [num, tmp, err, delta] = sscanf(currstr, '%f', 1);
     if ~isempty(err)
         pos=error_pos('Error reading number at position %d',inputstr,pos);
     end
@@ -529,7 +529,7 @@ function varargout = parse_value(inputstr, pos, esc, index_esc, varargin)
     end
     varargout{3}=index_esc;
     if(nargout>3)
-            varargout{4}={};
+        varargout{4}={};
     end
     switch(inputstr(pos))
         case '"'
@@ -600,7 +600,7 @@ function [object, pos, index_esc, mmap] = parse_object(inputstr, pos, esc, index
 		object(str)=val;
 	    else
 		object.(encodevarname(str,varargin{:}))=val;
-	    end
+            end
             [cc,pos]=next_char(inputstr,pos);
             if cc == '}'
                 break;

@@ -50,7 +50,8 @@ function str = encodevarname(str,varargin)
     if(exist('unicode2native','builtin'))
         str=regexprep(str,'([^0-9A-Za-z_])','_0x${sprintf(''%X'',unicode2native($1))}_');
     else
-        cpos=regexp(str,'[^0-9A-Za-z_]');
+        cpos=find(~ismember(str, ['0':'9','A':'Z','a':'z','_']));
+        %cpos=regexp(str,'[^0-9A-Za-z_]');
         if(isempty(cpos))
             return;
         end
