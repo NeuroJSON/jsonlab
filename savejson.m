@@ -533,7 +533,7 @@ else
     end
 end
 for e=1:len
-    if(strcmp('_ArrayZipData_',decodevarname(name,varargin{1}.unpackhex))==0 && ~isempty(find(item(e,:)=='\', 1)))
+    if(strcmp('_ArrayZipData_',decodevarname(name,varargin{1}.unpackhex))==0)
         val=escapejsonstring(item(e,:),varargin{:});
     else
         val=item(e,:);
