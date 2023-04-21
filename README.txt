@@ -274,7 +274,7 @@ III.Using JSONLab
 
 JSONLab provides a pair of functions, `loadjson` -- a JSON parser, and `savejson` -- 
 a MATLAB-to-JSON encoder, to read/write text-based JSON; it also provides
-three equivallent pairs -- `loadbj/savebj` for binary JData, `loadubjson/saveubjson`
+three equivalent pairs -- `loadbj/savebj` for binary JData, `loadubjson/saveubjson`
 for UBJSON and `loadmsgpack/savemsgpack` for MessagePack. The `load*` functions 
 for the 3 supported data formats share almost the same input parameter format,
 similarly for the 3 `save*` functions (`savejson/saveubjson/savemsgpack`).
@@ -561,7 +561,7 @@ The `loadjson.m` function was significantly modified from the earlier parsers
 
 * Nedialko Krouchev: http://www.mathworks.com/matlabcentral/fileexchange/25713
     created on 2009/11/02
-* François Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
+* Franï¿½ois Glineur: http://www.mathworks.com/matlabcentral/fileexchange/23393
     created on  2009/03/22
 * Joel Feenstra:
     http://www.mathworks.com/matlabcentral/fileexchange/20565
