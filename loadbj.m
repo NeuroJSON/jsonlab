@@ -49,7 +49,7 @@ function [data, mmap] = loadbj(fname,varargin)
 %                         flag to 1.
 %           UseMap [0|1]: if set to 1, loadbj uses a containers.Map to 
 %                         store map objects; otherwise use a struct object
-%           ObjectID [0|interger or list]: if set to a positive number, 
+%           ObjectID [0|integer or list]: if set to a positive number, 
 %                         it returns the specified JSON object by index 
 %                         in a multi-JSON document; if set to a vector,
 %                         it returns a list of specified objects.
@@ -74,11 +74,11 @@ function [data, mmap] = loadbj(fname,varargin)
 %      mmap: (optional) a cell array in the form of
 %           {{jsonpath1,[start,length]}, {jsonpath2,[start,length]}, ...}
 %           where jsonpath_i is a string in the form of JSONPath, and
-%           start is an integer referring to the offset from the begining
+%           start is an integer referring to the offset from the beginning
 %           of the stream, and length is the JSON object string length.
 %           For more details, please see the help section of loadjson.m
 %
-%           The format of the mmap table retruned from this function
+%           The format of the mmap table returned from this function
 %           follows the JSON-Mmap Specification Draft 1 [3] defined by the
 %           NeuroJSON project, see https://neurojson.org/jsonmmap/draft1/
 %

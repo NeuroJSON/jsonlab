@@ -27,7 +27,7 @@ savejson('',data2json)
 json2data=loadjson(ans)
 
 fprintf(1,'\n%%=================================================\n')
-fprintf(1,'%%  an ampty string \n')
+fprintf(1,'%%  an empty string \n')
 fprintf(1,'%%=================================================\n\n')
 
 data2json=''

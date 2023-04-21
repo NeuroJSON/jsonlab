@@ -11,7 +11,7 @@ MessagePack
 JData Workspace
  jload
  jsave
-JData Specificaton
+JData Specification
  jdatadecode
  jdataencode
 Interface

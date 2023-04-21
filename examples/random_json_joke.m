@@ -5,7 +5,7 @@ function jokes=random_json_joke(num, url)
 % to define linked JSON/binary JSON data using external files or URL on the
 % web. In the below example, the jokeapi.dev feed returns a JSON record via
 % RESTFul URL, the returned record contains a subfield called `joke`, which
-% can be retrieved via the JSONPath $.joke attched after the URL, separated
+% can be retrieved via the JSONPath $.joke attached after the URL, separated
 % by a colon. The general _DataLink_ URL is in the form of "URL:$jsonpath"
 
 if(nargin==0)

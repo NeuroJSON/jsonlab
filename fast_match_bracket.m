@@ -23,7 +23,7 @@ function [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
 %      endpos: if a matching bracket is found, return its position in the original 
 %              string
 %      maxlevel: return the depth of the enclosed brackets between the searched pair,
-%              includig the searching pair. For example, the matching closing-bracket 
+%              including the searching pair. For example, the matching closing-bracket 
 %              of the 1st square bracket (startpos=2) in  '[[[]],[]]' returns a 
 %              position of 9, with a maximum depth of 3; searching for the closing 
 %              bracket for the 2nd square bracket (startpos=3) returns a position of 

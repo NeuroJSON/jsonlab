@@ -54,7 +54,7 @@ JSONlab ChangeLog (key features marked by *):
  2020-05-15*[d88d454] jsonlab is compatible with matlab R2008
  2020-05-13 [86efe89] flag to prevent embedding ND array size specifier
  2020-05-07 [a189a50] use more robust integer type testing
- 2020-05-06*[82f5249] saveubjson now implments BJData spec Draft1,https://github.com/fangq/bjdata
+ 2020-05-06*[82f5249] saveubjson now implements BJData spec Draft1,https://github.com/fangq/bjdata
  2020-05-03 [34bca22] add prj file to compile a matlab package, close #60
  2020-05-03 [82dfdcc] handle empty array in loadmsgpack, fix #63, patch by stfnp
  2020-03-08 [7499bd8] Merge pull request #61 from j2L4e/patch-1
@@ -136,7 +136,7 @@ JSONlab ChangeLog (key features marked by *):
  2018-07-12 [e090f0a] fix octave warning for saveubjson
  2018-07-12*[34284c7] fix issues #34 #39 #44 and #45, support double-quoted strings
  2017-09-06 [474d8c8] Merge pull request #41 from dasantonym/master
- 2017-08-07*[38b24fb] added package.json to be able to intall via npm package manager, converted readme to utf-8, added basic .gitignore file
+ 2017-08-07*[38b24fb] added package.json to be able to install via npm package manager, converted readme to utf-8, added basic .gitignore file
  2017-07-19 [ae7a5d9] Merge pull request #40 from astorfi/master
  2017-07-17 [154ef61] Rename README.txt to README.rst
  2017-03-27 [31b5bdc] simplify condition flow in matching_bracket
@@ -171,7 +171,7 @@ JSONlab ChangeLog (key features marked by *):
  2015/05/05  make options case insensitive
  2015/05/01  reading unicode encoded json files (thanks to Sertan Senturk,Issue#3)
  2015/04/30  allow \uXXXX to represent a unicode in a string (Issue#2)
- 2015/03/30  save a 0x0 solid real empty array as null and handel empty struct array
+ 2015/03/30  save a 0x0 solid real empty array as null and handle empty struct array
  2015/03/30  properly handle escape characters in a string
  2015/01/24 *implement the UBJSON Draft12 new name format
  2015/01/13  correct cell array indentation inconsistency

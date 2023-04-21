@@ -375,7 +375,7 @@ try
     else
         propertynames = properties(item);
         for p = 1:numel(propertynames)
-            for o = numel(item):-1:1 % aray of objects
+            for o = numel(item):-1:1 % array of objects
                 newitem(o).(propertynames{p}) = item(o).(propertynames{p});
             end
         end

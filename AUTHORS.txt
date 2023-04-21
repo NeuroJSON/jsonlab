@@ -79,7 +79,7 @@ This toolbox contains patches submitted by the following contributors:
   (PR#40) Feature: Reformat README to README.rst
 
 - Anton <https://github.com/dasantonym>
-  (PR#41) Feature: Added package.json to be able to intall via npm package manager
+  (PR#41) Feature: Added package.json to be able to install via npm package manager
 
 - Paul Koprowski <https://github.com/pjkoprowski>
   (PR#55) Feature: Added Encoding option to loadjson and savejson.

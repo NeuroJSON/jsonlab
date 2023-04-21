@@ -23,7 +23,7 @@ function str = encodevarname(str,varargin)
 %              if the encoded variable name CAN NOT be longer than 63, i.e. 
 %              the maximum variable name specified by namelengthmax, and
 %              one uses the output of this function as a struct or variable
-%              name, the name will be trucated at 63. Please consider using
+%              name, the name will be truncated at 63. Please consider using
 %              the name as a containers.Map key, which does not have such
 %              limit.
 %

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #============================================================
-#  JSONLAB inline documentation to wiki convertor
+#  JSONLAB inline documentation to wiki converter
 #
 #  Author: Qianqian Fang <q.fang at neu.edu>
 #============================================================
