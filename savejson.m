@@ -68,7 +68,7 @@ function output=savejson(rootname,obj,varargin)
 %           JSONP [''|string]: to generate a JSONP output (JSON with padding),
 %                         for example, if opt.JSONP='foo', the JSON data is
 %                         wrapped inside a function call as 'foo(...);'
-%           UnpackHex [1|0]: conver the 0x[hex code] output by loadjson 
+%           UnpackHex [1|0]: convert the 0x[hex code] output by loadjson 
 %                         back to the string form
 %           SaveBinary [1|0]: 1 - save the JSON file in binary mode; 0 - text mode.
 %           Compact [0|1]: 1- out compact JSON format (remove all newlines and tabs)
@@ -81,7 +81,7 @@ function output=savejson(rootname,obj,varargin)
 %                         it to uint8 or int8 array first. The compressed
 %                         array uses three extra fields
 %                         "_ArrayZipType_": the opt.Compression value. 
-%                         "_ArrayZipSize_": a 1D interger array to
+%                         "_ArrayZipSize_": a 1D integer array to
 %                            store the pre-compressed (but post-processed)
 %                            array dimensions, and 
 %                         "_ArrayZipData_": the "base64" encoded
@@ -683,7 +683,7 @@ try
     else
             propertynames = properties(item);
             for p = 1:numel(propertynames)
-                for o = numel(item):-1:1 % aray of objects
+                for o = numel(item):-1:1 % array of objects
                     st(o).(propertynames{p}) = item(o).(propertynames{p});
                 end
             end
