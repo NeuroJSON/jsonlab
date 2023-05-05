@@ -705,7 +705,7 @@ try
     if numel(item) == 0 %empty object
         st = struct();
     elseif numel(item) == 1 %
-        txt = str2ubjson(name, char(item), level, varargin(:));
+        txt = str2ubjson(name, char(item), level, varargin{:});
         return
     else
             propertynames = properties(item);
@@ -717,7 +717,7 @@ try
     end
     txt = struct2ubjson(name,st,level,varargin{:});
 catch
-    txt = any2ubjson(name,item, level, varargin(:));
+    txt = any2ubjson(name,item, level, varargin{:});
 end
 
 %%-------------------------------------------------------------------------
