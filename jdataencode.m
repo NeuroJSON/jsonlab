@@ -314,12 +314,16 @@ if(varargin{1}.usearrayzipsize==0 && isfield(newitem,N('_ArrayZipSize_')))
 end
 
 if(~isempty(zipmethod) && numel(item)>minsize)
-    compfun=str2func([zipmethod 'encode']);
+    compfun=str2func([regexprep(zipmethod,'blosc2[a-z0-9]+','blosc2') 'encode']);
     newitem.(N('_ArrayZipType_'))=lower(zipmethod);
     if(~isfield(newitem,N('_ArrayZipSize_')))
         newitem.(N('_ArrayZipSize_'))=size(newitem.(N('_ArrayData_')));
     end
-    newitem.(N('_ArrayZipData_'))=compfun(typecast(newitem.(N('_ArrayData_'))(:).','uint8'));
+    if(strcmp(zipmethod,'blosc2'))
+        newitem.(N('_ArrayZipData_'))=compfun(typecast(newitem.(N('_ArrayData_'))(:).','uint8'), zipmethod);
+    else
+        newitem.(N('_ArrayZipData_'))=compfun(typecast(newitem.(N('_ArrayData_'))(:).','uint8'));
+    end
     newitem=rmfield(newitem,N('_ArrayData_'));
     if(varargin{1}.base64)
         newitem.(N('_ArrayZipData_'))=char(base64encode(newitem.(N('_ArrayZipData_'))));
