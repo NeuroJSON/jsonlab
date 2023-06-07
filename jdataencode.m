@@ -118,6 +118,8 @@ elseif(isa(item,'table'))
     newitem=table2jd(item,varargin{:});
 elseif(isa(item,'digraph') || isa(item,'graph'))
     newitem=graph2jd(item,varargin{:});
+elseif(isa(item, 'JsonNull'))
+    newitem=item;
 elseif(isobject(item))
     newitem=matlabobject2jd(item,varargin{:});
 else
