@@ -301,6 +301,8 @@ elseif (isa(item, 'table'))
     txt = matlabtable2json(name, item, level, varargin{:});
 elseif (isa(item, 'graph') || isa(item, 'digraph'))
     txt = struct2json(name, jdataencode(item), level, varargin{:});
+elseif (isa(item, "JsonNull"))
+    txt = null2json(name, level, varargin{:});
 elseif (isobject(item))
     txt = matlabobject2json(name, item, level, varargin{:});
 else
@@ -512,6 +514,18 @@ txt(end + 1:end + 3) = {nl, padding0, '}'};
 txt = sprintf('%s', txt{:});
 
 %% -------------------------------------------------------------------------
+function txt = null2json(name, level, varargin)
+txt = {};
+ws = varargin{1}.whitespaces_;
+padding1 = repmat(ws.tab, 1, level);
+
+obj = ['"' decodevarname(name, varargin{1}.unpackhex) '": null'];
+if (isempty(name))
+    obj = 'null';
+end
+txt(end + 1:end + 2) = {padding1, obj};
+txt = sprintf('%s', txt{:});
+
 function txt = str2json(name, item, level, varargin)
 txt = {};
 if (~ischar(item))
