@@ -53,6 +53,8 @@ function output = savejson(rootname, obj, varargin)
 %           SingletCell  [1|0]: if 1, always enclose a cell with "[]"
 %                         even it has only one element; if 0, brackets
 %                         are ignored when a cell has only 1 element.
+%           EmptyArrayAsNull  [0|1]: if set to 1, convert an empty array to
+%                         JSON null object; empty cells remain mapped to []
 %           ForceRootName [0|1]: when set to 1 and rootname is empty, savejson
 %                         will use the name of the passed obj variable as the
 %                         root object name; if obj is an expression and
@@ -157,6 +159,7 @@ opt.unpackhex = jsonopt('UnpackHex', 1, opt);
 opt.arraytostruct = jsonopt('ArrayToStruct', 0, opt);
 opt.parselogical = jsonopt('ParseLogical', 0, opt);
 opt.arrayindent = jsonopt('ArrayIndent', 1, opt);
+opt.emptyarrayasnull = jsonopt('EmptyArrayAsNull', 0, opt);
 opt.inf = jsonopt('Inf', '"$1_Inf_"', opt);
 opt.nan = jsonopt('NaN', '"_NaN_"', opt);
 opt.num2cell_ = 0;
@@ -313,10 +316,8 @@ txt = {};
 if (~iscell(item) && ~isa(item, 'string'))
     error('input is not a cell or string array');
 end
-if (isa(item, 'string'))
-    level = level - 1;
-end
 isnum2cell = varargin{1}.num2cell_;
+
 if (isnum2cell)
     item = squeeze(item);
     if (~isvector(item))
@@ -325,10 +326,6 @@ if (isnum2cell)
 end
 
 dim = size(item);
-% if(ndims(squeeze(item))>2) % for 3D or higher dimensions, flatten to 2D for now
-%     item=reshape(item,dim(1),numel(item)/dim(1));
-%     dim=size(item);
-% end
 len = numel(item);
 ws = varargin{1}.whitespaces_;
 padding0 = repmat(ws.tab, 1, level);
@@ -741,7 +738,11 @@ else
 end
 
 if (isempty(mat))
-    txt = '[]';
+    if(varargin{1}.emptyarrayasnull)
+        txt='null';
+    else
+        txt = '[]';
+    end
     return
 end
 if (isinteger(mat))

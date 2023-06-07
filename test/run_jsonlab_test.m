@@ -157,6 +157,7 @@ if(ismember('jso',tests))
     test_jsonlab('output float format',@savejson,pi,'[3.142]','FloatFormat','%5.3f');
     test_jsonlab('remove singlet array',@savejson,{struct('a',1),5},'[{"a":1},5]','compact',1,'SingletArray',0);
     test_jsonlab('keep singlet array',@savejson,{struct('a',1),5},'[[{"a":[1]}],[5]]','compact',1,'SingletArray',1);
+    test_jsonlab('make null object roundtrip',@savejson,loadjson('{"a":null}'),'{"a":null}','EmptyArrayAsNull',1,'compact',1);
     test_jsonlab('test no datalink',@savejson,loadjson(savejson('a',struct(encodevarname('_DataLink_'),...
             '../examples/example2.json:$.glossary.title'))),'{"a":[{"_DataLink_":"../examples/example2.json:$.glossary.title"}]}','compact',1,'SingletArray',1);
     test_jsonlab('test maxlinklevel',@savejson,loadjson(savejson('a',struct(encodevarname('_DataLink_'),...
