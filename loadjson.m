@@ -558,7 +558,7 @@ function varargout = parse_value(inputstr, pos, esc, index_esc, varargin)
             end
         case 'n'
             if pos+3 <= len && strcmpi(inputstr(pos:pos+3), 'null')
-                varargout{1} = [];
+                varargout{1} = JsonNull;
                 varargout{2} = pos + 4;
                 return;
             end
