@@ -494,9 +494,9 @@ end
 
 for i = 1:dim(1)
     if (isempty(names{i}))
-        txt{end + 1} = obj2json('x0x0_', val{i}, level + (dim(1) > 1), varargin{:});
+        txt{end + 1} = obj2json('x0x0_', val{i}, level + 1, varargin{:});
     else
-        txt{end + 1} = obj2json(names{i}, val{i}, level + (dim(1) > 1), varargin{:});
+        txt{end + 1} = obj2json(names{i}, val{i}, level + 1, varargin{:});
     end
     if (i < length(names))
         txt{end + 1} = ',';
