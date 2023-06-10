@@ -5,7 +5,7 @@ function varargout = lz4decode(varargin)
 % output = lz4decode(input,info)
 %
 % Decompressing an LZ4-compressed byte-stream to recover the original data
-% This function depends on the ZMat toolbox (http://github.com/fangq/zmat)
+% This function depends on the ZMat toolbox (http://github.com/NeuroJSON/zmat)
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 %
@@ -39,5 +39,5 @@ if(exist('zmat','file')==2 || exist('zmat','file')==3)
         [varargout{1:nargout}]=zmat(varargin{1},0,'lz4',varargin{2:end});
     end
 else
-    error('you must install ZMat toolbox to use this feature: http://github.com/fangq/zmat')
+    error('you must install ZMat toolbox to use this feature: http://github.com/NeuroJSON/zmat')
 end

@@ -223,7 +223,7 @@ MATLAB will execute this file every time it starts. For Octave, the file
 you need to edit is ``~/.octaverc``, where ``~`` is your home directory.
 
 To use the data compression features, please download the ZMat toolbox from
-https://github.com/fangq/zmat/releases/latest and follow the instruction to
+https://github.com/NeuroJSON/zmat/releases/latest and follow the instruction to
 install ZMat first. The ZMat toolbox is required when compression is used on 
 MATLAB running in the ``-nojvm`` mode or GNU Octave, or 'lzma/lzip/lz4/lz4hc' 
 compression methods are specified. ZMat can also compress large arrays that 

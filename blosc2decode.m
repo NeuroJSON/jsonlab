@@ -6,7 +6,7 @@ function varargout = blosc2decode(varargin)
 % output = blosc2decode(input,info)
 %
 % Decompressing an blosc2-compressed byte-stream to recover the original data
-% This function depends on the ZMat toolbox (http://github.com/fangq/zmat)
+% This function depends on the ZMat toolbox (http://github.com/NeuroJSON/zmat)
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 %

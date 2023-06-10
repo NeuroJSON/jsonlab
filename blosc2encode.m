@@ -6,7 +6,7 @@ function varargout = blosc2encode(varargin)
 %
 % Compress a string or a numerical array using LZ4-compression
 %
-% This function depends on the ZMat toolbox (http://github.com/fangq/zmat)
+% This function depends on the ZMat toolbox (http://github.com/NeuroJSON/zmat)
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 %

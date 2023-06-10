@@ -6,7 +6,7 @@ function varargout = lzmaencode(varargin)
 %
 % Compress a string or a numerical array using LZMA-compression
 %
-% This function depends on the ZMat toolbox (http://github.com/fangq/zmat)
+% This function depends on the ZMat toolbox (http://github.com/NeuroJSON/zmat)
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 %
@@ -35,5 +35,5 @@ if(exist('zmat','file')==2 || exist('zmat','file')==3)
     [varargout{1:nargout}]=zmat(varargin{1}, 1,'lzma',varargin{2:end});
     return;
 else
-    error('you must install ZMat toolbox to use this feature: http://github.com/fangq/zmat')
+    error('you must install ZMat toolbox to use this feature: http://github.com/NeuroJSON/zmat')
 end

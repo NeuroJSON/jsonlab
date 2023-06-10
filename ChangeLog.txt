@@ -100,7 +100,7 @@ JSONlab ChangeLog (key features marked by *):
  2019-06-01 [f421b14] add a modified msgpack decoder based on Bastian Bechtold's transplant project
  2019-05-31 [428b47f] fix savemsgpack input test
  2019-05-31 [0ff5d47] support table in ubjson,add demo for handles,containers.Map and datetime and tables
- 2019-05-31*[0c467ee] support lzma and lzip compression decompression via zmat toolbox (http://github.com/fangq/zmat)
+ 2019-05-31*[0c467ee] support lzma and lzip compression decompression via zmat toolbox (http://github.com/NeuroJSON/zmat)
  2019-05-31 [599ee4c] support categorical data
  2019-05-31 [15c4b8d] completely remove global var using nested functions
  2019-05-30*[d47be45] fast bracket matching

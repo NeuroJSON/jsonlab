@@ -4,7 +4,7 @@ function output = base64decode(varargin)
 %
 % Decoding a Base64-encoded byte-stream to recover the original data
 % This function depends on JVM in MATLAB or, can optionally use the ZMat 
-% toolbox (http://github.com/fangq/zmat)
+% toolbox (http://github.com/NeuroJSON/zmat)
 %
 % Copyright (c) 2012, Kota Yamaguchi
 % URL: https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
@@ -34,7 +34,7 @@ if(exist('zmat','file')==2 || exist('zmat','file')==3)
     output=zmat(varargin{1},0,'base64');
     return;
 elseif(isoctavemesh)
-    error('You must install the ZMat toolbox (http://github.com/fangq/zmat) to use this function in Octave');
+    error('You must install the ZMat toolbox (http://github.com/NeuroJSON/zmat) to use this function in Octave');
 end
 
 error(javachk('jvm'));

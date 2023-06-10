@@ -5,7 +5,7 @@ function varargout = base64encode(varargin)
 % Encoding a binary vector or array using Base64
 %
 % This function depends on JVM in MATLAB or, can optionally use the ZMat 
-% toolbox (http://github.com/fangq/zmat)
+% toolbox (http://github.com/NeuroJSON/zmat)
 %
 % Copyright (c) 2012, Kota Yamaguchi
 % URL: https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
