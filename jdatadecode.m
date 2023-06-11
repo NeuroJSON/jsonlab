@@ -483,11 +483,11 @@ function newdata=jdatadecode(data,varargin)
                     case {'.json','.jnii','.jdt','.jdat','.jmsh','.jnirs'}
                         newdata=loadjson(uripath, opt);
                     case {'.bjd' ,'.bnii','.jdb','.jbat','.bmsh','.bnirs', '.pmat'}
-                        newdata=loadbj(uripath, opt);
+                        newdata=loadbj(uripath, opt, 'Base64', 0);
                     case {'.ubj'}
-                        newdata=loadubjson(uripath, opt);
+                        newdata=loadubjson(uripath, opt, 'Base64', 0);
                     case {'.msgpack'}
-                        newdata=loadmsgpack(uripath, opt);
+                        newdata=loadmsgpack(uripath, opt, 'Base64', 0);
                     case {'.h5','.hdf5','.snirf'}  % this requires EasyH5 toolbox
                         newdata=loadh5(uripath, opt);
                     otherwise
