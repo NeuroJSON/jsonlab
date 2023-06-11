@@ -90,7 +90,7 @@ function output = savejson(rootname, obj, varargin)
 %                             compressed binary array data.
 %           CompressArraySize [100|int]: only to compress an array if the total
 %                         element count is larger than this number.
-%           CompressStringSize [400|int]: only to compress a string if the total
+%           CompressStringSize [inf|int]: only to compress a string if the total
 %                         element count is larger than this number.
 %           FormatVersion [3|float]: set the JSONLab output version; since
 %                         v2.0, JSONLab uses JData specification Draft 1
@@ -152,7 +152,7 @@ opt.singletcell = jsonopt('SingletCell', 1, opt);
 opt.singletarray = jsonopt('SingletArray', 0, opt);
 opt.formatversion = jsonopt('FormatVersion', 3, opt);
 opt.compressarraysize = jsonopt('CompressArraySize', 100, opt);
-opt.compressstringsize = jsonopt('CompressStringSize', opt.compressarraysize * 4, opt);
+opt.compressstringsize = jsonopt('CompressStringSize', inf, opt);
 opt.intformat = jsonopt('IntFormat', '%.0f', opt);
 opt.floatformat = jsonopt('FloatFormat', '%.16g', opt);
 opt.unpackhex = jsonopt('UnpackHex', 1, opt);
@@ -246,6 +246,10 @@ end
 jsonp = jsonopt('JSONP', '', opt);
 if (~isempty(jsonp))
     json = sprintf('%s(%s);%s', jsonp, json, nl);
+end
+
+if(jsonopt('UTF8', 1, opt) && exist('unicode2native'))
+    json= unicode2native(json);
 end
 
 % save to a file if FileName is set, suggested by Patrick Rapin
