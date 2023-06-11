@@ -101,6 +101,8 @@ function [data, mmap] = loadbj(fname,varargin)
        fid = fopen(fname,'rb');
        string = fread(fid,jsonopt('MaxBuffer',inf,opt),'uint8=>char')';
        fclose(fid);
+    elseif(regexpi(fname,'^\s*(http|https|ftp|file)://'))
+       string = char(webread(fname, weboptions('ContentType','binary')))';
     elseif(length(fname) && any(fname(1)=='[{SCHiUIulmLMhdDTFZN'))
        string=fname;
     else
@@ -183,7 +185,7 @@ function [data, mmap] = loadbj(fname,varargin)
         catch ME
             warning(['Failed to decode embedded JData annotations, '...
                 'return raw JSON data\n\njdatadecode error: %s\n%s\nCall stack:\n%s\n'], ...
-                ME.identifier, ME.message, savejson('',ME.stack));
+                ME.identifier, ME.message, char(savejson('',ME.stack)));
         end
     end
     if(mmaponly)
@@ -458,7 +460,7 @@ function pos=error_pos(msg, inputstr, pos)
     end
     msg = [sprintf(msg, pos) ': ' ...
     inputstr(poShow(1):poShow(2)) '<error>' inputstr(poShow(3):poShow(4)) ];
-    error( ['JSONLAB:BJData:InvalidFormat: ' msg] );
+    error('JSONLAB:BJData:InvalidFormat', msg);
 end
 
 %%-------------------------------------------------------------------------

@@ -274,7 +274,7 @@ function [data, mmap] = loadjson(fname,varargin)
         catch ME
             warning(['Failed to decode embedded JData annotations, '...
                 'return raw JSON data\n\njdatadecode error: %s\n%s\nCall stack:\n%s\n'], ...
-                ME.identifier, ME.message, savejson('',ME.stack));
+                ME.identifier, ME.message, char(savejson('',ME.stack)));
         end
     end
     if(opt.mmaponly)
@@ -620,7 +620,7 @@ function pos=error_pos(msg, inputstr, pos)
     end
     msg = [sprintf(msg, pos) ': ' ...
     inputstr(poShow(1):poShow(2)) '<error>' inputstr(poShow(3):poShow(4)) ];
-    error( ['JSONLAB:JSON:InvalidFormat: ' msg] );
+    error('JSONLAB:JSON:InvalidFormat', msg);
 end
 
 %%-------------------------------------------------------------------------

@@ -92,7 +92,7 @@ function output=savebj(rootname,obj,varargin)
 %                            'base64' encoding
 %          CompressArraySize [100|int]: only to compress an array if the total 
 %                         element count is larger than this number.
-%          CompressStringSize [400|int]: only to compress a string if the total 
+%          CompressStringSize [inf|int]: only to compress a string if the total 
 %                         element count is larger than this number.
 %          MessagePack [0|1]: output MessagePack (https://msgpack.org/)
 %                         binary stream instead of BJD/UBJSON
@@ -172,7 +172,7 @@ opt.compression=jsonopt('Compression','',opt);
 opt.nestarray=jsonopt('NestArray',0,opt);
 opt.formatversion=jsonopt('FormatVersion',2,opt);
 opt.compressarraysize=jsonopt('CompressArraySize',100,opt);
-opt.compressstringsize=jsonopt('CompressStringSize',opt.compressarraysize*4,opt);
+opt.compressstringsize=jsonopt('CompressStringSize',inf,opt);
 opt.singletcell=jsonopt('SingletCell',1,opt);
 opt.singletarray=jsonopt('SingletArray',0,opt);
 opt.arraytostruct=jsonopt('ArrayToStruct',0,opt);
