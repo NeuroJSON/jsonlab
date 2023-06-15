@@ -248,13 +248,13 @@ if (~isempty(jsonp))
     json = sprintf('%s(%s);%s', jsonp, json, nl);
 end
 
-if(jsonopt('UTF8', 1, opt) && exist('unicode2native'))
-    json= unicode2native(json);
-end
-
 % save to a file if FileName is set, suggested by Patrick Rapin
 filename = jsonopt('FileName', '', opt);
 if (~isempty(filename))
+    if(jsonopt('UTF8', 1, opt) && exist('unicode2native'))
+        json= unicode2native(json);
+    end
+
     encoding = jsonopt('Encoding', '', opt);
     endian = jsonopt('Endian', 'n', opt);
     mode = 'w';
