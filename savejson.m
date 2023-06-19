@@ -251,7 +251,7 @@ end
 % save to a file if FileName is set, suggested by Patrick Rapin
 filename = jsonopt('FileName', '', opt);
 if (~isempty(filename))
-    if(jsonopt('UTF8', 1, opt) && exist('unicode2native'))
+    if(jsonopt('UTF8', 1, opt) && exist('unicode2native', 'builtin'))
         json= unicode2native(json);
     end
 

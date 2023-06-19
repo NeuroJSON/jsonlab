@@ -101,7 +101,7 @@ function [data, mmap] = loadbj(fname,varargin)
        fid = fopen(fname,'rb');
        string = fread(fid,jsonopt('MaxBuffer',inf,opt),'uint8=>char')';
        fclose(fid);
-    elseif(all(fname<128) && regexpi(fname,'^\s*(http|https|ftp|file)://'))
+    elseif(all(fname<128) && ~isempty(regexpi(fname,'^\s*(http|https|ftp|file)://')))
        string = char(webread(fname, weboptions('ContentType','binary')))';
     elseif(~isempty(fname) && any(fname(1)=='[{SCHiUIulmLMhdDTFZN'))
        string=fname;
