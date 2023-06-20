@@ -57,6 +57,8 @@ if(ismember('js',tests))
     test_jsonlab('empty name',@savejson,loadjson('{"":""}'),'{"":""}','compact',1);
     if(exist('containers.Map'))
         test_jsonlab('empty name with map',@savejson,loadjson('{"":""}','usemap',1),'{"":""}','compact',1);
+        test_jsonlab('indentation',@savejson,savejson(containers.Map({'a','b'},{[],struct('c',1.1,'d',struct('e',{1,2}))})),...
+         '"{\n\t\"a\":[],\n\t\"b\":{\n\t\t\"c\":1.1,\n\t\t\"d\":[\n\t\t\t{\n\t\t\t\t\"e\":1\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"e\":2\n\t\t\t}\n\t\t]\n\t}\n}\n"');
     end
     test_jsonlab('row vector',@savejson,[1,2,3],'[1,2,3]');
     test_jsonlab('column vector',@savejson,[1;2;3],'[[1],[2],[3]]','compact',1);
@@ -95,7 +97,7 @@ if(ismember('js',tests))
     else
         test_jsonlab('encoded fieldnames without decoding',@savejson,struct(encodevarname('_i'),1,encodevarname('i_'),'str'),...
              '{"x0x5F_i":1,"i_":"str"}','compact',1,'UnpackHex',0);
-    end       
+    end
     if(exist('containers.Map'))
          test_jsonlab('containers.Map',@savejson,containers.Map({'Andy','^_^'},{true,'-_-'}),...
              '{"Andy":true,"^_^":"-_-"}','compact',1,'usemap',1);
