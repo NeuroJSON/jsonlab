@@ -49,6 +49,22 @@ if(nargin==0)
 end
 
 opt=varargin2struct(varargin{:});
+if(~isfield(opt,'nthread'))
+    opt.nthread=4;
+end
+if(~isfield(opt,'compression'))
+    if(exist('zipmat'))
+        opt.compression='blosc2zstd';
+    else
+        opt.compression='zlib';
+    end
+end
+if(~isfield(opt,'shuffle'))
+    opt.shuffle=1;
+end
+if(~isfield(opt,'typesize'))
+    opt.typesize=4;
+end
 
 ws=jsonopt('ws','caller',opt);
 
@@ -90,21 +106,12 @@ for i=1:length(varlist)
     body.(varlist{i})=evalin(ws,varlist{i});
 end
 
-savefun=@savebj;
-loadfun=@loadbj;
-if(regexp(filename,'\.[jJ][sS][oO][nN]$'))
-    savefun=@savejson;
-    loadfun=@loadjson;
-elseif(regexp(filename,'\.[jJ][dD][tT]$'))
-    savefun=@savejson;
-    loadfun=@loadjson;
-elseif(regexp(filename,'\.[mM][sS][gG][pP][kK]$'))
-    savefun=@savemsgpack;
-end
-
 if(nargout==1)
     varargout{1}=header;
 end
+
+defaultopt={'compression',opt.compression,'nthread',opt.nthread,...
+    'shuffle',opt.shuffle,'typesize',opt.typesize,'keeptype',1,'array2struct',1};
 
 if(jsonopt('matlab',0,opt) && exist('jsonencode','builtin'))
     if(isempty(regexp(filename,'\.[jJ][sS][oO][nN]$', 'once')))
@@ -115,8 +122,7 @@ if(jsonopt('matlab',0,opt) && exist('jsonencode','builtin'))
     clear output;
 
     output.WorkspaceData=jdataencode(body,'AnnotateArray',1,'base64',1,...
-       'Compression','zlib','UseArrayZipSize',1,'MapAsStruct',1,...
-       'prefix','x',varargin{:});
+       'UseArrayZipSize',1,'MapAsStruct',1,'prefix','x',defaultopt{:},varargin{:});
     bodyjson=jsonencode(output);
     clear output;
 
@@ -126,15 +132,15 @@ if(jsonopt('matlab',0,opt) && exist('jsonencode','builtin'))
     fwrite(fid,bodyjson);
     fclose(fid);
 elseif(jsonopt('usemmap',0,opt)==1)
-    bodyjson=savefun('WorkspaceData',body,...
-        'compression','zlib','keeptype',1,'array2struct',1,varargin{:});
-    header.(encodevarname('_MMap_'))=loadfun(bodyjson,'mmaponly',1,varargin{:});
-    savefun('WorkspaceHeader',header,'filename',filename,varargin{:});
+    bodyjson=savejd('WorkspaceData',body,...
+        defaultopt{:},varargin{:});
+    header.(encodevarname('_MMap_'))=loadjd(bodyjson,'mmaponly',1,varargin{:});
+    savejd('WorkspaceHeader',header,'filename',filename,varargin{:});
     fid=fopen(filename,'ab+');
     fwrite(fid,bodyjson);
     fclose(fid);
 else
-    savefun('WorkspaceHeader',header,'filename',filename,varargin{:});
-    savefun('WorkspaceData',body,'filename',filename,'append',1,...
-        'compression','zlib','keeptype',1,'array2struct',1,varargin{:});
+    savejd('WorkspaceHeader',header,'filename',filename,varargin{:});
+    savejd('WorkspaceData',body,'filename',filename,'append',1,...
+        defaultopt{:},varargin{:});
 end

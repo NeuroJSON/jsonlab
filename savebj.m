@@ -656,8 +656,14 @@ else
         cid=I_(uint32(max(size(fulldata))),varargin{:});
         txt=[txt, N_('_ArrayZipSize_',opt),I_a(size(fulldata),cid(1),varargin{:})];
         txt=[txt, N_('_ArrayZipType_',opt),S_(dozip,opt)];
-	compfun=str2func([dozip 'encode']);
-	txt=[txt,N_('_ArrayZipData_',opt), I_a(compfun(typecast(fulldata(:),'uint8')),Imarker(1),varargin{:})];
+        encodeparam={};
+        if(~isempty(regexp(dozip,'^blosc2', 'once')))
+            compfun=@blosc2encode;
+            encodeparam={dozip, 'nthread', jsonopt('nthread',1,opt), 'shuffle', jsonopt('shuffle',1,opt), 'typesize', jsonopt('typesize',length(typecast(fulldata(1),'uint8')),opt)};
+        else
+            compfun=str2func([dozip 'encode']);
+        end
+        txt=[txt,N_('_ArrayZipData_',opt), I_a(compfun(typecast(fulldata(:),'uint8'),encodeparam{:}),Imarker(1),varargin{:})];
         childcount=childcount+3;
     else
         if(ismsgpack)

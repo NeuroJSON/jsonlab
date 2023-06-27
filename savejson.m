@@ -565,25 +565,26 @@ function txt = mat2json(name, item, level, varargin)
 if (~isnumeric(item) && ~islogical(item) && ~ischar(item))
     error('input is not an array');
 end
-ws = varargin{1}.whitespaces_;
+opt=varargin{1};
+ws = opt.whitespaces_;
 padding1 = repmat(ws.tab, 1, level);
 padding0 = repmat(ws.tab, 1, level + 1);
 nl = ws.newline;
 sep = ws.sep;
 
-dozip = varargin{1}.compression;
-zipsize = varargin{1}.compressarraysize;
-format = varargin{1}.formatversion;
-isnest = varargin{1}.nestarray;
+dozip = opt.compression;
+zipsize = opt.compressarraysize;
+format = opt.formatversion;
+isnest = opt.nestarray;
 
-if (~varargin{1}.nosubstruct_ && (((isnest == 0) && length(size(item)) > 2) || issparse(item) || ~isreal(item) || ...
-                                  (isempty(item) && any(size(item))) || varargin{1}.arraytostruct || (~isempty(dozip) && numel(item) > zipsize)))
+if (~opt.nosubstruct_ && (((isnest == 0) && length(size(item)) > 2) || issparse(item) || ~isreal(item) || ...
+                                  (isempty(item) && any(size(item))) || opt.arraytostruct || (~isempty(dozip) && numel(item) > zipsize)))
     if (isempty(name))
         txt = sprintf('%s{%s%s"_ArrayType_":"%s",%s%s"_ArraySize_":%s,%s', ...
                       padding1, nl, padding0, class(item), nl, padding0, regexprep(mat2str(size(item)), '\s+', ','), nl);
     else
         txt = sprintf('%s"%s":{%s%s"_ArrayType_":"%s",%s%s"_ArraySize_":%s,%s', ...
-                      padding1, decodevarname(name, varargin{1}.unpackhex), nl, padding0, class(item), nl, padding0, regexprep(mat2str(size(item)), '\s+', ','), nl);
+                      padding1, decodevarname(name, opt.unpackhex), nl, padding0, class(item), nl, padding0, regexprep(mat2str(size(item)), '\s+', ','), nl);
     end
 else
     numtxt = matdata2json(item, level + 1, varargin{:});
@@ -591,9 +592,9 @@ else
         txt = sprintf('%s%s', padding1, numtxt);
     else
         if (numel(item) == 1 && varargin{1}.singletarray == 0)
-            txt = sprintf('%s"%s":%s', padding1, decodevarname(name, varargin{1}.unpackhex), numtxt);
+            txt = sprintf('%s"%s":%s', padding1, decodevarname(name, opt.unpackhex), numtxt);
         else
-            txt = sprintf('%s"%s":%s', padding1, decodevarname(name, varargin{1}.unpackhex), numtxt);
+            txt = sprintf('%s"%s":%s', padding1, decodevarname(name, opt.unpackhex), numtxt);
         end
     end
     return
@@ -659,8 +660,14 @@ else
         end
         txt = sprintf(dataformat, txt, padding0, '"_ArrayZipSize_":', regexprep(mat2str(size(fulldata)), '\s+', ','), sep);
         txt = sprintf(dataformat, txt, padding0, '"_ArrayZipType_":"', dozip, ['"' sep]);
-        compfun = str2func([dozip 'encode']);
-        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipData_":"', char(base64encode(compfun(typecast(fulldata(:), 'uint8')))), ['"' nl]);
+        encodeparam={};
+        if(~isempty(regexp(dozip,'^blosc2', 'once')))
+            compfun=@blosc2encode;
+            encodeparam={dozip, 'nthread', jsonopt('nthread',1,opt), 'shuffle', jsonopt('shuffle',1,opt), 'typesize', jsonopt('typesize',length(typecast(fulldata(1),'uint8')),opt)};
+        else
+            compfun=str2func([dozip 'encode']);
+        end
+        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipData_":"', char(base64encode(compfun(typecast(fulldata(:), 'uint8'),encodeparam{:}))), ['"' nl]);
     else
         if (isreal(item))
             txt = sprintf(dataformat, txt, padding0, '"_ArrayData_":', ...
