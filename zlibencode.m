@@ -54,5 +54,5 @@ zlib.close();
 varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
 
 if(nargout>1)
-    varargout{2}=struct('type',class(varargin{1}),'size',size(varargin{1}),'method','gzip','status',0);
+    varargout{2}=struct('type',class(varargin{1}),'size',size(varargin{1}),'method','zlib','status',0);
 end
