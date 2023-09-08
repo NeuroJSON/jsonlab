@@ -16,7 +16,7 @@ function varargout = loadubjson(varargin)
 %             be read, otherwise, this function will attempt to parse the
 %             string in fname as a UBJSON stream
 %      opt: a struct to store parsing options, opt can be replaced by 
-%           a list of ('param',value) pairs - the param string is equivallent
+%           a list of ('param',value) pairs - the param string is equivalent
 %           to a field in opt. The supported options can be found by typing
 %           "help loadbj".
 %

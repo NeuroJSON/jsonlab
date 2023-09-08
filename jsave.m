@@ -16,7 +16,7 @@ function varargout=jsave(filename, varargin)
 %           JSON/JData file will be created (slow); if the suffix is '.pmat' or
 %           '.jdb', a Binary JData (https://github.com/NeuroJSON/bjdata/) file will be created.
 %      opt: (optional) a struct to store parsing options, opt can be replaced by 
-%           a list of ('param',value) pairs - the param string is equivallent
+%           a list of ('param',value) pairs - the param string is equivalent
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %

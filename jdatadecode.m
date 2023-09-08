@@ -44,7 +44,7 @@ function newdata=jdatadecode(data,varargin)
 %                         please set FormatVersion to 1
 %
 % output:
-%      newdata: the covnerted data if the input data does contain a JData 
+%      newdata: the converted data if the input data does contain a JData 
 %               structure; otherwise, the same as the input.
 %
 % examples:
