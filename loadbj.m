@@ -21,7 +21,7 @@ function [data, mmap] = loadbj(fname,varargin)
 %      fname: input file name, if fname contains "{}" or "[]", fname
 %             will be interpreted as a BJData/UBJSON string
 %      opt: a struct to store parsing options, opt can be replaced by 
-%           a list of ('param',value) pairs - the param string is equivallent
+%           a list of ('param',value) pairs - the param string is equivalent
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %

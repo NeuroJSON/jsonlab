@@ -131,7 +131,7 @@ function output=savebj(rootname,obj,varargin)
 %                         the input data before saving
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param 
-%        string is equivallent to a field in opt and is case sensitive.
+%        string is equivalent to a field in opt and is case sensitive.
 % output:
 %      bjd: a binary string in the UBJSON format (see http://ubjson.org)
 %

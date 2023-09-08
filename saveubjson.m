@@ -38,7 +38,7 @@ function ubj=saveubjson(rootname,obj,varargin)
 %           opt can have the following fields (first in [.|.] is the default)
 %
 %           opt can be replaced by a list of ('param',value) pairs. The param 
-%           string is equivallent to a field in opt and is case sensitive.
+%           string is equivalent to a field in opt and is case sensitive.
 %
 %           Please type "help savebj" for details for all supported options.
 %

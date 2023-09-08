@@ -18,7 +18,7 @@ function varargout=jload(filename, varargin)
 %           JSON/JData file will be expected; if the suffix is '.pmat' or
 %           '.jdb', a Binary JData file will be expected.
 %      opt: (optional) a struct to store parsing options, opt can be replaced by 
-%           a list of ('param',value) pairs - the param string is equivallent
+%           a list of ('param',value) pairs - the param string is equivalent
 %           to a field in opt. opt can have the following 
 %           fields (first in [.|.] is the default)
 %

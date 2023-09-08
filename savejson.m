@@ -110,7 +110,7 @@ function output = savejson(rootname, obj, varargin)
 %                         this function falls back to the jsonlab savejson
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param
-%        string is equivallent to a field in opt and is case sensitive.
+%        string is equivalent to a field in opt and is case sensitive.
 % output:
 %      json: a string in the JSON format (see http://json.org)
 %
