@@ -515,7 +515,7 @@ function [object, pos, mmap] = parse_object(inputstr, pos, varargin)
                 object.(encodevarname(str,varargin{:}))=val;
             end
             [cc, pos]=next_char(inputstr,pos);
-            if cc == '}' || (count>=0 && num>=count)
+            if (count>=0 && num>=count) || cc == '}'
                 break;
             end
         end
