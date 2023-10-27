@@ -1,14 +1,14 @@
-function varargout=octavezz(data, iscompress, zipmethod)
+function varargout=octavezmat(data, iscompress, zipmethod)
 %
-% output = octavezz(input, iscompress, zipmethod)
+% output = octavezmat(input, iscompress, zipmethod)
 %    or
-% [output, info] = octavezz(input, iscompress, zipmethod)
-% unzipdata = octavezz(zipdata, info)
+% [output, info] = octavezmat(input, iscompress, zipmethod)
+% unzipdata = octavezmat(zipdata, info)
 %
 % Compress or decompress zlib and gzip memory buffers using zip/unzip/gzip/gunzip on Octave
-% in case ZMat toolbox (http://github.com/NeuroJSON/zmat) was not installed (ZMat will be much faster)
+% in case ZMat toolbox (http://github.com/NeuroJSON/zmat) was not installed (ZMat is much faster)
 %
-% Copyright (c) 2023, Qianqian Fang (q.fang <at> neu.edu)
+% Author: Qianqian Fang (q.fang <at> neu.edu)
 %
 % input:
 %      input: the input data (can be either compressed or before compression),
@@ -46,8 +46,9 @@ function varargout=octavezz(data, iscompress, zipmethod)
 %                    level, see above
 %
 % examples:
-%      [ss,info]=octavezz(ones(10))
-%      orig=octavezz(ss,info)
+%      NO_ZMAT=1  % by setting this flag to 1 in the caller or global workspace, octavezmat won't warn zmat is missing
+%      [ss,info]=octavezmat(ones(10))
+%      orig=octavezmat(ss,info)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
@@ -55,8 +56,14 @@ function varargout=octavezz(data, iscompress, zipmethod)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
+nowarning = getvarfrom({'caller', 'base'},'NO_ZMAT');
+
+if(isempty(nowarning) || nowarning == 0)
+    warning('You are recommended to install ZMat (http://github.com/NeuroJSON/zmat) get much faster speed in Octave');
+end
+
 if(nargin < 1)
-    fprintf(1,'Format: output = octavezz(data, iscompress, zipmethod)\n');
+    fprintf(1,'Format: output = octavezmat(data, iscompress, zipmethod)\n');
     return;
 end
 
@@ -71,6 +78,14 @@ end
 if(isstruct(iscompress))
     inputinfo = iscompress;
     iscompress = 0;
+end
+
+if (~(ischar(data) || islogical(data) || (isnumeric(data) && isreal(data))))
+    error('input must be a char, non-complex numeric or logical vector or N-D array');
+end
+
+if (ischar(data))
+    data = uint8(data);
 end
 
 fname=tempname;
@@ -91,7 +106,8 @@ fd=fopen(tmpfile,'wb');
 if(~fd)
     error('unable to create temporary file');
 end
-fwrite(fd, data, 'uint8');
+
+fwrite(fd, typecast(data(:), 'uint8'), 'uint8');
 fclose(fd);
 
 if(iscompress)
@@ -113,12 +129,21 @@ else
     end
 end
 
+if(exist(tmpfile, 'file'))
+    delete(tmpfile);
+end
+
 fd=fopen(outputfile, 'rb');
 if(~fd)
     error('failed to unzip buffer');
 end
-varargout{1}=fread(fd, [1 inf], 'uint8');
+varargout{1}=fread(fd, [1 inf], 'uint8=>uint8');
 fclose(fd);
+
+
+if(exist(outputfile, 'file'))
+    delete(outputfile);
+end
 
 if(nargout>1)
     varargout{2}=struct('type',class(data),'size',size(data),'method',zipmethod,'status',0, 'level', iscompress);

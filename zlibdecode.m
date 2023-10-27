@@ -45,10 +45,10 @@ if(exist('zmat','file')==2 || exist('zmat','file')==3)
     end
     return;
 elseif(isoctavemesh)
-    warning('You are recommended to install the ZMat toolbox (http://github.com/NeuroJSON/zmat) to use this function in Octave');
-    [varargout{1:nargout}]=octavezz(varargin{1}, 0, 'zlib');
+    [varargout{1:nargout}]=octavezmat(varargin{1}, 0, 'zlib');
     return;
 end
+
 error(javachk('jvm'));
 
 if(ischar(varargin{1}))
