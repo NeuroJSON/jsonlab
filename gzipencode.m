@@ -40,7 +40,9 @@ if(exist('zmat','file')==2 || exist('zmat','file')==3)
     [varargout{1:nargout}]=zmat(varargin{1},1,'gzip');
     return;
 elseif(isoctavemesh)
-    error('You must install the ZMat toolbox (http://github.com/NeuroJSON/zmat) to use this function in Octave');
+    warning('You are recommended to install the ZMat toolbox (http://github.com/NeuroJSON/zmat) to use this function in Octave');
+    [varargout{1:nargout}]=octavezz(varargin{1}, 1, 'gzip');
+    return;
 end
 
 error(javachk('jvm'));

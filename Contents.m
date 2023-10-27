@@ -34,6 +34,7 @@
 %   match_bracket      - [endpos, maxlevel] = match_bracket(str,startpos,brackets)
 %   mergestruct        - s=mergestruct(s1,s2)
 %   nestbracket2dim    - [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets)
+%   octavezz           - output = octavezz(input, iscompress, zipmethod)
 %   savebj             - bjd=savebj(obj)
 %   savejd             - savejd(rootname, obj, outputfile)
 %   savejson           - json=savejson(obj)

@@ -37,6 +37,7 @@ Compression and Decompression
  lzmaencode
  zlibdecode
  zlibencode
+ octavezz
 Helper Functions
  decodevarname
  encodevarname
