@@ -48,7 +48,7 @@ jobs:
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v1
         with:
-          release: R2020a
+          release: R2022a
       - name: Run MATLAB test
         uses: matlab-actions/run-command@v1
         with:
