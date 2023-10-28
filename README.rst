@@ -15,8 +15,8 @@
 * Acknowledgement: This project is supported by US National Institute of Health (NIH) 
   grant `U24-NS124027 <https://reporter.nih.gov/project-details/10308329>`_
 
-.. image:: https://travis-ci.com/fangq/jsonlab.svg?branch=master
-    :target: https://travis-ci.com/fangq/jsonlab
+.. image:: https://github.com/fangq/jsonlab/actions/workflows/run_test.yml/badge.svg
+    :target: https://github.com/fangq/jsonlab/actions/workflows/run_test.yml
 
 #################
 Table of Contents
