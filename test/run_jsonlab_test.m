@@ -194,7 +194,7 @@ if(ismember('bj',tests))
     test_jsonlab('empty string',@savebj,'','SU<0>','debug',1);
     test_jsonlab('skip no-op before marker and after value',@savebj,loadbj(char(['NN[NU' char(5) 'NNNU' char(1) ']'])),'[$U#U<2><5><1>','debug',1);
     test_jsonlab('string escape',@savebj,sprintf('jdata\n\b\ashall\tprevail\t"\"\\'),sprintf('SU<25>jdata\n\b\ashall\tprevail\t\"\"\\'),'debug',1);
-    if(exist('string'))
+    if(exist('string') && isa(string('jdata'),'string'))
         test_jsonlab('string type',@savebj,string(sprintf('jdata\n\b\ashall\tprevail')),sprintf('[SU<21>jdata\n\b\ashall\tprevail]'),'debug',1);
         test_jsonlab('string array',@savebj,[string('jdata');string('shall');string('prevail')],'[[SU<5>jdataSU<5>shallSU<7>prevail]]','debug',1);
     end
