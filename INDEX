@@ -25,6 +25,8 @@ JSON Mmap
 Compression and Decompression
  base64decode
  base64encode
+ blosc2decode
+ blosc2encode
  gzipdecode
  gzipencode
  lz4decode
@@ -37,6 +39,8 @@ Compression and Decompression
  lzmaencode
  zlibdecode
  zlibencode
+ zstddecode
+ zstdencode
  octavezmat
 Helper Functions
  decodevarname

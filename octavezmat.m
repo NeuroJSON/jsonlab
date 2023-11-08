@@ -117,7 +117,11 @@ end
 if(~iscompress)
     if(strcmp(zipmethod, 'zlib'))
         outputfile=unzip(tmpfile, tempdir);
-        outputfile=[tempdir filesep outputfile{1}];
+        if((exist('OCTAVE_VERSION','builtin')~=0))
+            outputfile=[tempdir filesep outputfile{1}];
+        else
+            outputfile = outputfile{1};
+        end
     elseif(strcmp(zipmethod, 'gzip'))
         gunzip(tmpfile);
     end
