@@ -1,4 +1,4 @@
-function msgpk=savemsgpack(rootname,obj,varargin)
+function msgpk = savemsgpack(rootname, obj, varargin)
 %
 % msgpk=savemsgpack(obj)
 %    or
@@ -6,7 +6,7 @@ function msgpk=savemsgpack(rootname,obj,varargin)
 % msgpk=savemsgpack(rootname,obj,opt)
 % msgpk=savemsgpack(rootname,obj,'param1',value1,'param2',value2,...)
 %
-% convert a MATLAB object (cell, struct, array, table, map, handles ...) 
+% convert a MATLAB object (cell, struct, array, table, map, handles ...)
 % into a MessagePack binary stream
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
@@ -22,10 +22,10 @@ function msgpk=savemsgpack(rootname,obj,varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(nargin==1)
-    msgpk=savebj('',rootname,'MessagePack',1, 'endian','B');
-elseif(length(varargin)==1 && ischar(varargin{1}))
-    msgpk=savebj(rootname,obj,'FileName',varargin{1},'MessagePack',1, 'endian','B');
+if (nargin == 1)
+    msgpk = savebj('', rootname, 'MessagePack', 1, 'endian', 'B');
+elseif (length(varargin) == 1 && ischar(varargin{1}))
+    msgpk = savebj(rootname, obj, 'FileName', varargin{1}, 'MessagePack', 1, 'endian', 'B');
 else
-    msgpk=savebj(rootname,obj,varargin{:},'MessagePack',1, 'endian','B');
+    msgpk = savebj(rootname, obj, varargin{:}, 'MessagePack', 1, 'endian', 'B');
 end

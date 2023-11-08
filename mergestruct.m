@@ -1,4 +1,4 @@
-function s=mergestruct(s1,s2)
+function s = mergestruct(s1, s2)
 %
 % s=mergestruct(s1,s2)
 %
@@ -14,20 +14,19 @@ function s=mergestruct(s1,s2)
 %      s: the merged struct object. fields in s1 and s2 will be combined in s.
 %
 % license:
-%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(~isstruct(s1) || ~isstruct(s2))
+if (~isstruct(s1) || ~isstruct(s2))
     error('input parameters contain non-struct');
 end
-if(length(s1)>1 || length(s2)>1)
+if (length(s1) > 1 || length(s2) > 1)
     error('can not merge struct arrays');
 end
-fn=fieldnames(s2);
-s=s1;
-for i=1:length(fn)
-    s.(fn{i})=s2.(fn{i});
+fn = fieldnames(s2);
+s = s1;
+for i = 1:length(fn)
+    s.(fn{i}) = s2.(fn{i});
 end
-

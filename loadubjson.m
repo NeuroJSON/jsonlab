@@ -15,7 +15,7 @@ function varargout = loadubjson(varargin)
 %      fname: input file name, if the file with such name exists, it will
 %             be read, otherwise, this function will attempt to parse the
 %             string in fname as a UBJSON stream
-%      opt: a struct to store parsing options, opt can be replaced by 
+%      opt: a struct to store parsing options, opt can be replaced by
 %           a list of ('param',value) pairs - the param string is equivalent
 %           to a field in opt. The supported options can be found by typing
 %           "help loadbj".
@@ -32,9 +32,9 @@ function varargout = loadubjson(varargin)
 %      dat=loadubjson(['examples' filesep 'example1.ubj'],'SimplifyCell',0)
 %
 % license:
-%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-[varargout{1:nargout}]=loadbj(varargin{:},'endian','B');
+[varargout{1:nargout}] = loadbj(varargin{:}, 'endian', 'B');

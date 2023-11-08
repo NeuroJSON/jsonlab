@@ -1,9 +1,9 @@
-function [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets,testndarray)
+function [dims, isndarray, maxlevel, count] = nestbracket2dim(str, brackets, testndarray)
 %
 % [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets)
 %
 % Extracting the dimension vector of a JSON string formatted array
-% by analyzing the pairs of opening/closing bracket tokenss; this function 
+% by analyzing the pairs of opening/closing bracket tokenss; this function
 % only returns valid dimension information when the array is an N-D array
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
@@ -20,7 +20,7 @@ function [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets,testn
 %               ND array, i.e. with uniform element lengths (recursively)
 %
 % output:
-%      dims: the speculated dimension vector with the length matching the maximum 
+%      dims: the speculated dimension vector with the length matching the maximum
 %            depth of the embedded bracket pairs. When the input string encodes an
 %            N-D array, the dims vector contains all integers; however, returning
 %            an all-integer dims vector does not mean the array is
@@ -39,41 +39,41 @@ function [dims, isndarray, maxlevel, count] = nestbracket2dim(str,brackets,testn
 %      [dim,dep]=nestbracket2dim(str)
 %      str='[[ [1,2,3], [4,2,1]], [ [10,1,0], [2,5]] ]'; % an invalid N-D array
 %      [dim,dep]=nestbracket2dim(str)
-
+%
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(nargin<2)
-    brackets='[]';
+if (nargin < 2)
+    brackets = '[]';
 end
-str=str(str==brackets(1) | str==brackets(2) | str==',');
-count=cumsum(str==brackets(1)) - cumsum(str==brackets(2));
-isndarray=testuniform(count, max(count));
-if(nargin>2 && testndarray)
-    dims=isndarray;
-    return;
+str = str(str == brackets(1) | str == brackets(2) | str == ',');
+count = cumsum(str == brackets(1)) - cumsum(str == brackets(2));
+isndarray = testuniform(count, max(count));
+if (nargin > 2 && testndarray)
+    dims = isndarray;
+    return
 end
-maxlevel=max(count);
-dims=histc(count,1:maxlevel);
-dims(1:end-1)=dims(1:end-1)*0.5;
-dims(2:end)=dims(2:end)./dims(1:end-1);
-dims=fliplr(dims);
+maxlevel = max(count);
+dims = histc(count, 1:maxlevel);
+dims(1:end - 1) = dims(1:end - 1) * 0.5;
+dims(2:end) = dims(2:end) ./ dims(1:end - 1);
+dims = fliplr(dims);
 
-function isndarray=testuniform(count, maxval)
-isndarray=false;
-if(length(count)>2)
-    idx=find(count(2:end)==count(1),1);
-    if(idx==length(count)-2 && count(1)<maxval)
-        isndarray=testuniform(count(2:end-1), maxval);
-        return;
+function isndarray = testuniform(count, maxval)
+isndarray = false;
+if (length(count) > 2)
+    idx = find(count(2:end) == count(1), 1);
+    if (idx == length(count) - 2 && count(1) < maxval)
+        isndarray = testuniform(count(2:end - 1), maxval);
+        return
     end
-    if(~isempty(idx) && mod(length(count)-1,idx+1)==0)
-        count2d=reshape(count(1:end-1),idx+1,[]);
-        if(all(diff(count2d')==0))
-            isndarray=true;
+    if (~isempty(idx) && mod(length(count) - 1, idx + 1) == 0)
+        count2d = reshape(count(1:end - 1), idx + 1, []);
+        if (all(diff(count2d') == 0))
+            isndarray = true;
         end
     end
 end

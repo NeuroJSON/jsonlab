@@ -1,8 +1,8 @@
-function json=jsonset(fname,mmap,varargin)
+function json = jsonset(fname, mmap, varargin)
 %
 % json=jsonset(fname,mmap,'$.jsonpath1',newval1,'$.jsonpath2','newval2',...)
 %
-% Fast writing of JSON data records to stream or disk using memory-map 
+% Fast writing of JSON data records to stream or disk using memory-map
 % (mmap) returned by loadjson/loadbj and JSONPath-like keys
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
@@ -23,7 +23,7 @@ function json=jsonset(fname,mmap,varargin)
 %
 % examples:
 %      % create test data
-%       d.arr={[1,2],'a',struct('c',2)}; d.obj=struct('k','test') 
+%       d.arr={[1,2],'a',struct('c',2)}; d.obj=struct('k','test')
 %      % convert to json string
 %       str=savejson('',d,'compact',1)
 %      % parse and return mmap
@@ -38,64 +38,64 @@ function json=jsonset(fname,mmap,varargin)
 %       json=jsonset('file.json',mmap,'$.arr[2].c','5')
 %
 % license:
-%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(regexp(fname,'^\s*(?:\[.*\])|(?:\{.*\})\s*$','once'))
-    inputstr=fname;
+if (regexp(fname, '^\s*(?:\[.*\])|(?:\{.*\})\s*$', 'once'))
+    inputstr = fname;
 else
-    if(~exist('memmapfile','file'))
-        fid=fopen(fname,'r+b');
+    if (~exist('memmapfile', 'file'))
+        fid = fopen(fname, 'r+b');
     end
 end
 
-mmap=[mmap{:}];
-keylist=mmap(1:2:end);
+mmap = [mmap{:}];
+keylist = mmap(1:2:end);
 
-opt=struct;
-for i=1:2:length(varargin)
-    if(isempty(regexp(varargin{i},'^\$', 'once')))
-        opt.(encodevarname(varargin{i}))=varargin{i+1};
+opt = struct;
+for i = 1:2:length(varargin)
+    if (isempty(regexp(varargin{i}, '^\$', 'once')))
+        opt.(encodevarname(varargin{i})) = varargin{i + 1};
     end
 end
 
-json={};
-for i=1:2:length(varargin)
-    if(regexp(varargin{i},'^\$'))
-        [tf,loc]=ismember(varargin{i},keylist);
-        if(tf)
-            bmap=mmap{loc*2};
-            if(ischar(varargin{i+1}))
-                val=varargin{i+1};
+json = {};
+for i = 1:2:length(varargin)
+    if (regexp(varargin{i}, '^\$'))
+        [tf, loc] = ismember(varargin{i}, keylist);
+        if (tf)
+            bmap = mmap{loc * 2};
+            if (ischar(varargin{i + 1}))
+                val = varargin{i + 1};
             else
-                val=savejson('',varargin{i+1},'compact',1);
+                val = savejson('', varargin{i + 1}, 'compact', 1);
             end
-            if(length(val)<=bmap(2))
-                val=[val repmat(' ',[1,bmap(2)-length(val)])];
-                if(exist('inputstr','var'))
-                    inputstr(bmap(1):bmap(1)+bmap(2)-1)=val;
+            if (length(val) <= bmap(2))
+                val = [val repmat(' ', [1, bmap(2) - length(val)])];
+                if (exist('inputstr', 'var'))
+                    inputstr(bmap(1):bmap(1) + bmap(2) - 1) = val;
                 else
-                    if(exist('memmapfile','file'))
-                        rec={'uint8', [1 bmap(2)],  'x'};
-                        fmap=memmapfile(fname,'writable',true,'offset', bmap(1)-1, 'format', rec, 'repeat',1);
-                        fmap.Data.x=uint8(val);
+                    if (exist('memmapfile', 'file'))
+                        rec = {'uint8', [1 bmap(2)],  'x'};
+                        fmap = memmapfile(fname, 'writable', true, 'offset', bmap(1) - 1, 'format', rec, 'repeat', 1);
+                        fmap.Data.x = uint8(val);
                     else
-                        fseek(fid,bmap(1)-1,'bof');
-                        fwrite(fid,val);
+                        fseek(fid, bmap(1) - 1, 'bof');
+                        fwrite(fid, val);
                     end
-                    json{end+1}={varargin{i},val};
+                    json{end + 1} = {varargin{i}, val};
                 end
             end
         end
     end
 end
 
-if(exist('fid','var') && fid>=0)
+if (exist('fid', 'var') && fid >= 0)
     fclose(fid);
 end
 
-if(exist('inputstr','var'))
-    json=inputstr;
+if (exist('inputstr', 'var'))
+    json = inputstr;
 end

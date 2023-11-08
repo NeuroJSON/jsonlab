@@ -1,4 +1,4 @@
-function [endpos, maxlevel] = match_bracket(str,startpos,brackets)
+function [endpos, maxlevel] = match_bracket(str, startpos, brackets)
 %
 % [endpos, maxlevel] = match_bracket(str,startpos,brackets)
 %
@@ -17,13 +17,13 @@ function [endpos, maxlevel] = match_bracket(str,startpos,brackets)
 %               the string key(pos(startpos,:end))
 %
 % output:
-%      endpos: if a matching bracket is found, return its position in the original 
+%      endpos: if a matching bracket is found, return its position in the original
 %              string
 %      maxlevel: return the depth of the enclosed brackets between the searched pair,
-%              including the searching pair. For example, the matching closing-bracket 
-%              of the 1st square bracket (startpos=2) in  '[[[]],[]]' returns a 
-%              position of 9, with a maximum depth of 3; searching for the closing 
-%              bracket for the 2nd square bracket (startpos=3) returns a position of 
+%              including the searching pair. For example, the matching closing-bracket
+%              of the 1st square bracket (startpos=2) in  '[[[]],[]]' returns a
+%              position of 9, with a maximum depth of 3; searching for the closing
+%              bracket for the 2nd square bracket (startpos=3) returns a position of
 %              5 and max-depth of 2.
 %
 % example:
@@ -38,11 +38,11 @@ function [endpos, maxlevel] = match_bracket(str,startpos,brackets)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(nargin<3)
-    brackets='[]';
+if (nargin < 3)
+    brackets = '[]';
 end
 count = str(startpos:end);
-flag=cumsum(count==brackets(1))-cumsum(count==brackets(2))+1;
-endpos = find(flag==0,1);
-maxlevel=max(flag(1:endpos));
-endpos = endpos + startpos-1;
+flag = cumsum(count == brackets(1)) - cumsum(count == brackets(2)) + 1;
+endpos = find(flag == 0, 1);
+maxlevel = max(flag(1:endpos));
+endpos = endpos + startpos - 1;

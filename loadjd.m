@@ -1,4 +1,4 @@
-function varargout=loadjd(filename, varargin)
+function varargout = loadjd(filename, varargin)
 %
 %    data=loadjd(inputfile)
 %       or
@@ -34,28 +34,28 @@ function varargout=loadjd(filename, varargin)
 %        newobj=loadjd('datafile.json');
 %
 %    license:
-%        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(nargin<1)
+if (nargin < 1)
     error('you must provide file name');
 end
 
-if(regexpi(filename,'\.json$|\.jnii$|\.jdt$|\.jdat$|\.jmsh$|\.jnirs|\.jbids$'))
-    [varargout{1:nargout}]=loadjson(filename,varargin{:});
-elseif(regexpi(filename,'\.bjd$|\.bnii$|\.jdb$|\.jbat$|\.bmsh$|\.bnirs$|\.pmat'))
-    [varargout{1:nargout}]=loadbj(filename,varargin{:});
-elseif(regexpi(filename,'\.ubj$'))
-    [varargout{1:nargout}]=loadubjson(filename,varargin{:});
-elseif(regexpi(filename,'\.msgpack$'))
-    [varargout{1:nargout}]=loadmsgpack(filename,varargin{:});
-elseif(regexpi(filename,'\.h5$|\.hdf5$|\.snirf$'))
-    if(~exist('loadh5','file'))
+if (regexpi(filename, '\.json$|\.jnii$|\.jdt$|\.jdat$|\.jmsh$|\.jnirs|\.jbids$'))
+    [varargout{1:nargout}] = loadjson(filename, varargin{:});
+elseif (regexpi(filename, '\.bjd$|\.bnii$|\.jdb$|\.jbat$|\.bmsh$|\.bnirs$|\.pmat'))
+    [varargout{1:nargout}] = loadbj(filename, varargin{:});
+elseif (regexpi(filename, '\.ubj$'))
+    [varargout{1:nargout}] = loadubjson(filename, varargin{:});
+elseif (regexpi(filename, '\.msgpack$'))
+    [varargout{1:nargout}] = loadmsgpack(filename, varargin{:});
+elseif (regexpi(filename, '\.h5$|\.hdf5$|\.snirf$'))
+    if (~exist('loadh5', 'file'))
         error('you must first install EasyH5 from http://github.com/NeuroJSON/easyh5/');
     end
-    [varargout{1:nargout}]=loadh5(filename,varargin{:});
+    [varargout{1:nargout}] = loadh5(filename, varargin{:});
 else
     error('file suffix must be one of .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf,.pmat');
 end

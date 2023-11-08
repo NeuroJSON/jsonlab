@@ -1,4 +1,4 @@
-function varargout=jsave(filename, varargin)
+function varargout = jsave(filename, varargin)
 %
 % jsave
 %   or
@@ -15,9 +15,9 @@ function varargout=jsave(filename, varargin)
 %           if fname has a '.json' or '.jdt' suffix, a text-based
 %           JSON/JData file will be created (slow); if the suffix is '.pmat' or
 %           '.jdb', a Binary JData (https://github.com/NeuroJSON/bjdata/) file will be created.
-%      opt: (optional) a struct to store parsing options, opt can be replaced by 
+%      opt: (optional) a struct to store parsing options, opt can be replaced by
 %           a list of ('param',value) pairs - the param string is equivalent
-%           to a field in opt. opt can have the following 
+%           to a field in opt. opt can have the following
 %           fields (first in [.|.] is the default)
 %
 %           ws ['caller'|'base']: the name of the workspace in which the
@@ -39,108 +39,108 @@ function varargout=jsave(filename, varargin)
 %      jsave('mydat.pmat','compression','lzma')
 %
 % license:
-%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 % -- this function is part of JSONLab toolbox (http://openjdata.org/jsonlab)
 %
 
-if(nargin==0)
-    filename=[pwd filesep 'default.pmat'];
+if (nargin == 0)
+    filename = [pwd filesep 'default.pmat'];
 end
 
-opt=varargin2struct(varargin{:});
-if(~isfield(opt,'nthread'))
-    opt.nthread=4;
+opt = varargin2struct(varargin{:});
+if (~isfield(opt, 'nthread'))
+    opt.nthread = 4;
 end
-if(~isfield(opt,'compression'))
-    if(exist('zipmat'))
-        opt.compression='blosc2zstd';
+if (~isfield(opt, 'compression'))
+    if (exist('zipmat'))
+        opt.compression = 'blosc2zstd';
     else
-        opt.compression='zlib';
+        opt.compression = 'zlib';
     end
 end
-if(~isfield(opt,'shuffle'))
-    opt.shuffle=1;
+if (~isfield(opt, 'shuffle'))
+    opt.shuffle = 1;
 end
-if(~isfield(opt,'typesize'))
-    opt.typesize=4;
+if (~isfield(opt, 'typesize'))
+    opt.typesize = 4;
 end
 
-ws=jsonopt('ws','caller',opt);
+ws = jsonopt('ws', 'caller', opt);
 
-allvar=evalin(ws,'whos');
-varlist=jsonopt('vars',{allvar.name},opt);
+allvar = evalin(ws, 'whos');
+varlist = jsonopt('vars', {allvar.name}, opt);
 
-[isfound, dontsave]=ismember(varlist,{allvar.name});
-if(any(isfound==0))
+[isfound, dontsave] = ismember(varlist, {allvar.name});
+if (any(isfound == 0))
     error('specified variable is not found');
 end
 
-header=struct;
-body=struct;
+header = struct;
+body = struct;
 
-metadata=struct('CreateDate',datestr(now,29),...
-                'CreateTime',datestr(now,'hh:mm:ss'),...
-                'OriginalName',filename,...
-                'BJDataVersion','v1_draft-2');
+metadata = struct('CreateDate', datestr(now, 29), ...
+                  'CreateTime', datestr(now, 'hh:mm:ss'), ...
+                  'OriginalName', filename, ...
+                  'BJDataVersion', 'v1_draft-2');
 
-vers=ver('MATLAB');
-if(isempty(vers))
-    vers=ver('Octave');
-    [verstr, releasedate]=version;
-    vers.Release=verstr;
-    vers.Date=releasedate;
+vers = ver('MATLAB');
+if (isempty(vers))
+    vers = ver('Octave');
+    [verstr, releasedate] = version;
+    vers.Release = verstr;
+    vers.Date = releasedate;
 end
 
-metadata.CreatorApp=vers.Name;
-metadata.CreatorVersion=vers.Version;
-metadata.CreatorRelease=vers.Release;
-metadata.ReleaseDate=vers.Date;
-metadata.FormatVersion=1;
-metadata.Parameters=opt;
+metadata.CreatorApp = vers.Name;
+metadata.CreatorVersion = vers.Version;
+metadata.CreatorRelease = vers.Release;
+metadata.ReleaseDate = vers.Date;
+metadata.FormatVersion = 1;
+metadata.Parameters = opt;
 
-header.(encodevarname('_DataInfo_'))=metadata;
+header.(encodevarname('_DataInfo_')) = metadata;
 
-for i=1:length(varlist)
-    header.(varlist{i})=allvar(dontsave(i));
-    body.(varlist{i})=evalin(ws,varlist{i});
+for i = 1:length(varlist)
+    header.(varlist{i}) = allvar(dontsave(i));
+    body.(varlist{i}) = evalin(ws, varlist{i});
 end
 
-if(nargout==1)
-    varargout{1}=header;
+if (nargout == 1)
+    varargout{1} = header;
 end
 
-defaultopt={'compression',opt.compression,'nthread',opt.nthread,...
-    'shuffle',opt.shuffle,'typesize',opt.typesize,'keeptype',1,'array2struct',1};
+defaultopt = {'compression', opt.compression, 'nthread', opt.nthread, ...
+              'shuffle', opt.shuffle, 'typesize', opt.typesize, 'keeptype', 1, 'array2struct', 1};
 
-if(jsonopt('matlab',0,opt) && exist('jsonencode','builtin'))
-    if(isempty(regexp(filename,'\.[jJ][sS][oO][nN]$', 'once')))
-        filename=regexprep(filename,'\.[a-zA-Z]+$','.jdt');
+if (jsonopt('matlab', 0, opt) && exist('jsonencode', 'builtin'))
+    if (isempty(regexp(filename, '\.[jJ][sS][oO][nN]$', 'once')))
+        filename = regexprep(filename, '\.[a-zA-Z]+$', '.jdt');
     end
-    output.WorkspaceHeader=jdataencode(header,'prefix','x','base64',1,varargin{:});
-    headerjson=jsonencode(output);
+    output.WorkspaceHeader = jdataencode(header, 'prefix', 'x', 'base64', 1, varargin{:});
+    headerjson = jsonencode(output);
     clear output;
 
-    output.WorkspaceData=jdataencode(body,'AnnotateArray',1,'base64',1,...
-       'UseArrayZipSize',1,'MapAsStruct',1,'prefix','x',defaultopt{:},varargin{:});
-    bodyjson=jsonencode(output);
+    output.WorkspaceData = jdataencode(body, 'AnnotateArray', 1, 'base64', 1, ...
+                                       'UseArrayZipSize', 1, 'MapAsStruct', 1, 'prefix', 'x', defaultopt{:}, varargin{:});
+    bodyjson = jsonencode(output);
     clear output;
 
-    fid=fopen(filename,jsonopt('writemode','w',opt));
-    fwrite(fid,headerjson);
-    fwrite(fid,sprintf('\n\n\n'));
-    fwrite(fid,bodyjson);
+    fid = fopen(filename, jsonopt('writemode', 'w', opt));
+    fwrite(fid, headerjson);
+    fwrite(fid, sprintf('\n\n\n'));
+    fwrite(fid, bodyjson);
     fclose(fid);
-elseif(jsonopt('usemmap',0,opt)==1)
-    bodyjson=savejd('WorkspaceData',body,...
-        defaultopt{:},varargin{:});
-    header.(encodevarname('_MMap_'))=loadjd(bodyjson,'mmaponly',1,varargin{:});
-    savejd('WorkspaceHeader',header,'filename',filename,varargin{:});
-    fid=fopen(filename,'ab+');
-    fwrite(fid,bodyjson);
+elseif (jsonopt('usemmap', 0, opt) == 1)
+    bodyjson = savejd('WorkspaceData', body, ...
+                      defaultopt{:}, varargin{:});
+    header.(encodevarname('_MMap_')) = loadjd(bodyjson, 'mmaponly', 1, varargin{:});
+    savejd('WorkspaceHeader', header, 'filename', filename, varargin{:});
+    fid = fopen(filename, 'ab+');
+    fwrite(fid, bodyjson);
     fclose(fid);
 else
-    savejd('WorkspaceHeader',header,'filename',filename,varargin{:});
-    savejd('WorkspaceData',body,'filename',filename,'append',1,...
-        defaultopt{:},varargin{:});
+    savejd('WorkspaceHeader', header, 'filename', filename, varargin{:});
+    savejd('WorkspaceData', body, 'filename', filename, 'append', 1, ...
+           defaultopt{:}, varargin{:});
 end

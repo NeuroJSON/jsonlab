@@ -1,4 +1,4 @@
-function [isoctave, verinfo]=isoctavemesh
+function [isoctave, verinfo] = isoctavemesh
 %
 % [isoctave verinfo]=isoctavemesh
 %
@@ -12,8 +12,8 @@ function [isoctave, verinfo]=isoctavemesh
 %
 % -- this function is part of iso2mesh toolbox (http://iso2mesh.sf.net)
 %
-verinfo='';
-isoctave=(exist('OCTAVE_VERSION','builtin')~=0);
-if(nargout==2 && isoctave)
-    verinfo=OCTAVE_VERSION;
+verinfo = '';
+isoctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+if (nargout == 2 && isoctave)
+    verinfo = OCTAVE_VERSION;
 end

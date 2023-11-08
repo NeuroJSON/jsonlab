@@ -1,4 +1,4 @@
-function [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
+function [endpos, maxlevel] = fast_match_bracket(key, pos, startpos, brackets)
 %
 % [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
 %
@@ -7,9 +7,9 @@ function [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 %
 % input:
-%      key: a preprocessed string containing only relevant opening/closing 
+%      key: a preprocessed string containing only relevant opening/closing
 %           bracket characters for accelerating the search.
-%      pos: a 1D integer vector with a length matching the length of key, 
+%      pos: a 1D integer vector with a length matching the length of key,
 %           recording the corresponding position of each char. in the original string.
 %      startpos: the index in the original string as the start position to search; the
 %               startpos must be at least 1 greater than the opening bracket position
@@ -20,13 +20,13 @@ function [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
 %               the string key(pos(startpos,:end))
 %
 % output:
-%      endpos: if a matching bracket is found, return its position in the original 
+%      endpos: if a matching bracket is found, return its position in the original
 %              string
 %      maxlevel: return the depth of the enclosed brackets between the searched pair,
-%              including the searching pair. For example, the matching closing-bracket 
-%              of the 1st square bracket (startpos=2) in  '[[[]],[]]' returns a 
-%              position of 9, with a maximum depth of 3; searching for the closing 
-%              bracket for the 2nd square bracket (startpos=3) returns a position of 
+%              including the searching pair. For example, the matching closing-bracket
+%              of the 1st square bracket (startpos=2) in  '[[[]],[]]' returns a
+%              position of 9, with a maximum depth of 3; searching for the closing
+%              bracket for the 2nd square bracket (startpos=3) returns a position of
 %              5 and max-depth of 2.
 %
 % example:
@@ -43,23 +43,23 @@ function [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(nargin<4)
-    brackets='[]';
+if (nargin < 4)
+    brackets = '[]';
 end
-startpos=find( pos >= startpos, 1 );
+startpos = find(pos >= startpos, 1);
 count = key(startpos:end);
-if(length(count)==1 && count==']')
-    endpos=pos(end);
-    maxlevel=1;
-    return;
+if (length(count) == 1 && count == ']')
+    endpos = pos(end);
+    maxlevel = 1;
+    return
 end
-count=count(1:min(length(count),8));
-flag=cumsum(count==brackets(1))-cumsum(count==brackets(2))+1;
-endpos = find(flag==0,1);
-if(isempty(endpos))
-    count= key(startpos:end);
-    flag=cumsum(count==brackets(1))-cumsum(count==brackets(2))+1;
-    endpos = find(flag==0,1);
+count = count(1:min(length(count), 8));
+flag = cumsum(count == brackets(1)) - cumsum(count == brackets(2)) + 1;
+endpos = find(flag == 0, 1);
+if (isempty(endpos))
+    count = key(startpos:end);
+    flag = cumsum(count == brackets(1)) - cumsum(count == brackets(2)) + 1;
+    endpos = find(flag == 0, 1);
 end
-maxlevel=max([1,max(flag(1:endpos))]);
-endpos = pos(endpos + startpos-1);
+maxlevel = max([1, max(flag(1:endpos))]);
+endpos = pos(endpos + startpos - 1);

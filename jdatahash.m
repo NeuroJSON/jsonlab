@@ -28,7 +28,7 @@ function key = jdatahash(data, algorithm, varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(nargin < 2)
+if (nargin < 2)
     algorithm = 'sha-256';
 end
 
@@ -36,14 +36,14 @@ if (ischar(data))
     data = uint8(data);
 end
 
-opt=varargin2struct(varargin{:});
+opt = varargin2struct(varargin{:});
 
-if(jsonopt('rowmajor', 1, opt))
+if (jsonopt('rowmajor', 1, opt))
     data = permute(data, ndims(data):-1:1);
 end
 
-if(isoctavemesh && exist('hash'))
-    algorithm(algorithm=='-')=[];
+if (isoctavemesh && exist('hash'))
+    algorithm(algorithm == '-') = [];
     key = hash(algorithm, char(typecast(data(:).', 'uint8')));
 else
     md = java.security.MessageDigest.getInstance(algorithm);

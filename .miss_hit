@@ -1,4 +1,11 @@
 project_root
 
 suppress_rule: "redundant_brackets"
+suppress_rule: "line_length"
+suppress_rule: "file_length"
+suppress_rule: "copyright_notice"
+suppress_rule: "naming_functions"
+suppress_rule: "naming_parameters"
+suppress_rule: "naming_scripts"
+suppress_rule: "unicode"
 indent_function_file_body: false

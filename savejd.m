@@ -1,4 +1,4 @@
-function varargout=savejd(varargin)
+function varargout = savejd(varargin)
 %
 %    savejd(rootname, obj, outputfile)
 %       or
@@ -42,48 +42,48 @@ function varargout=savejd(varargin)
 %        newobj=loadjd('datafile.json');
 %
 %    license:
-%        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details 
+%        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
 %
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if(nargin<1)
+if (nargin < 1)
     error('you must provide file name');
 end
 
-opt=struct;
+opt = struct;
 
-if(nargin>2)
-    if(nargin==3 && ischar(varargin{3}))
-        filename=varargin{3};
+if (nargin > 2)
+    if (nargin == 3 && ischar(varargin{3}))
+        filename = varargin{3};
     else
-        opt=varargin2struct(varargin{3:end});
-        filename=jsonopt('filename','.json',opt);
+        opt = varargin2struct(varargin{3:end});
+        filename = jsonopt('filename', '.json', opt);
     end
 end
-if(~exist('filename','var'))
-    filename='.json';
+if (~exist('filename', 'var'))
+    filename = '.json';
 end
-if(regexpi(filename,'\.json$|\.jnii$|\.jdt$|\.jdat$|\.jmsh$|\.jnirs$|\.jbids$'))
-    [varargout{1:nargout}]=savejson(varargin{:});
-elseif(regexpi(filename,'\.bjd$|\.bnii$|\.jdb$|\.jbat$|\.bmsh$|\.bnirs$|\.pmat'))
-    [varargout{1:nargout}]=savebj(varargin{:});
-elseif(regexpi(filename,'\.ubj$'))
-    [varargout{1:nargout}]=saveubjson(varargin{:});
-elseif(regexpi(filename,'\.msgpack$'))
-    [varargout{1:nargout}]=savemsgpack(varargin{:});
-elseif(regexpi(filename,'\.h5$|\.hdf5$|\.snirf$'))
-    if(~exist('saveh5','file'))
+if (regexpi(filename, '\.json$|\.jnii$|\.jdt$|\.jdat$|\.jmsh$|\.jnirs$|\.jbids$'))
+    [varargout{1:nargout}] = savejson(varargin{:});
+elseif (regexpi(filename, '\.bjd$|\.bnii$|\.jdb$|\.jbat$|\.bmsh$|\.bnirs$|\.pmat'))
+    [varargout{1:nargout}] = savebj(varargin{:});
+elseif (regexpi(filename, '\.ubj$'))
+    [varargout{1:nargout}] = saveubjson(varargin{:});
+elseif (regexpi(filename, '\.msgpack$'))
+    [varargout{1:nargout}] = savemsgpack(varargin{:});
+elseif (regexpi(filename, '\.h5$|\.hdf5$|\.snirf$'))
+    if (~exist('saveh5', 'file'))
         error('you must first install EasyH5 from http://github.com/NeuroJSON/easyh5/');
     end
-    if(~isfield(opt,'rootname'))
-        if(nargin>=3 && ischar(varargin{1}))
-            opt.rootname=varargin{1};
+    if (~isfield(opt, 'rootname'))
+        if (nargin >= 3 && ischar(varargin{1}))
+            opt.rootname = varargin{1};
         else
-            opt.rootname=inputname(2);
+            opt.rootname = inputname(2);
         end
     end
-    [varargout{1:nargout}]=saveh5(varargin{2},filename, opt);
+    [varargout{1:nargout}] = saveh5(varargin{2}, filename, opt);
 else
     error('file suffix must be one of .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf,.pmat');
 end
