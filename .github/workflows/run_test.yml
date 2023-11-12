@@ -22,7 +22,11 @@ jobs:
       - name: Install dependencies
         run: |
           [[ "$RUNNER_OS" == "Linux" ]] && sudo apt-get update && sudo apt-get install -y octave
-          [[ "$RUNNER_OS" == "macOS" ]] && brew install octave
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            conda config --add channels conda-forge
+            conda config --set channel_priority strict
+            conda install octave
+          fi
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-7.3.0-w64-64.7z --output octave_7.3.0.7z
             7z x octave_7.3.0.7z -ooctave -y
