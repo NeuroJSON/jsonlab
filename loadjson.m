@@ -636,10 +636,7 @@ end
 if (~ischar(str) || isempty(find(str == '\', 1)))
     return
 end
-escapechars = {'\\', '\"', '\/', '\a', '\b', '\f', '\n', '\r', '\t', '\v'};
-for i = 1:length(escapechars)
-    newstr = regexprep(newstr, regexprep(escapechars{i}, '\\', '\\\\'), escapechars{i});
-end
+newstr = sprintf(str);
 newstr = regexprep(newstr, '\\u([0-9A-Fa-f]{4})', '${char(base2dec($1,16))}');
 
 %% -------------------------------------------------------------------------
