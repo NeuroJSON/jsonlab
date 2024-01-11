@@ -576,6 +576,7 @@ varargout{2} = error_pos('Value expected at position %d', inputstr, pos);
 %% -------------------------------------------------------------------------
 function [object, pos, index_esc, mmap] = parse_object(inputstr, pos, esc, index_esc, varargin)
 oldpos = pos;
+oldindex_esc = index_esc;
 if (nargout > 3)
     mmap = {};
     origpath = varargin{1}.jsonpath_;
@@ -593,6 +594,7 @@ if cc ~= '}'
         [str, pos, index_esc] = parseStr(inputstr, pos, esc, index_esc, varargin{:});
         if (length(str) > 63)
             pos = -oldpos;
+            index_esc = oldindex_esc;
             object = [];
             return
         end
@@ -615,6 +617,7 @@ if cc ~= '}'
             str = encodevarname(str, varargin{:});
             if (length(str) > 63)
                 pos = -oldpos;
+                index_esc = oldindex_esc;
                 object = [];
                 return
             end
