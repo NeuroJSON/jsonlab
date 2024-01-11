@@ -140,10 +140,18 @@ while pos <= inputlen
             if (nargout > 1 || mmaponly)
                 mmap{end + 1} = {opt.jsonpath_, pos};
                 [data{jsoncount}, pos, newmmap] = parse_object(inputstr, pos, opt);
+                if (pos < 0)
+                    opt.usemap = 1;
+                    [data{jsoncount}, pos, newmmap] = parse_object(inputstr, -pos, opt);
+                end
                 mmap{end}{2} = [mmap{end}{2}, pos - mmap{end}{2}];
                 mmap = [mmap(:); newmmap(:)];
             else
                 [data{jsoncount}, pos] = parse_object(inputstr, pos, opt);
+                if (pos < 0)
+                    opt.usemap = 1;
+                    [data{jsoncount}, pos] = parse_object(inputstr, -pos, opt);
+                end
             end
         case '['
             if (nargout > 1 || mmaponly)
@@ -424,6 +432,10 @@ switch (cc)
         return
     case '{'
         [varargout{1:nargout}] = parse_object(inputstr, varargout{2}, varargin{:});
+        if (varargout{2} < 0)
+            varargin{1}.usemap = 1;
+            [varargout{1:nargout}] = parse_object(inputstr, -varargout{2}, varargin{:});
+        end
         return
     case {'i', 'U', 'I', 'u', 'l', 'm', 'L', 'M', 'h', 'd', 'D'}
         [varargout{1:2}] = parse_number(inputstr, varargout{2}, varargin{:});
@@ -455,6 +467,7 @@ error('JSONLAB:BJData:InvalidFormat', msg);
 
 %% -------------------------------------------------------------------------
 function [object, pos, mmap] = parse_object(inputstr, pos, varargin)
+oldpos = pos;
 if (nargout > 2)
     mmap = {};
     origpath = varargin{1}.jsonpath_;
@@ -486,6 +499,11 @@ if cc ~= '}'
         else
             [str, pos] = parse_name(inputstr, pos, varargin{:});
         end
+        if (length(str) > 63)
+            pos = -oldpos;
+            object = [];
+            return
+        end
         if isempty(str)
             str = 'x0x0_'; % empty name is valid in BJData/UBJSON, decodevarname('x0x0_') restores '\0'
         end
@@ -502,7 +520,13 @@ if cc ~= '}'
         if (usemap)
             object(str) = val;
         else
-            object.(encodevarname(str, varargin{:})) = val;
+            str = encodevarname(str, varargin{:});
+            if (length(str) > 63)
+                pos = -oldpos;
+                object = [];
+                return
+            end
+            object.(str) = val;
         end
         [cc, pos] = next_char(inputstr, pos);
         if (count >= 0 && num >= count) || cc == '}'

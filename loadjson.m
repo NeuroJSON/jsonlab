@@ -232,10 +232,18 @@ while pos <= inputlen
             if (nargout > 1 || opt.mmaponly)
                 mmap{end + 1} = {opt.jsonpath_, [pos, 0, w1]};
                 [data{jsoncount}, pos, index_esc, newmmap] = parse_object(inputstr, pos, esc, index_esc, opt);
+                if (pos < 0)
+                    opt.usemap = 1;
+                    [data{jsoncount}, pos, index_esc, newmmap] = parse_object(inputstr, -pos, esc, index_esc, opt);
+                end
                 mmap{end}{2}(2) = pos - mmap{end}{2}(1);
                 mmap = [mmap(:); newmmap(:)];
             else
                 [data{jsoncount}, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, opt);
+                if (pos < 0)
+                    opt.usemap = 1;
+                    [data{jsoncount}, pos, index_esc] = parse_object(inputstr, -pos, esc, index_esc, opt);
+                end
             end
         case '['
             if (nargout > 1 || opt.mmaponly)
@@ -536,6 +544,10 @@ switch (inputstr(pos))
         return
     case '{'
         [varargout{1:nargout}] = parse_object(inputstr, pos, esc, index_esc, varargin{:});
+        if (varargout{2} < 0)
+            varargin{1}.usemap = 1;
+            [varargout{1:nargout}] = parse_object(inputstr, -varargout{2}, esc, index_esc, varargin{:});
+        end
         return
     case {'-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
         [varargout{1:2}] = parse_number(inputstr, pos, varargin{:});
@@ -563,6 +575,7 @@ varargout{2} = error_pos('Value expected at position %d', inputstr, pos);
 
 %% -------------------------------------------------------------------------
 function [object, pos, index_esc, mmap] = parse_object(inputstr, pos, esc, index_esc, varargin)
+oldpos = pos;
 if (nargout > 3)
     mmap = {};
     origpath = varargin{1}.jsonpath_;
@@ -578,6 +591,11 @@ end
 if cc ~= '}'
     while 1
         [str, pos, index_esc] = parseStr(inputstr, pos, esc, index_esc, varargin{:});
+        if (length(str) > 63)
+            pos = -oldpos;
+            object = [];
+            return
+        end
         if isempty(str) && ~usemap
             str = 'x0x0_'; % empty name is valid in JSON, decodevarname('x0x0_') restores '\0'
         end
@@ -594,7 +612,13 @@ if cc ~= '}'
         if (usemap)
             object(str) = val;
         else
-            object.(encodevarname(str, varargin{:})) = val;
+            str = encodevarname(str, varargin{:});
+            if (length(str) > 63)
+                pos = -oldpos;
+                object = [];
+                return
+            end
+            object.(str) = val;
         end
         [cc, pos] = next_char(inputstr, pos);
         if cc == '}'
