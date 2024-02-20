@@ -23,28 +23,99 @@ function obj = getfromjsonpath(root, jsonpath)
 %
 
 obj = root;
-jsonpath = regexprep(jsonpath, '([^.])(\[\d+\])', '$1.$2');
-[pat, paths] = regexp(jsonpath, '\.*([^\s\.]+)\.*', 'match', 'tokens');
+jsonpath = regexprep(jsonpath, '([^.])(\[[0-9:]+\])', '$1.$2');
+[pat, paths] = regexp(jsonpath, '(\.{0,2}[^\s\.]+)', 'match', 'tokens');
 if (~isempty(pat) && ~isempty(paths))
     for i = 1:length(paths)
-        if (strcmp(paths{i}{1}, '$'))
-            continue
-        elseif (regexp(paths{i}{1}, '$\d+'))
-            obj = obj(str2double(paths{i}{1}(2:end)) + 1);
-        elseif (regexp(paths{i}{1}, '^\[\d+\]$'))
-            if (iscell(obj))
-                obj = obj{str2double(paths{i}{1}(2:end - 1)) + 1};
-            else
-                obj = obj(str2double(paths{i}{1}(2:end - 1)) + 1);
-            end
-        elseif (isstruct(obj))
-            obj = obj.(encodevarname(paths{i}{1}));
-        elseif (isa(obj, 'containers.Map'))
-            obj = obj(paths{i}{1});
-        elseif (isa(obj, 'table'))
-            obj = obj(:, paths{i}{1});
-        else
-            error('json path segment (%d) "%s" can not be found in the input object\n', i, paths{i}{1});
+        [obj, isfound] = getonelevel(obj, paths{i}{1});
+        if (~isfound)
+            return
         end
     end
+end
+
+%% scan function
+
+function [obj, isfound] = getonelevel(input, pathname)
+
+deepscan = ~isempty(regexp(pathname, '^\.\.', 'once'));
+
+pathname = regexprep(pathname, '^\.+', '');
+
+if (strcmp(pathname, '$'))
+    obj = input;
+elseif (regexp(pathname, '$\d+'))
+    obj = input(str2double(pathname(2:end)) + 1);
+elseif (regexp(pathname, '^\[[0-9:]+\]$'))
+    arraystr = pathname(2:end - 1);
+    if (find(arraystr == ':'))
+        [arraystr, arrayrange] = regexp(arraystr, '(\d*):(\d*)', 'match', 'tokens');
+        arrayrange = arrayrange{1};
+        if (~isempty(arrayrange{1}))
+            arrayrange{1} = str2double(arrayrange{1}) + 1;
+        else
+            arrayrange{1} = 1;
+        end
+        if (~isempty(arrayrange{2}))
+            arrayrange{2} = str2double(arrayrange{2}) + 1;
+        else
+            arrayrange{2} = length(input);
+        end
+    else
+        arrayrange = str2double(arraystr) + 1;
+        arrayrange = {arrayrange, arrayrange};
+    end
+    if (iscell(input))
+        obj = {input{arrayrange{1}:arrayrange{2}}};
+    else
+        obj = input(arrayrange{1}:arrayrange{2});
+    end
+elseif (isstruct(input))
+    stpath = encodevarname(pathname);
+    if (deepscan)
+        if (isfield(input, stpath))
+            obj = {input.(stpath)};
+        end
+        items = fieldnames(input);
+        for idx = 1:length(items)
+            [val, isfound] = getonelevel(input.(items{idx}), ['..' pathname]);
+            if (isfound)
+                if (~exist('obj', 'var'))
+                    obj = {};
+                end
+                obj = [obj{:}, val];
+            end
+        end
+    else
+        obj = input.(stpath);
+    end
+elseif (isa(input, 'containers.Map'))
+    if (deepscan)
+        if (isKey(input, pathname))
+            obj = {input(pathname)};
+        end
+        items = keys(input);
+        for idx = 1:length(items)
+            [val, isfound] = getonelevel(input(items{idx}), ['..' pathname]);
+            if (isfound)
+                if (~exist('obj', 'var'))
+                    obj = {};
+                end
+                obj = [obj{:}, val];
+            end
+        end
+    else
+        obj = input(pathname);
+    end
+elseif (isa(input, 'table'))
+    obj = input(:, pathname);
+elseif (~deepscan)
+    error('json path segment "%s" can not be found in the input object\n', pathname);
+end
+
+if (~exist('obj', 'var'))
+    isfound = false;
+    obj = [];
+elseif (nargout > 1)
+    isfound = true;
 end
