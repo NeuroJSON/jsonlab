@@ -477,29 +477,29 @@ if (opt.maxlinklevel > 0 && isfield(data, N_('_DataLink_')))
         end
         if (~isempty(ref.path))
             uripath = [ref.proto ref.path];
-            [fpath, fname, fext] = fileparts(uripath);
-            opt.maxlinklevel = opt.maxlinklevel - 1;
-            switch (lower(fext))
-                case {'.json', '.jnii', '.jdt', '.jdat', '.jmsh', '.jnirs'}
-                    newdata = loadjson(uripath, opt);
-                case {'.bjd', '.bnii', '.jdb', '.jbat', '.bmsh', '.bnirs', '.pmat'}
-                    newdata = loadbj(uripath, opt, 'Base64', 0);
-                case {'.ubj'}
-                    newdata = loadubjson(uripath, opt, 'Base64', 0);
-                case {'.msgpack'}
-                    newdata = loadmsgpack(uripath, opt, 'Base64', 0);
-                case {'.h5', '.hdf5', '.snirf'}  % this requires EasyH5 toolbox
-                    newdata = loadh5(uripath, opt);
-                otherwise
-                    % _DataLink_ url does not specify type, assuming JSON format
-                    if (regexpi(datalink, '^\s*(http|https|ftp|file)://'))
-                        newdata = loadjson(uripath, opt);
-                    else
-                        warning('_DataLink_ url is not supported');
-                    end
+            [cachepath, filename] = jsoncache(uripath);
+            if (iscell(cachepath) && ~isempty(cachepath))
+                rawdata = webread(uripath);
+                fname = [cachepath{1} filesep filename];
+                fpath = fileparts(fname);
+                if (~exist(fpath, 'dir'))
+                    mkdir(fpath);
+                end
+                fid = fopen(fname, 'wb');
+                if (fid == 0)
+                    error('can not save URL to cache at path %s', fname);
+                end
+                fwrite(fid, uint8(rawdata));
+                fclose(fid);
+
+                opt.maxlinklevel = opt.maxlinklevel - 1;
+                newdata = loadjd(fname, opt);
+            elseif (~iscell(cachepath) && exist(cachepath, 'file'))
+                opt.maxlinklevel = opt.maxlinklevel - 1;
+                newdata = loadjd(cachepath, opt);
             end
             if (~isempty(ref.jsonpath))
-                newdata = getfromjsonpath(newdata, ref.jsonpath);
+                newdata = jsonpath(newdata, ref.jsonpath);
             end
         end
     end

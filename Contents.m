@@ -7,7 +7,8 @@
 %   encodevarname      - newname = encodevarname(name)
 %   fast_match_bracket - [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
 %   filterjsonmmap     - mmap=filterjsonmmap(mmap, patterns, isinclude)
-%   getfromjsonpath    - obj=getfromjsonpath(root, jsonpath)
+%   jsoncache          - [cachepath, filename]=jsoncache(hyperlink)
+%   jsonpath           - obj=jsonpath(root, jsonpath)
 %   gzipdecode         - output = gzipdecode(input)
 %   gzipencode         - output = gzipencode(input)
 %   isoctavemesh       - [isoctave verinfo]=isoctavemesh

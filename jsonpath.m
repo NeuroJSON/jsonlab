@@ -1,6 +1,6 @@
-function obj = getfromjsonpath(root, jsonpath)
+function obj = jsonpath(root, jsonpath)
 %
-%    obj=getfromjsonpath(root, jsonpath)
+%    obj=jsonpath(root, jsonpath)
 %
 %    Query and retrieve elements from matlab data structures using JSONPath
 %
@@ -14,7 +14,7 @@ function obj = getfromjsonpath(root, jsonpath)
 %        obj: if the specified element exist, obj returns the result
 %
 %    example:
-%        getfromjsonpath(struct('a',[1,2,3]), '$.a[1]')      % returns 2
+%        jsonpath(struct('a',[1,2,3]), '$.a[1]')      % returns 2
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -27,7 +27,7 @@ jsonpath = regexprep(jsonpath, '([^.])(\[[0-9:]+\])', '$1.$2');
 [pat, paths] = regexp(jsonpath, '(\.{0,2}[^\s\.]+)', 'match', 'tokens');
 if (~isempty(pat) && ~isempty(paths))
     for i = 1:length(paths)
-        [obj, isfound] = getonelevel(obj, paths{i}{1});
+        [obj, isfound] = getonelevel(obj, paths, i);
         if (~isfound)
             return
         end
@@ -36,7 +36,12 @@ end
 
 %% scan function
 
-function [obj, isfound] = getonelevel(input, pathname)
+function [obj, isfound] = getonelevel(input, paths, pathid)
+
+pathname = paths{pathid};
+if (iscell(pathname))
+    pathname = pathname{1};
+end
 
 deepscan = ~isempty(regexp(pathname, '^\.\.', 'once'));
 
@@ -78,7 +83,7 @@ elseif (isstruct(input))
         end
         items = fieldnames(input);
         for idx = 1:length(items)
-            [val, isfound] = getonelevel(input.(items{idx}), ['..' pathname]);
+            [val, isfound] = getonelevel(input.(items{idx}), [paths{:} {['..' pathname]}], pathid + 1);
             if (isfound)
                 if (~exist('obj', 'var'))
                     obj = {};
@@ -96,7 +101,7 @@ elseif (isa(input, 'containers.Map'))
         end
         items = keys(input);
         for idx = 1:length(items)
-            [val, isfound] = getonelevel(input(items{idx}), ['..' pathname]);
+            [val, isfound] = getonelevel(input(items{idx}), [paths{:} {['..' pathname]}], pathid + 1);
             if (isfound)
                 if (~exist('obj', 'var'))
                     obj = {};
