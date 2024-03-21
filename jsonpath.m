@@ -23,7 +23,7 @@ function obj = jsonpath(root, jsonpath)
 %
 
 obj = root;
-jsonpath = regexprep(jsonpath, '([^.])(\[[0-9:]+\])', '$1.$2');
+jsonpath = regexprep(jsonpath, '([^.])(\[[0-9:\*]+\])', '$1.$2');
 [pat, paths] = regexp(jsonpath, '(\.{0,2}[^\s\.]+)', 'match', 'tokens');
 if (~isempty(pat) && ~isempty(paths))
     for i = 1:length(paths)
@@ -45,13 +45,14 @@ end
 
 deepscan = ~isempty(regexp(pathname, '^\.\.', 'once'));
 
+origpath = pathname;
 pathname = regexprep(pathname, '^\.+', '');
 
 if (strcmp(pathname, '$'))
     obj = input;
 elseif (regexp(pathname, '$\d+'))
     obj = input(str2double(pathname(2:end)) + 1);
-elseif (~isempty(regexp(pathname, '^\[[0-9:]+\]$', 'once')) || iscell(input))
+elseif (~isempty(regexp(pathname, '^\[[0-9\*:]+\]$', 'once')) || iscell(input))
     arraystr = pathname(2:end - 1);
     if (find(arraystr == ':'))
         [arraystr, arrayrange] = regexp(arraystr, '(\d*):(\d*)', 'match', 'tokens');
@@ -69,24 +70,32 @@ elseif (~isempty(regexp(pathname, '^\[[0-9:]+\]$', 'once')) || iscell(input))
     elseif (regexp(arraystr, '^[0-9:]+', 'once'))
         arrayrange = str2double(arraystr) + 1;
         arrayrange = {arrayrange, arrayrange};
-    end
-    if (~exist('arrayrange', 'var'))
+    elseif (~isempty(regexp(arraystr, '^\*', 'once')))
         arrayrange = {1, length(input)};
     end
-    if (iscell(input))
+    if (exist('arrayrange', 'var'))
         obj = {input{arrayrange{1}:arrayrange{2}}};
+    else
+        arrayrange = {1, length(input)};
+    end
+    if (~exist('obj', 'var') && iscell(input))
+        input = {input{arrayrange{1}:arrayrange{2}}};
         if (deepscan)
             searchkey = ['..' pathname];
-            [val, isfound] = getonelevel(obj, [paths{1:pathid} {searchkey}], pathid + 1);
+        else
+            searchkey = origpath;
+        end
+        for idx = 1:length(input)
+            [val, isfound] = getonelevel(input{idx}, [paths{1:pathid - 1} {searchkey}], pathid);
             if (isfound)
                 if (~exist('newobj', 'var'))
                     newobj = {};
                 end
                 newobj = [newobj(:)', {val}];
             end
-            if (exist('newobj', 'var'))
-                obj = newobj;
-            end
+        end
+        if (exist('newobj', 'var'))
+            obj = newobj;
         end
         if (exist('obj', 'var') && iscell(obj) && length(obj) == 1)
             obj = obj{1};
@@ -94,12 +103,18 @@ elseif (~isempty(regexp(pathname, '^\[[0-9:]+\]$', 'once')) || iscell(input))
     else
         obj = input(arrayrange{1}:arrayrange{2});
     end
-elseif (isstruct(input))
+elseif (isstruct(input) || isa(input, 'containers.Map'))
     stpath = encodevarname(pathname);
-    if (deepscan)
+    if (isstruct(input))
         if (isfield(input, stpath))
             obj = {input.(stpath)};
         end
+    else
+        if (isKey(input, pathname))
+            obj = {input(pathname)};
+        end
+    end
+    if (~exist('obj', 'var') && deepscan)
         items = fieldnames(input);
         for idx = 1:length(items)
             [val, isfound] = getonelevel(input.(items{idx}), [paths{1:pathid - 1} {['..' pathname]}], pathid);
@@ -113,28 +128,9 @@ elseif (isstruct(input))
         if (exist('obj', 'var') && length(obj) == 1)
             obj = obj{1};
         end
-    else
-        if (isfield(input, stpath))
-            obj = input.(stpath);
-        end
     end
-elseif (isa(input, 'containers.Map'))
-    if (deepscan)
-        if (isKey(input, pathname))
-            obj = {input(pathname)};
-        end
-        items = keys(input);
-        for idx = 1:length(items)
-            [val, isfound] = getonelevel(input(items{idx}), [paths{:} {['..' pathname]}], pathid + 1);
-            if (isfound)
-                if (~exist('obj', 'var'))
-                    obj = {};
-                end
-                obj = [obj{:}, val];
-            end
-        end
-    else
-        obj = input(pathname);
+    if (exist('obj', 'var') && iscell(obj) && length(obj) == 1)
+        obj = obj{1};
     end
 elseif (isa(input, 'table'))
     obj = input(:, pathname);
