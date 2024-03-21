@@ -51,7 +51,7 @@ if (strcmp(pathname, '$'))
     obj = input;
 elseif (regexp(pathname, '$\d+'))
     obj = input(str2double(pathname(2:end)) + 1);
-elseif (regexp(pathname, '^\[[0-9:]+\]$'))
+elseif (~isempty(regexp(pathname, '^\[[0-9:]+\]$', 'once')) || iscell(input))
     arraystr = pathname(2:end - 1);
     if (find(arraystr == ':'))
         [arraystr, arrayrange] = regexp(arraystr, '(\d*):(\d*)', 'match', 'tokens');
@@ -66,12 +66,31 @@ elseif (regexp(pathname, '^\[[0-9:]+\]$'))
         else
             arrayrange{2} = length(input);
         end
-    else
+    elseif (regexp(arraystr, '^[0-9:]+', 'once'))
         arrayrange = str2double(arraystr) + 1;
         arrayrange = {arrayrange, arrayrange};
     end
+    if (~exist('arrayrange', 'var'))
+        arrayrange = {1, length(input)};
+    end
     if (iscell(input))
         obj = {input{arrayrange{1}:arrayrange{2}}};
+        if (deepscan)
+            searchkey = ['..' pathname];
+            [val, isfound] = getonelevel(obj, [paths{1:pathid} {searchkey}], pathid + 1);
+            if (isfound)
+                if (~exist('newobj', 'var'))
+                    newobj = {};
+                end
+                newobj = [newobj(:)', {val}];
+            end
+            if (exist('newobj', 'var'))
+                obj = newobj;
+            end
+        end
+        if (exist('obj', 'var') && iscell(obj) && length(obj) == 1)
+            obj = obj{1};
+        end
     else
         obj = input(arrayrange{1}:arrayrange{2});
     end
@@ -83,16 +102,21 @@ elseif (isstruct(input))
         end
         items = fieldnames(input);
         for idx = 1:length(items)
-            [val, isfound] = getonelevel(input.(items{idx}), [paths{:} {['..' pathname]}], pathid + 1);
+            [val, isfound] = getonelevel(input.(items{idx}), [paths{1:pathid - 1} {['..' pathname]}], pathid);
             if (isfound)
                 if (~exist('obj', 'var'))
                     obj = {};
                 end
-                obj = [obj{:}, val];
+                obj = [obj{:}, {val}];
             end
         end
+        if (exist('obj', 'var') && length(obj) == 1)
+            obj = obj{1};
+        end
     else
-        obj = input.(stpath);
+        if (isfield(input, stpath))
+            obj = input.(stpath);
+        end
     end
 elseif (isa(input, 'containers.Map'))
     if (deepscan)
