@@ -122,7 +122,7 @@ elseif (isstruct(input) || isa(input, 'containers.Map'))
                 if (~exist('obj', 'var'))
                     obj = {};
                 end
-                obj = [obj{:}, {val}];
+                obj = [obj(:)', {val}];
             end
         end
         if (exist('obj', 'var') && length(obj) == 1)
