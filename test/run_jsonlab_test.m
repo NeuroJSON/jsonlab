@@ -3,7 +3,7 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test
 %   or
 % run_jsonlab_test(tests)
-% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','bugs'})
+% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','bugs'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -18,6 +18,7 @@ function run_jsonlab_test(tests)
 %         'bjo': test savebj/loadbj special options
 %         'jmap': test jsonmmap features in loadjson
 %         'bmap': test jsonmmap features in loadbj
+%         'jpath': test jsonpath
 %         'bugs': test specific bug fixes
 %
 % license:
@@ -27,7 +28,7 @@ function run_jsonlab_test(tests)
 %
 
 if (nargin == 0)
-    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'bugs'};
+    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', 'bugs'};
 end
 
 %%
@@ -351,6 +352,52 @@ if (ismember('bmap', tests))
                  '[["$",[1,24]]]', 'compact', 1);
     test_jsonlab('test multiple root objects with N padding', @savejson, loadbj([savebj({[1, 2, 3], struct('a', [4, 5])}) 'NNN' savebj(struct('b', [4, 5]))], 'mmaponly', 1, 'mmapinclude', '.b'), ...
                  '[["$1.b",[32,8]]]', 'compact', 1);
+end
+
+%%
+if (ismember('jpath', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test JSONPath\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    testdata = struct('book', struct('title', {'Minch', 'Qui-Gon', 'Ben'}, 'author', {'Yoda', 'Jinn', 'Kenobi'}), 'game', struct('title', 'Mario'));
+    test_jsonlab('jsonpath of .key', @savejson, jsonpath(testdata, '$.game.title'), '"Mario"', 'compact', 1);
+    test_jsonlab('jsonpath of ..key', @savejson, jsonpath(testdata, '$.book..title'), '["Minch","Qui-Gon","Ben"]', 'compact', 1);
+    test_jsonlab('jsonpath of ..key cross objects', @savejson, jsonpath(testdata, '$..title'), '["Minch","Qui-Gon","Ben","Mario"]', 'compact', 1);
+    test_jsonlab('jsonpath of [index]', @savejson, jsonpath(testdata, '$..title[1]'), '["Qui-Gon"]', 'compact', 1);
+    test_jsonlab('jsonpath of [-index]', @savejson, jsonpath(testdata, '$..title[-1]'), '["Mario"]', 'compact', 1);
+    test_jsonlab('jsonpath of [start:end]', @savejson, jsonpath(testdata, '$..title[0:2]'), '["Minch","Qui-Gon","Ben"]', 'compact', 1);
+    test_jsonlab('jsonpath of [:end]', @savejson, jsonpath(testdata, '$..title[:2]'), '["Minch","Qui-Gon","Ben"]', 'compact', 1);
+    test_jsonlab('jsonpath of [start:]', @savejson, jsonpath(testdata, '$..title[1:]'), '["Qui-Gon","Ben","Mario"]', 'compact', 1);
+    test_jsonlab('jsonpath of [-start:-end]', @savejson, jsonpath(testdata, '$..title[-2:-1]'), '["Ben","Mario"]', 'compact', 1);
+    test_jsonlab('jsonpath of [-start:]', @savejson, jsonpath(testdata, '$..title[:-3]'), '["Minch","Qui-Gon"]', 'compact', 1);
+    test_jsonlab('jsonpath of [:-end]', @savejson, jsonpath(testdata, '$..title[-1:]'), '["Mario"]', 'compact', 1);
+    test_jsonlab('jsonpath of object with [index]', @savejson, jsonpath(testdata, '$.book[1]'), '{"title":"Qui-Gon","author":"Jinn"}', 'compact', 1);
+    test_jsonlab('jsonpath of element after [index]', @savejson, jsonpath(testdata, '$.book[1:2].author'), '["Jinn","Kenobi"]', 'compact', 1);
+    test_jsonlab('jsonpath of [*] and deep scan', @savejson, jsonpath(testdata, '$.book[*]..author'), '["Yoda","Jinn","Kenobi"]', 'compact', 1);
+    test_jsonlab('jsonpath of [*] after deep scan', @savejson, jsonpath(testdata, '$.book[*]..author[*]'), '["Yoda","Jinn","Kenobi"]', 'compact', 1);
+    test_jsonlab('jsonpath use [] instead of .', @savejson, jsonpath(testdata, '$[book][2][author]'), '"Kenobi"', 'compact', 1);
+    test_jsonlab('jsonpath use [] with [start:end]', @savejson, jsonpath(testdata, '$[book][1:2][author]'), '["Jinn","Kenobi"]', 'compact', 1);
+    test_jsonlab('jsonpath use . after [start:end]', @savejson, jsonpath(testdata, '$[book][0:1].author'), '["Yoda","Jinn"]', 'compact', 1);
+    test_jsonlab('jsonpath use [''*''] and ["*"]', @savejson, jsonpath(testdata, '$["book"][:-2][''author'']'), '["Yoda","Jinn"]', 'compact', 1);
+    test_jsonlab('jsonpath use combinations', @savejson, jsonpath(testdata, '$..["book"][:-2].author[*][0]'), '["Yoda"]', 'compact', 1);
+
+    testdata = struct('book', struct(encodevarname('_title'), {'Minch', 'Qui-Gon', 'Ben'}, encodevarname(' author '), {'Yoda', 'Jinn', 'Kenobi'}), 'game', struct('title', 'Mario'));
+    test_jsonlab('jsonpath encoded field name in []', @savejson, jsonpath(testdata, '$..["book"][_title][*][0]'), '["Minch"]', 'compact', 1);
+    test_jsonlab('jsonpath encoded field name after .', @savejson, jsonpath(testdata, '$..["book"]._title[*][0]'), '["Minch"]', 'compact', 1);
+    test_jsonlab('jsonpath encoded field name after ..', @savejson, jsonpath(testdata, '$.._title'), '["Minch","Qui-Gon","Ben"]', 'compact', 1);
+    test_jsonlab('jsonpath encoded field name after .', @savejson, jsonpath(testdata, '$..["book"]['' author ''][*][1]'), '["Jinn"]', 'compact', 1);
+
+    if (exist('containers.Map'))
+        testdata = struct('book', containers.Map({'title', 'author'}, {{'Minch', 'Qui-Gon', 'Ben'}, {'Yoda', 'Jinn', 'Kenobi'}}), 'game', struct('title', 'Mario'));
+        test_jsonlab('jsonpath use combinations', @savejson, jsonpath(testdata, '$..["book"].author[*][0]'), '["Yoda"]', 'compact', 1);
+    end
+    if (exist('istable'))
+        testdata = struct('book', table({'Minch', 'Qui-Gon', 'Ben'}, {'Yoda', 'Jinn', 'Kenobi'}, 'variablenames', {'title', 'author'}), 'game', struct('title', 'Mario'));
+        test_jsonlab('jsonpath use combinations', @savejson, jsonpath(testdata, '$..["book"].author[*][0]'), '["Yoda"]', 'compact', 1);
+    end
+
+    clear testdata;
 end
 
 %%

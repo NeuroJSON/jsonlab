@@ -23,9 +23,13 @@ function obj = jsonpath(root, jsonpath)
 %
 
 obj = root;
-jsonpath = regexprep(jsonpath, '([^.])(\[[0-9:\*]+\])', '$1.$2');
-[pat, paths] = regexp(jsonpath, '(\.{0,2}[^\s\.]+)', 'match', 'tokens');
+jsonpath = regexprep(jsonpath, '([^.\]])(\[[-0-9:\*]+\])', '$1.$2');
+jsonpath = regexprep(jsonpath, '\[[''"]*([^\]''"]+)[''"]*\]', '.[$1]');
+[pat, paths] = regexp(jsonpath, '(\.{0,2}[^\.]+)', 'match', 'tokens');
 if (~isempty(pat) && ~isempty(paths))
+    if (strcmp(paths{1}, '$'))
+        paths(1) = [];
+    end
     for i = 1:length(paths)
         [obj, isfound] = getonelevel(obj, paths, i);
         if (~isfound)
@@ -52,34 +56,41 @@ if (strcmp(pathname, '$'))
     obj = input;
 elseif (regexp(pathname, '$\d+'))
     obj = input(str2double(pathname(2:end)) + 1);
-elseif (~isempty(regexp(pathname, '^\[[0-9\*:]+\]$', 'once')) || iscell(input))
+elseif (~isempty(regexp(pathname, '^\[[-0-9\*:]+\]$', 'once')) || iscell(input))
     arraystr = pathname(2:end - 1);
     if (find(arraystr == ':'))
-        [arraystr, arrayrange] = regexp(arraystr, '(\d*):(\d*)', 'match', 'tokens');
-        arrayrange = arrayrange{1};
-        if (~isempty(arrayrange{1}))
-            arrayrange{1} = str2double(arrayrange{1}) + 1;
+        arrayrange = regexp(arraystr, '(?<start>-*\d*):(?<end>-*\d*)', 'names');
+        if (~isempty(arrayrange.start))
+            arrayrange.start = str2double(arrayrange.start);
+            arrayrange.start = (arrayrange.start < 0) * length(input) + arrayrange.start + 1;
         else
-            arrayrange{1} = 1;
+            arrayrange.start = 1;
         end
-        if (~isempty(arrayrange{2}))
-            arrayrange{2} = str2double(arrayrange{2}) + 1;
+        if (~isempty(arrayrange.end))
+            arrayrange.end = str2double(arrayrange.end);
+            arrayrange.end = (arrayrange.end < 0) * length(input) + arrayrange.end + 1;
         else
-            arrayrange{2} = length(input);
+            arrayrange.end = length(input);
         end
-    elseif (regexp(arraystr, '^[0-9:]+', 'once'))
-        arrayrange = str2double(arraystr) + 1;
-        arrayrange = {arrayrange, arrayrange};
+    elseif (regexp(arraystr, '^[-0-9:]+', 'once'))
+        firstidx = str2double(arraystr);
+        if (firstidx < 0)
+            firstidx = length(input) + firstidx + 1;
+        else
+            firstidx = firstidx + 1;
+        end
+        arrayrange.start = firstidx;
+        arrayrange.end = firstidx;
     elseif (~isempty(regexp(arraystr, '^\*', 'once')))
-        arrayrange = {1, length(input)};
+        % do nothing
     end
     if (exist('arrayrange', 'var'))
-        obj = {input{arrayrange{1}:arrayrange{2}}};
+        obj = {input(arrayrange.start:arrayrange.end)};
     else
-        arrayrange = {1, length(input)};
+        arrayrange = struct('start', 1, 'end', length(input));
     end
     if (~exist('obj', 'var') && iscell(input))
-        input = {input{arrayrange{1}:arrayrange{2}}};
+        input = {input{arrayrange.start:arrayrange.end}};
         if (deepscan)
             searchkey = ['..' pathname];
         else
@@ -91,7 +102,7 @@ elseif (~isempty(regexp(pathname, '^\[[0-9\*:]+\]$', 'once')) || iscell(input))
                 if (~exist('newobj', 'var'))
                     newobj = {};
                 end
-                newobj = [newobj(:)', {val}];
+                newobj = [newobj(:)', val(:)'];
             end
         end
         if (exist('newobj', 'var'))
@@ -101,12 +112,17 @@ elseif (~isempty(regexp(pathname, '^\[[0-9\*:]+\]$', 'once')) || iscell(input))
             obj = obj{1};
         end
     else
-        obj = input(arrayrange{1}:arrayrange{2});
+        obj = input(arrayrange.start:arrayrange.end);
     end
-elseif (isstruct(input) || isa(input, 'containers.Map'))
+elseif (isstruct(input) || isa(input, 'containers.Map') || isa(input, 'table'))
+    pathname = regexprep(pathname, '^\[(.*)\]$', '$1');
     stpath = encodevarname(pathname);
     if (isstruct(input))
         if (isfield(input, stpath))
+            obj = {input.(stpath)};
+        end
+    elseif (isa(input, 'table'))
+        if (any(ismember(input.Properties.VariableNames, stpath)))
             obj = {input.(stpath)};
         end
     else
@@ -122,7 +138,7 @@ elseif (isstruct(input) || isa(input, 'containers.Map'))
                 if (~exist('obj', 'var'))
                     obj = {};
                 end
-                obj = [obj(:)', {val}];
+                obj = [obj(:)', val(:)'];
             end
         end
         if (exist('obj', 'var') && length(obj) == 1)
@@ -132,8 +148,6 @@ elseif (isstruct(input) || isa(input, 'containers.Map'))
     if (exist('obj', 'var') && iscell(obj) && length(obj) == 1)
         obj = obj{1};
     end
-elseif (isa(input, 'table'))
-    obj = input(:, pathname);
 elseif (~deepscan)
     error('json path segment "%s" can not be found in the input object\n', pathname);
 end
