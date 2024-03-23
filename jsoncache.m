@@ -50,7 +50,11 @@ function [cachepath, filename] = jsoncache(dbname, docname, filename, domain)
 %
 
 pathname = getenv('HOME');
-cachepath = {[pwd filesep '.neurojson'], [pathname filesep '.neurojson']};
+cachepath = {[pwd filesep '.neurojson']};
+if (strcmp(pathname, pwd) == 0)
+    cachepath{end + 1} = [pathname filesep '.neurojson'];
+end
+
 if (ispc)
     cachepath{end + 1} = [getenv('PROGRAMDATA') filesep 'neurojson'];
 elseif (ismac)
@@ -60,8 +64,6 @@ else
     cachepath{end + 1} = [pathname '/.cache/neurojson'];
     cachepath{end + 1} = '/var/cache/neurojson';
 end
-
-cachepath = unique(cachepath, 'stable');
 
 if (nargin < 4)
     domain = 'io';
