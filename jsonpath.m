@@ -26,7 +26,7 @@ obj = root;
 jpath = regexprep(jpath, '([^.\]])(\[[-0-9:\*]+\])', '$1.$2');
 jpath = regexprep(jpath, '\[[''"]*([^\]''"]+)[''"]*\]', '.[$1]');
 jpath = regexprep(jpath, '\\\.', '_0x2E_');
-while(regexp(jpath, '(\[[''"]*[^\]''"]+)\.(?=[^\]''"]+[''"]*\])'))
+while (regexp(jpath, '(\[[''"]*[^\]''"]+)\.(?=[^\]''"]+[''"]*\])'))
     jpath = regexprep(jpath, '(\[[''"]*[^\]''"]+)\.(?=[^\]''"]+[''"]*\])', '$1_0x2E_');
 end
 [pat, paths] = regexp(jpath, '(\.{0,2}[^\.]+)', 'match', 'tokens');
