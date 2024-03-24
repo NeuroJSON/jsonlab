@@ -187,7 +187,7 @@ included in the official distributions of Debian Bullseye and Ubuntu 21.04 or ne
 
 
 Please note that the ``savejson/loadjson`` in both JSONLab v2.0-v3.0 are
-compliant with JData Spec Draft 3; the savebj/loadbj`` in JSONLab v3.0 is
+compliant with JData Spec Draft 3; the ``savebj/loadbj`` in JSONLab v3.0 is
 compatible to BJData spec Draft 2, which contains breaking feature changes
 compared to those in JSONLab v2.0.
 
