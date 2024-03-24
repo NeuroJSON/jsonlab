@@ -210,6 +210,7 @@ opt.parsestringarray = jsonopt('ParseStringArray', 0, opt);
 opt.usemap = jsonopt('UseMap', 0, opt);
 opt.arraydepth_ = 1;
 opt.mmaponly = jsonopt('MmapOnly', 0, opt);
+opt.isspace = isspace(inputstr);
 
 if (jsonopt('ShowProgress', 0, opt) == 1)
     opt.progressbar_ = waitbar(0, 'loading ...');
@@ -226,7 +227,7 @@ if (nargout > 1 || opt.mmaponly)
 end
 jsoncount = 1;
 while pos <= inputlen
-    [cc, pos, w1] = next_char(inputstr, pos);
+    [cc, pos, w1] = next_char(inputstr, pos, opt);
     switch (cc)
         case '{'
             if (nargout > 1 || opt.mmaponly)
@@ -303,7 +304,7 @@ if (nargout > 3)
     mmap = {};
     origpath = varargin{1}.jsonpath_;
 end
-pos = parse_char(inputstr, pos, '[');
+pos = parse_char(inputstr, pos, '[', varargin{:});
 object = cell(0, 1);
 arraydepth = varargin{1}.arraydepth_;
 pbar = -1;
@@ -311,7 +312,7 @@ if (isfield(varargin{1}, 'progressbar_'))
     pbar = varargin{1}.progressbar_;
 end
 format = varargin{1}.formatversion;
-[cc, pos] = next_char(inputstr, pos);
+[cc, pos] = next_char(inputstr, pos, varargin{:});
 endpos = [];
 
 if cc ~= ']'
@@ -330,7 +331,7 @@ if cc ~= ']'
                         if (nextidx >= length(astr) - 1)
                             object = obj;
                             pos = endpos;
-                            pos = parse_char(inputstr, pos, ']');
+                            pos = parse_char(inputstr, pos, ']', varargin{:});
                             return
                         end
                     end
@@ -347,7 +348,7 @@ if cc ~= ']'
                                     object = permute(object, ndims(object):-1:1);
                                 end
                                 pos = endpos;
-                                pos = parse_char(inputstr, pos, ']');
+                                pos = parse_char(inputstr, pos, ']', varargin{:});
                                 if (pbar > 0)
                                     waitbar(pos / length(inputstr), pbar, 'loading ...');
                                 end
@@ -386,11 +387,11 @@ if cc ~= ']'
                 [val, pos, index_esc] = parse_value(inputstr, pos, esc, index_esc, varargin{:});
             end
             object{end + 1} = val;
-            [cc, pos] = next_char(inputstr, pos);
+            [cc, pos] = next_char(inputstr, pos, varargin{:});
             if cc == ']'
                 break
             end
-            [pos, w1, w2] = parse_char(inputstr, pos, ',');
+            [pos, w1, w2] = parse_char(inputstr, pos, ',', varargin{:});
         end
     end
 end
@@ -419,31 +420,31 @@ if (varargin{1}.simplifycell)
         object = object.';
     end
 end
-pos = parse_char(inputstr, pos, ']');
+pos = parse_char(inputstr, pos, ']', varargin{:});
 
 if (pbar > 0)
     waitbar(pos / length(inputstr), pbar, 'loading ...');
 end
 %% -------------------------------------------------------------------------
 
-function [pos, w1, w2] = parse_char(inputstr, pos, c)
+function [pos, w1, w2] = parse_char(inputstr, pos, c, varargin)
 w1 = pos;
 w2 = 0;
-pos = skip_whitespace(pos, inputstr);
+pos = skip_whitespace(pos, inputstr, varargin{:});
 w1 = pos - w1;
 if pos > length(inputstr) || inputstr(pos) ~= c
     pos = error_pos(sprintf('Expected %c at position %%d', c), inputstr, pos);
 else
     pos = pos + 1;
     w2 = pos;
-    pos = skip_whitespace(pos, inputstr);
+    pos = skip_whitespace(pos, inputstr, varargin{:});
     w2 = pos - w2;
 end
 %% -------------------------------------------------------------------------
 
-function [c, pos, w1] = next_char(inputstr, pos)
+function [c, pos, w1] = next_char(inputstr, pos, varargin)
 w1 = pos;
-pos = skip_whitespace(pos, inputstr);
+pos = skip_whitespace(pos, inputstr, varargin{:});
 w1 = pos - w1;
 if pos > length(inputstr)
     c = [];
@@ -581,14 +582,14 @@ if (nargout > 3)
     mmap = {};
     origpath = varargin{1}.jsonpath_;
 end
-pos = parse_char(inputstr, pos, '{');
+pos = parse_char(inputstr, pos, '{', varargin{:});
 usemap = varargin{1}.usemap;
 if (usemap)
     object = containers.Map();
 else
     object = [];
 end
-[cc, pos] = next_char(inputstr, pos);
+[cc, pos] = next_char(inputstr, pos, varargin{:});
 if cc ~= '}'
     while 1
         [str, pos, index_esc] = parseStr(inputstr, pos, esc, index_esc, varargin{:});
@@ -601,7 +602,7 @@ if cc ~= '}'
         if isempty(str) && ~usemap
             str = 'x0x0_'; % empty name is valid in JSON, decodevarname('x0x0_') restores '\0'
         end
-        [pos, w1, w2] = parse_char(inputstr, pos, ':');
+        [pos, w1, w2] = parse_char(inputstr, pos, ':', varargin{:});
         if (nargout > 3)
             varargin{1}.jsonpath_ = [origpath, '.', str];
             mmap{end + 1} = {varargin{1}.jsonpath_, [pos, 0, w2]};
@@ -623,14 +624,14 @@ if cc ~= '}'
             end
             object.(str) = val;
         end
-        [cc, pos] = next_char(inputstr, pos);
+        [cc, pos] = next_char(inputstr, pos, varargin{:});
         if cc == '}'
             break
         end
-        pos = parse_char(inputstr, pos, ',');
+        pos = parse_char(inputstr, pos, ',', varargin{:});
     end
 end
-pos = parse_char(inputstr, pos, '}');
+pos = parse_char(inputstr, pos, '}', varargin{:});
 
 %% -------------------------------------------------------------------------
 
@@ -645,9 +646,9 @@ error('JSONLAB:JSON:InvalidFormat', msg);
 
 %% -------------------------------------------------------------------------
 
-function newpos = skip_whitespace(pos, inputstr)
+function newpos = skip_whitespace(pos, inputstr, varargin)
 newpos = pos;
-while newpos <= length(inputstr) && isspace(inputstr(newpos))
+while newpos <= length(inputstr) && varargin{1}.isspace(newpos)
     newpos = newpos + 1;
 end
 
