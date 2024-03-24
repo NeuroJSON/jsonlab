@@ -430,21 +430,33 @@ end
 function [pos, w1, w2] = parse_char(inputstr, pos, c, varargin)
 w1 = pos;
 w2 = 0;
-pos = skip_whitespace(pos, inputstr, varargin{:});
+
+while pos <= length(inputstr) && varargin{1}.isspace(pos)
+    pos = pos + 1;
+end
+
 w1 = pos - w1;
 if pos > length(inputstr) || inputstr(pos) ~= c
     pos = error_pos(sprintf('Expected %c at position %%d', c), inputstr, pos);
 else
     pos = pos + 1;
     w2 = pos;
-    pos = skip_whitespace(pos, inputstr, varargin{:});
+
+    while pos <= length(inputstr) && varargin{1}.isspace(pos)
+        pos = pos + 1;
+    end
+
     w2 = pos - w2;
 end
 %% -------------------------------------------------------------------------
 
 function [c, pos, w1] = next_char(inputstr, pos, varargin)
 w1 = pos;
-pos = skip_whitespace(pos, inputstr, varargin{:});
+
+while pos <= length(inputstr) && varargin{1}.isspace(pos)
+    pos = pos + 1;
+end
+
 w1 = pos - w1;
 if pos > length(inputstr)
     c = [];
