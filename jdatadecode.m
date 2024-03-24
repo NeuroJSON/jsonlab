@@ -477,29 +477,12 @@ if (opt.maxlinklevel > 0 && isfield(data, N_('_DataLink_')))
         end
         if (~isempty(ref.path))
             uripath = [ref.proto ref.path];
-            [cachepath, filename] = jsoncache(uripath);
-            if (iscell(cachepath) && ~isempty(cachepath))
-                rawdata = webread(uripath);
-                fname = [cachepath{1} filesep filename];
-                fpath = fileparts(fname);
-                if (~exist(fpath, 'dir'))
-                    mkdir(fpath);
-                end
-                fid = fopen(fname, 'wb');
-                if (fid == 0)
-                    error('can not save URL to cache at path %s', fname);
-                end
-                fwrite(fid, uint8(rawdata));
-                fclose(fid);
-
+            [newdata, fname] = jdlink(uripath);
+            if (exist(fname, 'file'))
                 opt.maxlinklevel = opt.maxlinklevel - 1;
-                newdata = loadjd(fname, opt);
-            elseif (~iscell(cachepath) && exist(cachepath, 'file'))
-                opt.maxlinklevel = opt.maxlinklevel - 1;
-                newdata = loadjd(cachepath, opt);
-            end
-            if (~isempty(ref.jsonpath))
-                newdata = jsonpath(newdata, ref.jsonpath);
+                if (~isempty(ref.jsonpath))
+                    newdata = jsonpath(newdata, ref.jsonpath);
+                end
             end
         end
     end

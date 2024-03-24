@@ -106,17 +106,19 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/filterjsonmmap.m</file>
       <file>${PROJECT_ROOT}/gendocs.sh</file>
       <file>${PROJECT_ROOT}/genlog.sh</file>
-      <file>${PROJECT_ROOT}/getfromjsonpath.m</file>
       <file>${PROJECT_ROOT}/gzipdecode.m</file>
       <file>${PROJECT_ROOT}/gzipencode.m</file>
       <file>${PROJECT_ROOT}/images</file>
       <file>${PROJECT_ROOT}/isoctavemesh.m</file>
       <file>${PROJECT_ROOT}/jdatadecode.m</file>
       <file>${PROJECT_ROOT}/jdataencode.m</file>
+      <file>${PROJECT_ROOT}/jdlink.m</file>
       <file>${PROJECT_ROOT}/jload.m</file>
       <file>${PROJECT_ROOT}/jsave.m</file>
+      <file>${PROJECT_ROOT}/jsoncache.m</file>
       <file>${PROJECT_ROOT}/jsonget.m</file>
       <file>${PROJECT_ROOT}/jsonopt.m</file>
+      <file>${PROJECT_ROOT}/jsonpath.m</file>
       <file>${PROJECT_ROOT}/jsonset.m</file>
       <file>${PROJECT_ROOT}/loadbj.m</file>
       <file>${PROJECT_ROOT}/loadjd.m</file>
@@ -140,7 +142,6 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/savejson.m</file>
       <file>${PROJECT_ROOT}/savemsgpack.m</file>
       <file>${PROJECT_ROOT}/saveubjson.m</file>
-      <file>${PROJECT_ROOT}/test</file>
       <file>${PROJECT_ROOT}/varargin2struct.m</file>
       <file>${PROJECT_ROOT}/zlibdecode.m</file>
       <file>${PROJECT_ROOT}/zlibencode.m</file>

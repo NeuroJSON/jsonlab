@@ -3,21 +3,25 @@
 % Files
 %   base64decode       - output = base64decode(input)
 %   base64encode       - output = base64encode(input)
+%   blosc2decode       - output = blosc2decode(input)
+%   blosc2encode       - output = blosc2encode(input)
 %   decodevarname      - newname = decodevarname(name)
 %   encodevarname      - newname = encodevarname(name)
 %   fast_match_bracket - [endpos, maxlevel] = fast_match_bracket(key,pos,startpos,brackets)
 %   filterjsonmmap     - mmap=filterjsonmmap(mmap, patterns, isinclude)
-%   jsoncache          - [cachepath, filename]=jsoncache(hyperlink)
-%   jsonpath           - obj=jsonpath(root, jsonpath)
 %   gzipdecode         - output = gzipdecode(input)
 %   gzipencode         - output = gzipencode(input)
 %   isoctavemesh       - [isoctave verinfo]=isoctavemesh
 %   jdatadecode        - newdata=jdatadecode(data,opt,...)
 %   jdataencode        - jdata=jdataencode(data)
+%   jdatahash.m        - key = jdatahash(data, algorithm)
+%   jdlink             - data = jdlink(uripath)
 %   jload              - jload
 %   jsave              - jsave
+%   jsoncache          - [cachepath, filename]=jsoncache(hyperlink)
 %   jsonget            - json=jsonget(fname,mmap,'$.jsonpath1','$.jsonpath2',...)
 %   jsonopt            - val=jsonopt(key,default,optstruct)
+%   jsonpath           - obj=jsonpath(root, jsonpath)
 %   jsonset            - json=jsonset(fname,mmap,'$.jsonpath1',newval1,'$.jsonpath2','newval2',...)
 %   loadbj             - data=loadbj(fname,opt)
 %   loadjd             - data=loadjd(inputfile)

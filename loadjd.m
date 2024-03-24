@@ -77,5 +77,6 @@ elseif (regexpi(filename, '\.tsv$|\.tsv\.gz$|\.csv$|\.csv\.gz$'))
 elseif (regexpi(filename, '\.mat$|\.bvec$|\.bval$'))
     [varargout{1:nargout}] = load(filename, varargin{:});
 else
-    error('file suffix must be one of .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf,.pmat,.nwb,.nii,.nii.gz,.tsv,.tsv.gz,.csv,.csv.gz,.mat,.bvec,.bval');
+    warning('only support parsing .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf,.pmat,.nwb,.nii,.nii.gz,.tsv,.tsv.gz,.csv,.csv.gz,.mat,.bvec,.bval; load unparsed raw data');
+    [varargout{1:nargout}] = fileread(filename);
 end
