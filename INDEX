@@ -2,6 +2,9 @@ jsonlab >> JSONLab
 JSON
  loadjson
  savejson
+Binary JData
+ loadbj
+ savebj
 UBJSON
  loadubjson
  saveubjson
@@ -21,7 +24,10 @@ JSON Mmap
  jsonget
  jsonset
  filterjsonmmap
- getfromjsonpath
+ jsonpath
+External Links
+ jdlink
+ jsoncache
 Compression and Decompression
  base64decode
  base64encode
@@ -46,11 +52,10 @@ Helper Functions
  decodevarname
  encodevarname
  fast_match_bracket
- find_matching_paren
  isoctavemesh
  jsonopt
+ jdatahash
  match_bracket
- matching_bracket
  mergestruct
  nestbracket2dim
  varargin2struct

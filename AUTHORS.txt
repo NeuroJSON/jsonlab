@@ -8,7 +8,7 @@ Address: Qianqian Fang
          ISEC 206
          360 Huntington Ave, Boston, MA 02115, USA
          Phone[O]: 617-373-3829
-URL: http://fanglab.org, https://neurojson.org
+URL: http://fanglab.org, https://neurojson.org, https://neurojson.io
 Email: <q.fang at neu.edu> and <fangqq at gmail.com>
 
 

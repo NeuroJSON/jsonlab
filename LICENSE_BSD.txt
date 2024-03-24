@@ -1,9 +1,9 @@
-Copyright (c) 2011-2022 Qianqian Fang <q.fang at neu.edu>
-Copyright (c) 2014,2016 Bastian Bechtold
-Copyright (c) 2012, Kota Yamaguchi
-Copyright (c) 2009, Nedialko Krouchev
-Copyright (c) 2009, François Glineur
-Copyright (c) 2008, Joel Feenstra
+Copyright (c) 2011-2024 Qianqian Fang <q.fang at neu.edu> (all units)
+Copyright (c) 2014,2016 Bastian Bechtold (loadmsgpack.m)
+Copyright (c) 2012, Kota Yamaguchi (zlibdecode.m, zlibencode.m, gzipencode.m, gzipdecode.m, base64encode.m, base64decode.m)
+Copyright (c) 2009, Nedialko Krouchev (loadjson.m)
+Copyright (c) 2009, François Glineur (loadjson.m)
+Copyright (c) 2008, Joel Feenstra (loadjson.m)
 
 All rights reserved.
 

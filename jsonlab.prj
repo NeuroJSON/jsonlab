@@ -96,7 +96,6 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/LICENSE_BSD.txt</file>
       <file>${PROJECT_ROOT}/LICENSE_GPLv3.txt</file>
       <file>${PROJECT_ROOT}/README.rst</file>
-      <file>${PROJECT_ROOT}/README.txt</file>
       <file>${PROJECT_ROOT}/base64decode.m</file>
       <file>${PROJECT_ROOT}/base64encode.m</file>
       <file>${PROJECT_ROOT}/decodevarname.m</file>
@@ -117,6 +116,7 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/jsave.m</file>
       <file>${PROJECT_ROOT}/jsoncache.m</file>
       <file>${PROJECT_ROOT}/jsonget.m</file>
+      <file>${PROJECT_ROOT}/jsonhash.m</file>
       <file>${PROJECT_ROOT}/jsonopt.m</file>
       <file>${PROJECT_ROOT}/jsonpath.m</file>
       <file>${PROJECT_ROOT}/jsonset.m</file>
@@ -136,6 +136,7 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/match_bracket.m</file>
       <file>${PROJECT_ROOT}/mergestruct.m</file>
       <file>${PROJECT_ROOT}/nestbracket2dim.m</file>
+      <file>${PROJECT_ROOT}/octavezmat.m</file>
       <file>${PROJECT_ROOT}/package.json</file>
       <file>${PROJECT_ROOT}/savebj.m</file>
       <file>${PROJECT_ROOT}/savejd.m</file>
@@ -145,6 +146,8 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/varargin2struct.m</file>
       <file>${PROJECT_ROOT}/zlibdecode.m</file>
       <file>${PROJECT_ROOT}/zlibencode.m</file>
+      <file>${PROJECT_ROOT}/zstddecode.m</file>
+      <file>${PROJECT_ROOT}/zstdencode.m</file>
     </fileset.rootfiles>
     <fileset.depfun.included />
     <fileset.depfun.excluded />

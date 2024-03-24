@@ -4,7 +4,7 @@
  JSONLab: compact, portable, robust JSON/binary-JSON encoder/decoder for MATLAB/Octave
 ########################################################################################
 
-* Copyright (c) 2011-2022  Qianqian Fang <q.fang at neu.edu>
+* Copyright (c) 2011-2024  Qianqian Fang <q.fang at neu.edu>
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
 * Version: 2.9.8 (Micronus Prime - Beta)
 * URL: https://neurojson.org/jsonlab
@@ -30,27 +30,35 @@ What's New
 ============
 
 We are excited to announce that the JSONLab project, as the official reference library
-for both the `JData <https://neurojson.org/jdata/draft3>`_ and `BJData <https://neurojson.org/bjdata/draft2>`_
-specifications, is funded by the US National Institute of Health (NIH) as
-part of the NeuroJSON project (https://neurojson.org).
-The goal of the NeuroJSON project is to develop human-readable, scalable and 
-future-proof neuroimaging data standards and data sharing services. All data
-produced from the NeuroJSON project will be using JSON/Binary JData formats as the
-underlying serialization standards and use the lightweight JData specification as
-language-independent data annotation standard, all of which have been evolved from
-the over a decade development of JSONLab.
+for both `JData <https://neurojson.org/jdata/draft3>`_ and `BJData <https://neurojson.org/bjdata/draft2>`_
+specifications, has been funded by the US National Institute of Health (NIH) as
+part of the NeuroJSON project (https://neurojson.org and https://neurojson.io).
 
-JSONLab v2.9.8 - code named "Micronus - beta" - is the beta-release of the next milestone -
-JSONLab v3.0 - containing a number of key feature enhancement and bug fixes. The major 
+The goal of the NeuroJSON project is to develop scalable, searchable, and
+reusable neuroimaging data formats and data sharing platforms. All data
+produced from the NeuroJSON project will be using JSON/Binary JData formats as the
+underlying serialization standards and the lightweight JData specification as
+language-independent data annotation standard, all of which have been evolved 
+from the over a decade development of JSONLab.
+
+JSONLab v2.9.8 - code named "Micronus Prime - beta" - is the beta-release of the next milestone (v3.0),
+containing a number of key feature enhancement and bug fixes. The major 
 new features include
 
 1. exporting JSON Memory-Map for rapid disk-map like JSON/binary JSON reading
-   and writing, implementing `JSON-Mmap Spec v1 Draft 1 <https://github.com/NeuroJSON/jsonmmap>`_
-2. supporting JSONPath query to MATLAB data and JSON/binary JSON file and streams, 
+   and writing, implementing `JSON-Mmap spec v1 Draft 1 <https://github.com/NeuroJSON/jsonmmap>`_
+2. supporting JSONPath query (``jsonpath``) to MATLAB data and JSON/binary JSON file and streams, including
+   deep-scan operators,
 3. (**breaking**) upgrading the supported BJData spec to `V1 Draft 2 <https://neurojson.org/bjdata/draft2>`_
    where the default numerical data byte order changed from Big-Endian to **Little-Endian**,
 4. adding initial support to JData `_DataLink_ <https://github.com/NeuroJSON/jdata/blob/master/JData_specification.md#data-referencing-and-links>`_ 
    decoding to link multiple JSON/binary JSON files
+5. dynamically cache linked data files (``jsoncache``, ``jdlink``) to permit on-demand download and 
+   processing of complex JSON-encoded datasets such as neuroimaging datasets hosted on https://neurojson.io
+6. support high-performance Blosc2 meta-compressor for storing large N-D array data,
+7. ``savejson/loadjson`` can use MATLAB/Octave built-in ``jsonencode/jsondecode`` using the `BuiltinJSON` option
+8. automatically switch from struct to containers.Map when encoded key-length exceeds 63
+9. provide fall-back zlib/gzip compression/decompression function on Octave when ZMat is not installed
 
 There have been many major updates added to this release since the previous 
 release v2.0 in June 2020. A list of the major changes are summarized below
@@ -59,6 +67,74 @@ new interface functions ``savejd/loadjd``, and options to use MATLAB/Octave buil
 ``jsonencode/jsondecode`` functions. The ``octave-jsonlab`` package has also been
 included in the official distributions of Debian Bullseye and Ubuntu 21.04 or newer.
 
+
+- 2024-03-24 [67f30ca] [feat] support using \. or [] in JSONPath to escape dots in key names
+- 2024-03-24 [ee830cd] [bug] fix error_pos error when giving a non-existant input file
+- 2024-03-24 [d69686d] [feat] add jdlink to dynamically download and cache linked data
+- 2024-03-22 [772a1ef] [ci] fix octave failed test
+- 2024-03-22*[cff529a] [test] add jsonpath test, refine jsonpath syntax support
+- 2024-03-22 [22435e4] [bug] fix jsonpath handling of recursive deep scans
+- 2024-03-21 [c9f8a20] [bug] support deep scan in cell and struct, merge struct/containers.Map
+- 2024-03-21 [394394a] [bug] improve jsonpath cell with deep scan
+- 2024-03-20 [a599e71] [feat] add jsoncache to handle _DataLink_ download cache, rename jsonpath
+- 2024-02-19*[4f2edeb] [feat] support .. jsonpath operator for deep scan
+- 2024-01-11 [c43a758] [bug] fix missing index_esc reset, add test for automap
+- 2024-01-11*[ef5b472] [feat] automatically switch to map object when key length > 63
+- 2023-11-17 [ee24122] use sprintf to replace unescapejsonstring
+- 2023-11-12 [abe504f] [ci] test again on macos-12
+- 2023-11-12 [d2ff26a] [ci] install octave via conda on macos to avoid hanged install
+- 2023-11-07 [33263de] completely reformat m-files using miss_hit
+- 2023-11-07 [3ff781f] make octavezmat work on matlab
+- 2023-10-29 [ea4a4fd] make test script run on MATLAB R2010b
+- 2023-10-27 [ca91e07] use older matlab due to matlab-actions/run-command#43
+- 2023-10-27 [4bf8232] add NO_ZMAT flag, fix fread issue
+- 2023-10-27*[ce3c0a0] add fallback zlib/glib support on Octave via file-based zip/unzip
+- 2023-10-26 [7ab1b6e] fix error for expecting an ending object mark when count is given
+- 2023-09-08 [6dfa58e] Fix typos found by codespell
+- 2023-06-27 [7d7e7f7] fix typo of compression method
+- 2023-06-27*[c25dd0f] support blosc2 codecs in save and load data, upgrade jsave/jload
+- 2023-06-19 [b23181a] test root-level indentation
+- 2023-06-19 [5bfde65] add indentation test
+- 2023-06-19 [b267858] fix CI errors related to octave utf-8 handling
+- 2023-06-19 [1e93d07] avoid octave 6.4+ regexp non-utf8 error see discussions at octave bug thread: https://savannah.gnu.org/bugs/index.php?57107
+- 2023-06-15 [8f921ac] fix broken tests
+- 2023-06-11*[6cb5f12] allow linking binary jdata files inside json
+- 2023-06-10 [2d0649b] do not compress long string by default, read bjd from URI
+- 2023-06-10 [5135dea] saving JSON with UTF-8 encoding, fix #71
+- 2023-06-10*[a3c807f] add zstdencode and zstddecode via new version of zmat
+- 2023-06-07 [837c8b5] fix containers.Map indentiation bug with a single element
+- 2023-06-07 [747c99b] fix string indentation, add option EmptyArrayAsNull, fix #91
+- 2023-06-05*[cf57326] support blosc2 meta compressors
+- 2023-05-05 [d37a386] use {:} to expand varargin
+- 2023-04-23 [03311d2] remove README.txt, no longer used, fix #88
+- 2023-04-21 [49eceb0] Fix typo not found by codespell
+- 2023-04-21 [75b1fdc] Fix typos found by codespell
+- 2023-04-17 [8fea393] revert savejson change
+- 2023-04-17 [9554a44] Merge branch 'master' of github.com:fangq/jsonlab
+- 2023-04-17 [3c32aff] speed up string encoding and decoding
+- 2023-04-09*[8c8464f] rename jamm files to pmat - portable mat, will add jsonmmap
+- 2023-04-09 [aa1c2a4] drop ubuntu-18.04
+- 2023-04-08 [9173525] replace regexp to ismember due to octave bug 57107; test mac
+- 2023-04-08 [67065dc] fix matlab test
+- 2023-04-08 [8dcedad] use alternative test to avoid octave bug 57107
+- 2023-04-08*[9b6be7b] add github action based tests
+- 2023-02-24 [cb43ed1] add bug fix test section
+- 2023-02-24 [2412ebf] only simplify all-numeric or all-struct cells
+- 2023-02-23 [d4e77e1] add missing file extension
+- 2023-02-23 [408cc2e] fix loadjd and savejd file extension match, add jbids
+- 2023-02-22 [29bac9d] fix broken jdatahash
+- 2023-02-22*[69a7d01] add a portable data hash function
+- 2023-02-09 [0448eb1] preventing matlab 2022b converting string to unicode
+- 2022-11-21 [9ce91fc] handle empty struct with names, fix #85
+- 2022-11-20 [9687d17] accept string typed file name, close #84
+- 2022-08-12 [283e5f1] output data depends on nargout
+- 2022-08-08 [c729048] avoid conjugating complex numbers, fix #83
+- 2022-06-05*[fa35843] implementing JSON-Mmap spec draft 1, https://neurojson.org/jsonmmap/draft1
+- 2022-05-18 [8b74d30] make savejd work for saveh5 to save hdf5 files
+- 2022-04-19 [f1332e3] make banner image transparent background
+- 2022-04-19 [6cf82a6] fix issues found by dependency check
+- 2022-04-19 [94167bb] change neurojson urls to https
+- 2022-04-19 [c4c4da1] create Contents.m from matlab
 - 2022-04-19*[2278bb1] stop escaping / to \/ in JSON string, see https://mondotondo.com/2010/12/29/the-solidus-issue/
 - 2022-04-01*[fb711bb] add loadjd and savejd as the unified JSON/binary JSON file interface
 - 2022-03-30 [4433a21] improve datalink uri handling to consider : inside uri
@@ -452,8 +528,8 @@ The main benefits of using .pmat file to share matlab variables include
   ``jsave(..., "compression","lzma")``; the only drawback is longer saving time.
 * a ``.pmat`` file can be readily read/opened among many programming environments, including 
   Python, JavaScript, Go, Java etc, where .mat file support is not generally available. 
-  Parsers of ``.pmat`` files are largely compatible with UBJSON's parsers available at 
-  http://ubjson.org/?page_id=48
+  Parsers of ``.pmat`` files are largely compatible with BJData's parsers available at 
+  https://neurojson.org/#software
 * a ``.pmat`` file is quasi-human-readable, one can see the internal data fields 
   even in a command line, for example using ``strings -n 2 file.pmat | astyle``, 
   making the binary data easy to be understood, shared and reused. 
@@ -546,7 +622,7 @@ Once the necessary modules are installed, one can type ``python`` (or ``python3`
       from collections import OrderedDict
 
       data1=jd.loadt('myfile.json',object_pairs_hook=OrderedDict);
-      data2=jd.loadb('myfile.ubj',object_pairs_hook=OrderedDict);
+      data2=jd.loadb('myfile.bjd',object_pairs_hook=OrderedDict);
       data3=jd.loadb('myfile.pmat',object_pairs_hook=OrderedDict);
 
 where ``jd.loadt()`` function loads a text-based JSON file, performs

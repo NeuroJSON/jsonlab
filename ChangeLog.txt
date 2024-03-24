@@ -1,12 +1,106 @@
 ============================================================================
 
-  JSONlab - a toolbox to encode/decode JSON/UBJSON/MessagePack data in MATLAB/Octave
+  JSONlab - compact, portable, robust JSON/binary-JSON encoder/decoder for MATLAB/Octave
 
 ----------------------------------------------------------------------------
 
 JSONlab ChangeLog (key features marked by *):
+
 == JSONlab 2.9.8 (codename: Micronus Prime - beta), FangQ <q.fang (at) neu.edu> ==
 
+ 2024-03-24 [67f30ca] [feat] support using \. or [] in JSONPath to escape dots in key names
+ 2024-03-24 [ee830cd] [bug] fix error_pos error when giving a non-existant input file
+ 2024-03-24 [d69686d] [feat] add jdlink to dynamically download and cache linked data
+ 2024-03-22 [772a1ef] [ci] fix octave failed test
+ 2024-03-22 [cff529a] [test] add jsonpath test, refine jsonpath syntax support
+ 2024-03-22 [22435e4] [bug] fix jsonpath handling of recursive deep scans
+ 2024-03-21 [c9f8a20] [bug] support deep scan in cell and struct, merge struct/containers.Map
+ 2024-03-21 [394394a] [bug] improve jsonpath cell with deep scan
+ 2024-03-20 [a599e71] [feat] add jsoncache to handle _DataLink_ download cache, rename jsonpath
+ 2024-02-19*[4f2edeb] [feat] support .. jsonpath operator for deep scan
+ 2024-01-11 [c43a758] [bug] fix missing index_esc reset, add test for automap
+ 2024-01-11*[ef5b472] [feat] automatically switch to map object when key length > 63
+ 2023-11-17 [ee24122] use sprintf to replace unescapejsonstring
+ 2023-11-12 [abe504f] [ci] test again on macos-12
+ 2023-11-12 [d2ff26a] [ci] install octave via conda on macos to avoid hanged install
+ 2023-11-07 [33263de] completely reformat m-files using miss_hit
+ 2023-11-07 [3ff781f] make octavezmat work on matlab
+ 2023-10-29 [ea4a4fd] make test script run on MATLAB R2010b
+ 2023-10-27 [ca91e07] use older matlab due to matlab-actions/run-command#43
+ 2023-10-27 [4bf8232] add NO_ZMAT flag, fix fread issue
+ 2023-10-27*[ce3c0a0] add fallback zlib/glib support on Octave via file-based zip/unzip
+ 2023-10-26 [7ab1b6e] fix error for expecting an ending object mark when count is given
+ 2023-09-08 [6dfa58e] Fix typos found by codespell
+ 2023-06-27 [7d7e7f7] fix typo of compression method
+ 2023-06-27*[c25dd0f] support blosc2 codecs in save and load data, upgrade jsave/jload
+ 2023-06-19 [b23181a] test root-level indentation
+ 2023-06-19 [5bfde65] add indentation test
+ 2023-06-19 [b267858] fix CI errors related to octave utf-8 handling
+ 2023-06-19 [1e93d07] avoid octave 6.4+ regexp non-utf8 error see discussions at octave bug thread: https://savannah.gnu.org/bugs/index.php?57107
+ 2023-06-15 [8f921ac] fix broken tests
+ 2023-06-11*[6cb5f12] allow linking binary jdata files inside json
+ 2023-06-10 [2d0649b] do not compress long string by default, read bjd from URI
+ 2023-06-10 [5135dea] saving JSON with UTF-8 encoding, fix #71
+ 2023-06-10*[a3c807f] add zstdencode and zstddecode via new version of zmat
+ 2023-06-07 [837c8b5] fix containers.Map indentiation bug with a single element
+ 2023-06-07 [747c99b] fix string indentation, add option EmptyArrayAsNull, fix #91
+ 2023-06-05*[cf57326] support blosc2 meta compressors
+ 2023-05-05 [d37a386] use {:} to expand varargin
+ 2023-04-23 [03311d2] remove README.txt, no longer used, fix #88
+ 2023-04-21 [49eceb0] Fix typo not found by codespell
+ 2023-04-21 [75b1fdc] Fix typos found by codespell
+ 2023-04-17 [8fea393] revert savejson change
+ 2023-04-17 [9554a44] Merge branch 'master' of github.com:fangq/jsonlab
+ 2023-04-17 [3c32aff] speed up string encoding and decoding
+ 2023-04-09*[8c8464f] rename jamm files to pmat - portable mat, will add jsonmmap
+ 2023-04-09 [aa1c2a4] drop ubuntu-18.04
+ 2023-04-08 [9173525] replace regexp to ismember due to octave bug 57107; test mac
+ 2023-04-08 [67065dc] fix matlab test
+ 2023-04-08 [8dcedad] use alternative test to avoid octave bug 57107
+ 2023-04-08*[9b6be7b] add github action based tests
+ 2023-02-24 [cb43ed1] add bug fix test section
+ 2023-02-24 [2412ebf] only simplify all-numeric or all-struct cells
+ 2023-02-23 [d4e77e1] add missing file extension
+ 2023-02-23 [408cc2e] fix loadjd and savejd file extension match, add jbids
+ 2023-02-22 [29bac9d] fix broken jdatahash
+ 2023-02-22*[69a7d01] add a portable data hash function
+ 2023-02-09 [0448eb1] preventing matlab 2022b converting string to unicode
+ 2022-11-21 [9ce91fc] handle empty struct with names, fix #85
+ 2022-11-20 [9687d17] accept string typed file name, close #84
+ 2022-08-12 [283e5f1] output data depends on nargout
+ 2022-08-08 [c729048] avoid conjugating complex numbers, fix #83
+ 2022-06-05*[fa35843] implementing JSON-Mmap spec draft 1, https://neurojson.org/jsonmmap/draft1
+ 2022-05-18 [8b74d30] make savejd work for saveh5 to save hdf5 files
+ 2022-04-19 [f1332e3] make banner image transparent background
+ 2022-04-19 [6cf82a6] fix issues found by dependency check
+ 2022-04-19 [94167bb] change neurojson urls to https
+ 2022-04-19 [c4c4da1] create Contents.m from matlab
+ 2022-04-19*[2278bb1] stop escaping / to \/ in JSON string, see https://mondotondo.com/2010/12/29/the-solidus-issue/
+ 2022-04-01*[fb711bb] add loadjd and savejd as the unified JSON/binary JSON file interface
+ 2022-03-30 [4433a21] improve datalink uri handling to consider : inside uri
+ 2022-03-30 [6368409] make datalink URL query more robust
+ 2022-03-29 [dd9e9c6] when file suffix is missing, assume JSON feed
+ 2022-03-29*[07c58f3] initial support for _DataLink_ of online/local file with JSONPath ref
+ 2022-03-29 [897b7ba] fix test for older octave
+ 2022-03-20 [bf03eff] force msgpack to use big-endian
+ 2022-03-13 [46bbfa9] support empty name key, which is valid in JSON, fix #79
+ 2022-03-12 [9ab040a] increase default float number digits from 10 to 16, fix #78
+ 2022-03-11 [485ea29] update error message on the valid root-level markers
+ 2022-02-23 [aa3913e] disable TFN marker in optimized header due to security risk and low benefit
+ 2022-02-23 [f2c3223] support SCH{[ markers in optimized container type
+ 2022-02-14 [540f95c] add optional preceding whitespace, explain format
+ 2022-02-13 [3dfa904] debugged and tested mmap, add mmapinclude and mmapexclude options
+ 2022-02-10*[6150ae1] handle uncompressed raw data (only base64 encoded) in jdatadecode
+ 2022-02-10 [88a59eb] give a warning when jdatadecode fails, but still return the raw data
+ 2022-02-03*[05edb7a] fast reading and writing json data record using mmap and jsonpath
+ 2022-02-02*[b0f0ebd] return disk-map or memory-map table in loadjson
+ 2022-02-01 [0888218] correct typos and add additional descriptions in README
+ 2022-02-01*[03133c7] fix row-major ('formatversion',1.8) ND array storage order, update demo outputs
+ 2022-02-01 [5998c70] revert variable name encoding to support unicode strings
+ 2022-01-31 [16454e7] test flexible whitespaces in 1D/2D arrays, test mixed array from string
+ 2022-01-31*[5c1ef15] accelerate fastarrayparser by 200%! jsonlab_speedtest cuts from 11s to 5.8s
+ 2022-01-30 [9b25e20] fix octave 3.8 error on travis, it does not support single
+ 2022-01-30 [5898f6e] add octave 5.2 to travis
  2022-01-30*[2e3344c] [bjdata:breaking] Upgrade savebj/loadbj to BJData v1-draft 2, use little-endian by default
  2022-01-30*[2e3344c] [bjdata:breaking] Fix optimized ND array element order (previously used column-major)
  2022-01-30*[2e3344c] optimize loadjson and loadbj speed

@@ -48,3 +48,5 @@
 %   varargin2struct    - opt=varargin2struct('param1',value1,'param2',value2,...)
 %   zlibdecode         - output = zlibdecode(input)
 %   zlibencode         - output = zlibencode(input)
+%   zstddecode         - output = zstddecode(input)
+%   zstdencode         - output = zstdencode(input)
