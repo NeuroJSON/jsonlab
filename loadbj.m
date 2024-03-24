@@ -106,7 +106,7 @@ elseif (all(fname < 128) && ~isempty(regexpi(fname, '^\s*(http|https|ftp|file):/
 elseif (~isempty(fname) && any(fname(1) == '[{SCHiUIulmLMhdDTFZN'))
     string = fname;
 else
-    error_pos('input file does not exist or buffer is invalid');
+    error('input file does not exist or buffer is invalid');
 end
 
 pos = 1;
@@ -256,7 +256,7 @@ if (cc == '#')
     [cc, pos] = next_char(inputstr, pos);
     if (cc == '[')
         if (isfield(varargin{1}, 'noembedding_') && varargin{1}.noembedding_ == 1)
-            error_pos('ND array size specifier does not support embedding');
+            error_pos('ND array size specifier does not support embedding', inputstr, pos);
         end
         varargin{1}.noembedding_ = 1;
         [dim, pos] = parse_array(inputstr, pos, varargin{:});

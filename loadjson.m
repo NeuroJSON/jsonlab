@@ -175,7 +175,7 @@ elseif (exist(fname, 'file'))
 elseif (regexpi(fname, '^\s*(http|https|ftp|file)://'))
     string = urlread(fname);
 else
-    error_pos('input file does not exist');
+    error('input file does not exist');
 end
 
 if (jsonopt('BuiltinJSON', 0, opt) && exist('jsondecode', 'builtin'))
