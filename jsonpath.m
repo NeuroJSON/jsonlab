@@ -1,6 +1,6 @@
-function obj = jsonpath(root, jsonpath)
+function obj = jsonpath(root, jpath)
 %
-%    obj=jsonpath(root, jsonpath)
+%    obj=jsonpath(root, jpath)
 %
 %    Query and retrieve elements from matlab data structures using JSONPath
 %
@@ -8,7 +8,7 @@ function obj = jsonpath(root, jsonpath)
 %
 %    input:
 %        root: a matlab data structure like an array, cell, struct, etc
-%        jsonpath: a string in the format of JSONPath, see loadjson help
+%        jpath: a string in the format of JSONPath, see loadjson help
 %
 %    output:
 %        obj: if the specified element exist, obj returns the result
@@ -23,9 +23,13 @@ function obj = jsonpath(root, jsonpath)
 %
 
 obj = root;
-jsonpath = regexprep(jsonpath, '([^.\]])(\[[-0-9:\*]+\])', '$1.$2');
-jsonpath = regexprep(jsonpath, '\[[''"]*([^\]''"]+)[''"]*\]', '.[$1]');
-[pat, paths] = regexp(jsonpath, '(\.{0,2}[^\.]+)', 'match', 'tokens');
+jpath = regexprep(jpath, '([^.\]])(\[[-0-9:\*]+\])', '$1.$2');
+jpath = regexprep(jpath, '\[[''"]*([^\]''"]+)[''"]*\]', '.[$1]');
+jpath = regexprep(jpath, '\\\.', '_0x2E_');
+while(regexp(jpath, '(\[[''"]*[^\]''"]+)\.(?=[^\]''"]+[''"]*\])'))
+    jpath = regexprep(jpath, '(\[[''"]*[^\]''"]+)\.(?=[^\]''"]+[''"]*\])', '$1_0x2E_');
+end
+[pat, paths] = regexp(jpath, '(\.{0,2}[^\.]+)', 'match', 'tokens');
 if (~isempty(pat) && ~isempty(paths))
     if (strcmp(paths{1}, '$'))
         paths(1) = [];
@@ -139,6 +143,8 @@ elseif (isstruct(input) || isa(input, 'containers.Map') || isa(input, 'table'))
         for idx = 1:length(items)
             if (isa(input, 'containers.Map'))
                 [val, isfound] = getonelevel(input(items{idx}), [paths{1:pathid - 1} {['..' pathname]}], pathid);
+            elseif (length(input) > 1) % struct array
+                [val, isfound] = getonelevel({input.(items{idx})}, [paths{1:pathid - 1} {['..' pathname]}], pathid);
             else
                 [val, isfound] = getonelevel(input.(items{idx}), [paths{1:pathid - 1} {['..' pathname]}], pathid);
             end

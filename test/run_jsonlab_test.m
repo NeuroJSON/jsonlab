@@ -382,20 +382,24 @@ if (ismember('jpath', tests))
     test_jsonlab('jsonpath use [''*''] and ["*"]', @savejson, jsonpath(testdata, '$["book"][:-2][''author'']'), '["Yoda","Jinn"]', 'compact', 1);
     test_jsonlab('jsonpath use combinations', @savejson, jsonpath(testdata, '$..["book"][:-2].author[*][0]'), '["Yoda"]', 'compact', 1);
 
-    testdata = struct('book', struct(encodevarname('_title'), {'Minch', 'Qui-Gon', 'Ben'}, encodevarname(' author '), {'Yoda', 'Jinn', 'Kenobi'}), 'game', struct('title', 'Mario'));
-    test_jsonlab('jsonpath encoded field name in []', @savejson, jsonpath(testdata, '$..["book"][_title][*][0]'), '["Minch"]', 'compact', 1);
-    test_jsonlab('jsonpath encoded field name after .', @savejson, jsonpath(testdata, '$..["book"]._title[*][0]'), '["Minch"]', 'compact', 1);
-    test_jsonlab('jsonpath encoded field name after ..', @savejson, jsonpath(testdata, '$.._title'), '["Minch","Qui-Gon","Ben"]', 'compact', 1);
-    test_jsonlab('jsonpath encoded field name after .', @savejson, jsonpath(testdata, '$..["book"]['' author ''][*][1]'), '["Jinn"]', 'compact', 1);
-
     if (exist('containers.Map'))
-        testdata = struct('book', containers.Map({'title', 'author'}, {{'Minch', 'Qui-Gon', 'Ben'}, {'Yoda', 'Jinn', 'Kenobi'}}), 'game', struct('title', 'Mario'));
+        testdata = loadjson(savejson('', testdata), 'usemap', 1);
         test_jsonlab('jsonpath use combinations', @savejson, jsonpath(testdata, '$..["book"].author[*][0]'), '["Yoda"]', 'compact', 1);
     end
     if (exist('istable'))
         testdata = struct('book', table({'Minch', 'Qui-Gon', 'Ben'}, {'Yoda', 'Jinn', 'Kenobi'}, 'variablenames', {'title', 'author'}), 'game', struct('title', 'Mario'));
         test_jsonlab('jsonpath use combinations', @savejson, jsonpath(testdata, '$..["book"].author[*][0]'), '["Yoda"]', 'compact', 1);
     end
+
+    testdata = struct('book', struct(encodevarname('_title'), {'Minch', 'Qui-Gon', 'Ben'}, encodevarname(' author.last.name '), {'Yoda', 'Jinn', 'Kenobi'}), encodevarname('game.arcade'), struct('title', 'Mario'));
+    test_jsonlab('jsonpath encoded field name in []', @savejson, jsonpath(testdata, '$..["book"][_title][*][0]'), '["Minch"]', 'compact', 1);
+    test_jsonlab('jsonpath encoded field name after .', @savejson, jsonpath(testdata, '$..["book"]._title[*][0]'), '["Minch"]', 'compact', 1);
+    test_jsonlab('jsonpath encoded field name after ..', @savejson, jsonpath(testdata, '$.._title'), '["Minch","Qui-Gon","Ben"]', 'compact', 1);
+    test_jsonlab('jsonpath multiple encoded field name between quotes', @savejson, jsonpath(testdata, '$..["book"]['' author.last.name ''][*][1]'), '["Jinn"]', 'compact', 1);
+    test_jsonlab('jsonpath multiple encoded field name between []', @savejson, jsonpath(testdata, '$..["book"][ author.last.name ][*][1]'), '["Jinn"]', 'compact', 1);
+    test_jsonlab('jsonpath escape . using \.', @savejson, jsonpath(testdata, '$.game\.arcade'), '{"title":"Mario"}', 'compact', 1);
+    test_jsonlab('jsonpath escape . using []', @savejson, jsonpath(testdata, '$.[game.arcade]'), '{"title":"Mario"}', 'compact', 1);
+    test_jsonlab('jsonpath scan struct array', @savejson, jsonpath(testdata, '$.book[*]..author[*]'), '[]', 'compact', 1);
 
     clear testdata;
 end
