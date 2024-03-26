@@ -88,7 +88,7 @@ if (iscell(cachepath) && ~isempty(cachepath))
     if (opt.showlink)
         fprintf(1, 'downloading from URL: %s\n', uripath);
     end
-    rawdata = webread(uripath);
+    rawdata = webread(uripath, weboptions('ContentType', 'binary'));
     fname = [cachepath{1} filesep filename];
     fpath = fileparts(fname);
     if (~exist(fpath, 'dir'))

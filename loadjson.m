@@ -224,6 +224,10 @@ opt.jsonpath_ = '$';
 if (nargout > 1 || opt.mmaponly)
     mmap = {};
 end
+if (regexp(inputstr, '^\s*$'))
+    data = [];
+    inputlen = 0;
+end
 jsoncount = 1;
 while pos <= inputlen
     [cc, pos, w1] = next_char(inputstr, pos);

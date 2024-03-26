@@ -35,7 +35,9 @@ if (nargin == 0)
     error('you must provide at least 1 input');
 end
 
-if (exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3)
+nozmat = getvarfrom({'caller', 'base'}, 'NO_ZMAT');
+
+if ((exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3) && (isempty(nozmat) || nozmat == 0))
     [varargout{1:nargout}] = zmat(varargin{1}, 1, 'gzip');
     return
 elseif (isoctavemesh)

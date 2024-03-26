@@ -76,7 +76,7 @@ included in the official distributions of Debian Bullseye and Ubuntu 21.04 or ne
 - 2024-03-22 [22435e4] [bug] fix jsonpath handling of recursive deep scans
 - 2024-03-21 [c9f8a20] [bug] support deep scan in cell and struct, merge struct/containers.Map
 - 2024-03-21 [394394a] [bug] improve jsonpath cell with deep scan
-- 2024-03-20 [a599e71] [feat] add jsoncache to handle _DataLink_ download cache, rename jsonpath
+- 2024-03-20 [a599e71] [feat] add jsoncache to handle ``_DataLink_`` download cache, rename jsonpath
 - 2024-02-19*[4f2edeb] [feat] support .. jsonpath operator for deep scan
 - 2024-01-11 [c43a758] [bug] fix missing index_esc reset, add test for automap
 - 2024-01-11*[ef5b472] [feat] automatically switch to map object when key length > 63
@@ -140,7 +140,7 @@ included in the official distributions of Debian Bullseye and Ubuntu 21.04 or ne
 - 2022-03-30 [4433a21] improve datalink uri handling to consider : inside uri
 - 2022-03-30 [6368409] make datalink URL query more robust
 - 2022-03-29 [dd9e9c6] when file suffix is missing, assume JSON feed
-- 2022-03-29*[07c58f3] initial support for _DataLink_ of online/local file with JSONPath ref
+- 2022-03-29*[07c58f3] initial support for ``_DataLink_`` of online/local file with JSONPath ref
 - 2022-03-29 [897b7ba] fix test for older octave
 - 2022-03-20 [bf03eff] force msgpack to use big-endian
 - 2022-03-13 [46bbfa9] support empty name key, which is valid in JSON, fix #79
@@ -398,7 +398,7 @@ for reading and writing below files types:
 
 - JSON based files: ``.json`, ``.jdt`` (text JData file), ``.jmsh`` (text JMesh file),
   ``.jnii`` (text JNIfTI file), ``.jnirs`` (text JSNIRF file)
-- BJData based files: ``.bjd`, ``.jdb` (binary JData file), ``.bmsh`` (binary JMesh file),
+- BJData based files: ``.bjd``, ``.jdb`` (binary JData file), ``.bmsh`` (binary JMesh file),
   ``.bnii`` (binary JNIfTI file), ``.bnirs`` (binary JSNIRF file), ``.pmat`` (MATLAB session file)
 - UBJSON based files: ``.ubj``
 - MessagePack based files: ``.msgpack``

@@ -11,18 +11,25 @@ function [cachepath, filename] = jsoncache(dbname, docname, filename, domain)
 %
 % input:
 %    hyperlink: if a single input is provided, the function check if it is
-%               a hyperlink starting with http:// or https://, if so, it
-%               trys to extract the database name, document name and file
-%               name using NeuroJSON's standard link format as
+%               a hyperlink starting with http://, https:// or ftp://, if
+%               so, it trys to extract the database name, document name and
+%               file name using NeuroJSON's standard link format as
 %
 %    https://neurojson.org/io/stat.cgi?dbname=..&docname=..&file=..&size=..
 %
-%               if the string does not contain a link, it is treated as a
-%               local file path
+%               if the URL does not follow the above format, a SHA-256 hash
+%               will be computed based on the full URL to produce filename;
+%               dbname is set as the first 2 letters of the hash and
+%               docname is set to the 3rd/4th letters of the hash; the
+%               domain name is also extracted from the URL; if the URL
+%               contains the file's suffix, it is appended to the filename.
+%
+%               if the string does not contain a link, or the link starts
+%               with file://, it is treated as a local file path
 %    dbname: the name of the NeuroJSON database (must exist)
 %    docname: the name of the NeuroJSON dataset document (must exist)
 %    filename: the name of the data file - may contain a relative folder
-%    domain: optional, if not given, 'io' is used; otherwise, user can
+%    domain: optional, if not given, 'default' is used; otherwise, user can
 %            specify customized domain name
 %
 % output:
@@ -46,6 +53,13 @@ function [cachepath, filename] = jsoncache(dbname, docname, filename, domain)
 %    if a global variable NEUROJSON_CACHE is set in 'base', it will be
 %    used instead of the above search paths
 %
+%
+% example:
+%    [cachepath, filename] = jsoncache('https://neurojson.org/io/stat.cgi?action=get&db=openneuro&doc=ds000001&file=sub-01/anat/sub-01_inplaneT2.nii.gz&size=669578')
+%    [cachepath, filename] = jsoncache('https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json')
+%    [cachepath, filename] = jsoncache('https://neurojson.io:7777/adhd200/Brown')
+%    [cachepath, filename] = jsoncache('https://neurojson.io:7777/openneuro/ds003805')
+%
 % -- this function is part of iso2mesh toolbox (http://iso2mesh.sf.net)
 %
 
@@ -66,13 +80,13 @@ else
 end
 
 if (nargin < 4)
-    domain = 'io';
+    domain = 'default';
 end
 
 if (nargin == 1)
     link = dbname;
-    if (isempty(regexp(link, '://', 'once')))
-        filename = link;
+    if (~isempty(regexp(link, '^file://', 'once')) || isempty(regexp(link, '://', 'once')))
+        filename = regexprep(link, '^file://', '');
         if (exist(filename, 'file'))
             cachepath = filename;
             filename = true;
@@ -81,24 +95,45 @@ if (nargin == 1)
     else
         if (~isempty(regexp(link, '^https*://neurojson.org/io/', 'once')))
             domain = 'io';
-        end
-        dbname = regexp(link, '(?<=db=)[^&]+', 'match');
-        if (~isempty(dbname))
-            dbname = dbname{1};
         else
-            dbname = '';
+            newdomain = regexprep(regexp(link, '^(https*|ftp)://[^\/?#:]+', 'match', 'once'), '^(https*|ftp)://', '');
+            if (~isempty(newdomain))
+                domain = newdomain;
+            end
         end
-        docname = regexp(link, '(?<=doc=)[^&]+', 'match');
-        if (~isempty(docname))
-            docname = docname{1};
-        else
-            docname = '';
+        dbname = regexp(link, '(?<=db=)[^&]+', 'match', 'once');
+        docname = regexp(link, '(?<=doc=)[^&]+', 'match', 'once');
+        filename = regexp(link, '(?<=file=)[^&]+', 'match', 'once');
+        if (isempty(filename) && strcmp(domain, 'neurojson.io'))
+            ref = regexp(link, '^(https*|ftp)://neurojson.io(:\d+)*(?<dbname>/[^\/]+)(?<docname>/[^\/]+)(?<filename>/[^\/?]+)*', 'names', 'once');
+            if (~isempty(ref))
+                if (~isempty(ref.dbname))
+                    dbname = ref.dbname(2:end);
+                end
+                if (~isempty(ref.docname))
+                    docname = ref.docname(2:end);
+                end
+                if (~isempty(ref.filename))
+                    filename = ref.filename(2:end);
+                elseif (~isempty(dbname))
+                    if (~isempty(docname))
+                        filename = [docname '.json'];
+                    else
+                        filename = [dbname '.json'];
+                    end
+                end
+            end
         end
-        filename = regexp(link, '(?<=file=)[^&]+', 'match');
-        if (~isempty(filename))
-            filename = filename{1};
-        else
-            filename = '';
+        if (isempty(filename))
+            filename = jdatahash(link);
+            suffix = regexp(link, '\.\w{1,5}(?=([#&].*)*$)', 'match', 'once');
+            filename = [filename suffix];
+            if (isempty(dbname))
+                dbname = filename(1:2);
+            end
+            if (isempty(docname))
+                docname = filename(3:4);
+            end
         end
     end
 end
