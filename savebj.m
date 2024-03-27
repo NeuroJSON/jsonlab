@@ -316,7 +316,7 @@ elseif (ischar(item))
     end
 elseif (isa(item, 'function_handle'))
     txt = struct2ubjson(name, functions(item), level, varargin{:});
-elseif (isa(item, 'containers.Map'))
+elseif (isa(item, 'containers.Map') || isa(item, 'dictionary'))
     txt = map2ubjson(name, item, level, varargin{:});
 elseif (isa(item, 'categorical'))
     txt = cell2ubjson(name, cellstr(item), level, varargin{:});
@@ -469,12 +469,28 @@ end
 %% -------------------------------------------------------------------------
 function txt = map2ubjson(name, item, level, varargin)
 txt = '';
-if (~isa(item, 'containers.Map'))
-    error('input is not a struct');
-end
+itemtype = isa(item, 'containers.Map');
 dim = size(item);
+
+if (isa(item, 'dictionary'))
+    itemtype = 2;
+    dim = item.numEntries;
+end
+if (itemtype == 0)
+    error('input is not a containers.Map or dictionary class');
+end
+
 names = keys(item);
 val = values(item);
+
+if (~iscell(names))
+    names = num2cell(names, ndims(names));
+end
+
+if (~iscell(val))
+    val = num2cell(val, ndims(val));
+end
+
 Omarker = varargin{1}.OM_;
 
 if (~strcmp(Omarker{1}, '{'))
@@ -495,6 +511,9 @@ for i = 1:dim(1)
     end
 end
 txt = [txt Omarker{2}];
+if (isa(txt, 'string') && length(txt) > 1)
+    txt = sprintf('%s', txt);
+end
 
 %% -------------------------------------------------------------------------
 function txt = str2ubjson(name, item, level, varargin)
@@ -841,6 +860,7 @@ end
 %% -------------------------------------------------------------------------
 function val = N_(str, varargin)
 ismsgpack = varargin{1}.messagepack;
+str = char(str);
 if (~ismsgpack)
     val = [I_(int32(length(str)), varargin{:}) str];
 else

@@ -107,7 +107,7 @@ elseif (isnumeric(item) || islogical(item))
     newitem = mat2jd(item, varargin{:});
 elseif (ischar(item) || isa(item, 'string'))
     newitem = mat2jd(item, varargin{:});
-elseif (isa(item, 'containers.Map'))
+elseif (isa(item, 'containers.Map') || isa(item, 'dictionary'))
     newitem = map2jd(item, varargin{:});
 elseif (isa(item, 'categorical'))
     newitem = cell2jd(cellstr(item), varargin{:});
@@ -166,13 +166,21 @@ if (varargin{1}.mapasstruct)  % convert a map to struct
         end
     end
 else   % keep as a map and only encode its values
-    if (strcmp(item.KeyType, 'char'))
+    if (isa(item, 'dictionary'))
+        newitem = dictionary();
+    elseif (strcmp(item.KeyType, 'char'))
         newitem = containers.Map();
     else
         newitem = containers.Map('KeyType', item.KeyType, 'ValueType', 'any');
     end
-    for i = 1:length(names)
-        newitem(names{i}) = obj2jd(item(names{i}), varargin{:});
+    if (isa(item, 'dictionary'))
+        for i = 1:length(names)
+            newitem(names(i)) = obj2jd(item(names(i)), varargin{:});
+        end
+    else
+        for i = 1:length(names)
+            newitem(names{i}) = obj2jd(item(names{i}), varargin{:});
+        end
     end
 end
 

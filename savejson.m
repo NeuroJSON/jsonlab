@@ -176,6 +176,9 @@ if (jsonopt('BuiltinJSON', 0, opt) && exist('jsonencode', 'builtin'))
         if (isempty(regexp(json, '^[{\[]', 'once')))
             json = ['[', json, ']'];
         end
+        if (nargout > 0)
+            output = json;
+        end
         return
     catch
         warning('built-in jsonencode function failed to encode the data, fallback to savejson');
@@ -218,7 +221,7 @@ else
         rootname = varname;
     end
 end
-if (isa(obj, 'containers.Map') && ~strcmp(obj.KeyType, 'char'))
+if ((isa(obj, 'containers.Map') && ~strcmp(obj.KeyType, 'char')) || (isa(obj, 'dictionary') && ~strcmp(obj.types, 'string')))
     rootisarray = 0;
 end
 if ((isstruct(obj) || iscell(obj)) && isempty(rootname) && forceroot)
@@ -300,7 +303,7 @@ elseif (ischar(item))
     end
 elseif (isa(item, 'function_handle'))
     txt = struct2json(name, functions(item), level, varargin{:});
-elseif (isa(item, 'containers.Map'))
+elseif (isa(item, 'containers.Map') || isa(item, 'dictionary'))
     txt = map2json(name, item, level, varargin{:});
 elseif (isa(item, 'categorical'))
     txt = cell2json(name, cellstr(item), level, varargin{:});
@@ -451,14 +454,28 @@ txt = sprintf('%s', txt{:});
 %% -------------------------------------------------------------------------
 function txt = map2json(name, item, level, varargin)
 txt = {};
-if (~isa(item, 'containers.Map'))
-    error('input is not a containers.Map class');
-end
+itemtype = isa(item, 'containers.Map');
 dim = size(item);
+
+if (isa(item, 'dictionary'))
+    itemtype = 2;
+    dim = item.numEntries;
+end
+if (itemtype == 0)
+    error('input is not a containers.Map or dictionary class');
+end
 names = keys(item);
 val = values(item);
 
-if (~strcmp(item.KeyType, 'char'))
+if (~iscell(names))
+    names = num2cell(names, ndims(names));
+end
+
+if (~iscell(val))
+    val = num2cell(val, ndims(val));
+end
+
+if ((itemtype == 1 && ~strcmp(item.KeyType, 'char')) || (itemtype == 2 && ~strcmp(item.types, 'string')))
     mm = cell(1, length(names));
     for i = 1:length(names)
         mm{i} = {names{i}, val{i}};
