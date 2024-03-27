@@ -396,7 +396,7 @@ In JSONLab 2.9.8 and later versions, a unified file loading and saving interface
 is provided for JSON, binary JSON and HDF5, including ``loadjd`` and ``savejd``
 for reading and writing below files types:
 
-- JSON based files: ``.json`, ``.jdt`` (text JData file), ``.jmsh`` (text JMesh file),
+- JSON based files: ``.json``, ``.jdt`` (text JData file), ``.jmsh`` (text JMesh file),
   ``.jnii`` (text JNIfTI file), ``.jnirs`` (text JSNIRF file)
 - BJData based files: ``.bjd``, ``.jdb`` (binary JData file), ``.bmsh`` (binary JMesh file),
   ``.bnii`` (binary JNIfTI file), ``.bnirs`` (binary JSNIRF file), ``.pmat`` (MATLAB session file)
@@ -406,7 +406,7 @@ for reading and writing below files types:
 
 
 In the below section, we provide a few examples on how to us each of the 
-core functions for encoding/decoding JSON/UBJSON/MessagePack data.
+core functions for encoding/decoding JSON/Binary JSON/MessagePack data.
 
 ----------
 savejson.m
@@ -420,14 +420,40 @@ savejson.m
                            2 8 4;2 8 6;3 8 4;3 8 7;5 8 6;5 8 7],...
                 'MeshCreator','FangQ','MeshTitle','T6 Cube',...
                 'SpecialData',[nan, inf, -inf]);
+
+       % convert any matlab variables to JSON (variable name is used as the root name)
        savejson(jsonmesh)
+
+       % convert matlab variables to JSON with a root-name "jmesh"
        savejson('jmesh',jsonmesh)
+
+       % an empty root-name directly embed the data in the root {}
+       % the compact=1 flag prints JSON without white-space in a single-line
        savejson('',jsonmesh,'Compact',1)
+
+       % if 3 inputs are given, the 3rd parameter defines the output file name
        savejson('jmesh',jsonmesh,'outputfile.json')
-       savejson('',jsonmesh,'ArrayIndent',0,'FloatFormat','\t%.5g','FileName','outputfile2.json')
+
+       % param/value pairs can be provided after the 2nd input to customize outputs
+       % if you want to use params/values and save JSON to a file, you must use the 'filename' to set output file
+       savejson('',jsonmesh,'FileName','outputfile2.json','ArrayIndent',0,'FloatFormat','\t%.5g')
+
+       % jsonlab utilizes JData annotations to encode complex/sparse ND-arrays
        savejson('cpxrand',eye(5)+1i*magic(5))
+
+       % when setting 'BuiltinJSON' to 1, savejson calls jsonencode.m in MATLAB (R2016+)
+       % or Octave (v7+) to convert data to JSON; this is typically faster, but does not
+       % support all features native savejson offers
+       savejson('cpxrand',eye(5)+1i*magic(5), 'BuiltinJSON', 1)
+
+       % JData annotations also allows one to compress binary strongly-typed data and store in the JSON
+       % gzip/zlib are natively supported in MATLAB and Octave; using ZMat toolbox, one can use lz4, lzma, blosc2 etc compressors
        savejson('ziparray',eye(10),'Compression','zlib','CompressArraySize',1)
+
+       % 'ArrayToStruct' flag forces all arrays to use the JData ND array annotations to preserve types
        savejson('',jsonmesh,'ArrayToStruct',1)
+
+       % JData supports compact storage of special matrices using the '_ArrayShape_' annotation
        savejson('',eye(10),'UseArrayShape',1)
 
 ----------
@@ -436,34 +462,91 @@ loadjson.m
 
 .. code-block::
 
+       % loadjson can directly parse a JSON string if it starts with "[" or "{", here is an empty object
        loadjson('{}')
+
+       % loadjson can also parse complex JSON objects in a string form
        dat=loadjson('{"obj":{"string":"value","array":[1,2,3]}}')
+       
+       % if the input is a file name, loadjson reads the file and parse the data inside
        dat=loadjson(['examples' filesep 'example1.json'])
+
+       % param/value pairs can be used following the 1st input to customize the parsing behavior
        dat=loadjson(['examples' filesep 'example1.json'],'SimplifyCell',0)
 
--------------------------------------
-savebj.m (saveubjson.m as an alias)
--------------------------------------
+       % if a URL is provided, loadjson reads JSON data from the URL and return the parsed results,
+       % similar to webread, except loadjson calls jdatadecode to decode JData annotations
+       dat=loadjson('https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json')
+
+       % using the 'BuildinJSON' flag, one can use the built-in jsondecode.m in MATLAB (R2016+)
+       % or Octave (7.0+) to parse the JSON data for better speed, note that jsondecode encode
+       % key names differently compared to loadjson
+       dat=loadjson('{"_obj":{"string":"value","array":[1,2,3]}}', 'builtinjson', 1)
+
+       % when the JSON data contains long key names, one can use 'UseMap' flag to
+       % request loadjson to store the data in a containers.Map instead of struct (key name limited to 63)
+       dat=loadjson('{"obj":{"an object with a key longer than 63":"value","array":[1,2,3]}}', 'UseMap', 1)
+
+       % loadjson can optionally return a JSON-memory-map object, which defines each JSON element's
+       % memory buffer offset and length to enable disk-map like fast read/write operations
+       [dat, mmap]=loadjson('{"obj":{"key":"value","array":[1,2,3]}}')
+
+       % if set 'mmaponly' to 1, loadjson only returns the JSON-mmap structure
+       mmap=loadjson('{"obj":{"key":"value","array":[1,2,3]}}', 'mmaponly', 1)
+
+--------
+savebj.m
+--------
 
 .. code-block::
 
+       % savebj works almost exactly like savejson, except that the output is the more compact binary JSON
        a={single(rand(2)), struct('va',1,'vb','string'), 1+2i};
        savebj(a)
+
+       % customizing the root-name using the 1st input, and the 3rd input setting the output file
        savebj('rootname',a,'testdata.ubj')
+
+       % like savejson, savebj also allow data compression for even more compact storage
        savebj('zeros',zeros(100),'Compression','gzip')
 
--------------------------------------
-loadbj.m (loadubjson.m as an alias)
--------------------------------------
+       % binary JSON does not need base64-encoding, therefore, the output can be ~33% smaller than text-based JSON
+       [length(savebj('magic',magic(100),'Compression','zlib')), length(savejson('magic',magic(100),'Compression','zlib'))]
+
+       % savebj can output other popular binary JSON formats, such as MessagePack or UBJSON
+       savebj('mesh',a,'FileName','meshdata.msgpk','MessagePack',1)  % same as calling savemsgpack
+       savebj('mesh',a,'FileName','meshdata.ubj','UBJSON',1)         % same as calling saveubjson
+
+--------
+loadbj.m
+--------
 
 .. code-block::
 
+       % similarly, loadbj does almost exactly the same as loadjson, but it parses binary JSON instead
        obj=struct('string','value','array',single([1 2 3]),'empty',[],'magic',uint8(magic(5)));
        ubjdata=savebj('obj',obj);
+
+       % loadbj can load a binary JSON (BJData - a derived format from UBJSON) object from a buffer
        dat=loadbj(ubjdata)
+
+       % you can test if loadbj parsed object still matches the data saved using savebj
        class(dat.obj.array)
        isequaln(obj,dat.obj)
+
+       % similarly, savebj/loadbj can compress/decompress binary array data using various compressors
        dat=loadbj(savebj('',eye(10),'Compression','zlib','CompressArraySize',1))
+
+       % if given a path to a binary JSON file (.jdb,.bnii,.pmat,.jmsh,...), it opens and parses the file
+       dat=loadbj('/path/to/a/binary_json.jdb');
+
+       % loadbj can directly load binary JSON data files from URL, here is a binary-JSON based NIfTI file
+       dat=loadbj('https://neurojson.org/io/stat.cgi?action=get&db=abide&doc=CMU_b&file=0a429cb9101b733f594eefc1261d6985-zlib.bnii')
+
+       % similar to loadjson, loadbj can also return JSON-memory-map to permit disk-map
+       % like direct reading/writing of specific data elements
+       [dat, mmap]=loadbj(ubjdata)
+       mmap=loadbj(ubjdata, 'mmaponly', 1)
 
 -------------
 jdataencode.m
@@ -471,8 +554,19 @@ jdataencode.m
 
 .. code-block::
 
-      jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
-      savejson('',jd)
+       % jdataencode transforms complex MATLAB data structures (ND-array, sparse array, complex arrays,
+       % table, graph, containers.Map etc) into JSON-serializable forms using portable JData annotations
+       % here, we show how to save a complex-valued sparse array using JSON JData annotations
+       testdata = struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5));
+       jd=jdataencode(testdata)
+       savejson('',jd)
+
+       % when setting 'annotatearray' to 1, jdataencode uses _ArrayType_/_ArraySize_/_ArrayData_
+       % JData tags to store ND array to preserve data types; use 'prefix' to customize variable name prefix
+       encodedmat=jdataencode(single(magic(5)),'annotatearray',1,'prefix','x')
+
+       % when setting 'usearrayshape' to 1, jdataencode can use _ArrayShape_ to encode special matrices
+       encodedtoeplitz=jdataencode(uint8(toeplitz([1,2,3,4],[1,5,6])),'usearrayshape',1)
 
 -------------
 jdatadecode.m
@@ -480,10 +574,107 @@ jdatadecode.m
 
 .. code-block::
 
-      rawdata=struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5));
-      jd=jdataencode(rawdata)
-      newjd=jdatadecode(jd)
-      isequaln(newjd,rawdata)
+       % jdatadecode does the opposite to jdataencode, it recognizes JData annotations and convert
+       % those back to MATLAB native data structures, such as ND-arrays, tables, graph etc
+       rawdata=struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5));
+       jd=jdataencode(rawdata)
+       newjd=jdatadecode(jd)
+
+       % we can test that the decoded data are the same as the original
+       isequaln(newjd,rawdata)
+
+       % if one uses jsondecode to parse a JSON object, the output JData annotation name prefix is different
+       % jsondecode adds "x_" as prefix
+       rawdecode_builtin = jsondecode(savejson('',rawdata));
+       rawdecode_builtin.a
+       finaldecode=jdatadecode(rawdecode_builtin)
+
+       % in comparison, loadjson calls encodevarname.m, producing "x0x5F_" as prefix (hex for '_')
+       % encodevarname encoded names can be reversed to original decodevarname.m
+       rawdecode_jsonlab = loadjson(savejson('',rawdata), 'jdatadecode', 0);
+       rawdecode_jsonlab.a
+       finaldecode=jdatadecode(rawdecode_jsonlab)
+
+--------
+savejd.m
+--------
+
+.. code-block::
+
+       % savejd is a unified interface for savejson/savebj/savemsgpack/saveh5 depending on the output file suffix
+       a={single(rand(2)), struct('va',1,'vb','string'), 1+2i};
+       savejd('', a, 'test.json')
+       savejd('', a, 'test.jdb')
+       savejd('', a, 'test.ubj')
+       savejd('', a, 'test.h5')
+
+--------
+loadjd.m
+--------
+
+.. code-block::
+
+       % loadjd is a unified interface for loadjson/loadbj/loadmsgpack/loadh5/load/loadjnifti depending on the input file suffix
+       % supported types include .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,
+       % .h5,.hdf5,.snirf,.pmat,.nwb,.nii,.nii.gz,.tsv,.tsv.gz,.csv,.csv.gz,.mat,.bvec,.bval; input can be an URL
+       data = loadjd('test.json');
+       data = loadjd('test.jdb');
+       data = loadjd('test.ubj');
+       data = loadjd('test.h5');
+       data = loadjd('file:///path/to/test.jnii');
+       data = loadjd('https://neurojson.org/io/stat.cgi?action=get&db=abide&doc=CMU_b&file=0a429cb9101b733f594eefc1261d6985-zlib.bnii');
+
+---------
+jsonget.m
+---------
+
+.. code-block::
+
+       % loadjson/loadbj JSON-memory-map (mmap) output returned by loadjson or loadbj
+       % each mmap contains a pair of JSONPath and two numbers [offset, length] of the object in bytes in the buffer/file
+       jsonstr = '{"obj":{"string":"value","array":[1,2,3]}}';
+       mmap=loadjson(jsonstr, 'mmaponly', 1)
+
+       % mmap = [ ["$",[1,42]], ["$.obj",[8,34]], ["$.obj.string",[18,7]], ["$.obj.array",[34,7]] ]
+       % this means there are 4 objects, root '$', with its content starting byte 1, with a length of 42 bytes;
+       % content of object '$.obj' starts byte 8, with a length of 34 bytes
+       mmap{:}
+
+       % using the above mmap, jsonget can return any raw data without needing to reparse jsonstr
+       % below command returns '[1,2,3]' as a string by following the offset/length data in mmap
+       jsonget(jsonstr, mmap, '$.obj.array')
+
+       % you can request multiple objects by giving multiple JSONPath keys
+       jsonget(jsonstr, mmap, '$.obj', '$.obj.string')
+
+       % you can request multiple objects by giving multiple JSONPath keys
+       jsonget(jsonstr, mmap, '$.obj', '$.obj.string')
+
+       % jsonget not only can fast reading a JSON string buffer, it can also do disk-map read of a file
+       mmap = loadjson('/path/to/data.json', 'mmaponly', 1);
+       jsonget('/path/to/data.json', mmap, '$.obj')
+
+---------
+jsonset.m
+---------
+
+.. code-block::
+
+       % using JSON mmap, one can rapidly modify the content of JSON object pointed by a path
+       jsonstr = '{"obj":{"string":"value","array":[1,2,3]}}';
+       mmap=loadjson(jsonstr, 'mmaponly', 1)
+
+       % we can rewrite object $.obj.array by changing its value '[1,2,3]' to a string "test"
+       % this returns the updated jsonstr as '{"obj":{"string":"value","array":"test" }}'
+       % the new value of a key must not have longer bytes than the original value
+       jsonset(jsonstr, mmap, '$.obj.array', '"test"')
+
+       % one can change multiple JSON objects, below returns '{"obj":{"string":"new"  ,"array":[]     }}'
+       jsonset(jsonstr, mmap, '$.obj.string', '"new"', '$.obj.array', '[]')
+
+       % if mmap is parsed from a file, jsonset can perform disk-map like fast writing to modify the json content
+       mmap = loadjson('/path/to/data.json', 'mmaponly', 1);
+       jsonset('/path/to/data.json', mmap, '$.obj.string', '"new"', '$.obj.array', '[]')
 
 ---------
 examples
@@ -509,6 +700,50 @@ Under the ``test`` folder, you can find a script to test individual data types a
 inputs using various encoders and decoders. This unit testing script also serves as
 a **specification validator** to the JSONLab functions and ensure that the outputs
 are compliant to the underlying specifications.
+
+========================================
+In-memory data compression/decompression
+========================================
+
+JSONLab contains a set of functions to perform in-memory buffer data compression and
+decompression
+
+----------------------------------------------------------------------------
+Data Compression: {zlib,gzip,base64,lzma,lzip,lz4,lz4hc,zstd,blosc2}encode.m
+----------------------------------------------------------------------------
+
+.. code-block::
+
+      % MATLAB running with jvm provides zlib and gzip compression natively
+      % one can also install ZMat (https://github.com/NeuroJSON/zmat) to do zlib(.zip) or gzip (.gz) compression
+      output = zlibencode(diag([1,2,3,4]))
+      [output, info] = zlibencode(uint8(magic(8)))
+      outputbase64 = char(base64encode(output(:)))
+      [output, info] = gzipencode(uint8(magic(8)))
+      % setting a negative integer between -1 to -9 to set compression level: -9 being the highest
+      [output, info] = zlibencode(uint8(magic(8)), -9)
+
+      % other advanced compressions are supported but requires ZMat
+      % lzma offers the highest compression rate, but slow compresison speed
+      output = lzmaencode(uint8(magic(8)))
+
+      % lz4 offers the fastest compression speed, but slightly low compression ratio
+      output = lz4encode(peaks(10))
+      output = lz4hcencode(uint8(magic(8)))
+
+      % zstd has a good balanced speed/ratio, similar to zlib
+      output = zstdencode(peaks(10))
+      output = zstdencode(peaks(10), -9)
+
+-----------------------------------------------------------------------------
+Data Deompression: {zlib,gzip,base64,lzma,lzip,lz4,lz4hc,zstd,blosc2}decode.m
+-----------------------------------------------------------------------------
+
+.. code-block::
+
+      [compressed, info] = zlibencode(eye(10));
+      decompressd = zlibdecode(compressed);
+      decompressd = zlibdecode(compressed, info);
 
 
 ========================================
