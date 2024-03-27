@@ -487,6 +487,12 @@ loadjson.m
        % request loadjson to store the data in a containers.Map instead of struct (key name limited to 63)
        dat=loadjson('{"obj":{"an object with a key longer than 63":"value","array":[1,2,3]}}', 'UseMap', 1)
 
+       % loadjson can further download the linked data pointed by _DataLink_ tag, and merge with the parent
+       dat=loadjson('{"obj":{"_DataLink_":"https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json"},"array":[1,2]}','maxlinklevel',1)
+
+       % a JSONPath can be attached to the URL to retrieve a sub element
+       dat=loadjson('{"obj":{"_DataLink_":"https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json:$.address.city"},"array":[1,2]}','maxlinklevel',1)
+
        % loadjson can optionally return a JSON-memory-map object, which defines each JSON element's
        % memory buffer offset and length to enable disk-map like fast read/write operations
        [dat, mmap]=loadjson('{"obj":{"key":"value","array":[1,2,3]}}')
@@ -506,6 +512,9 @@ savebj.m
 
        % customizing the root-name using the 1st input, and the 3rd input setting the output file
        savebj('rootname',a,'testdata.ubj')
+
+       % enabling the 'debug' flag to allow printing binary JSON in text-form, helping users to run tests or troubleshoot
+       savebj('rootname',a, 'debug',1)
 
        % like savejson, savebj also allow data compression for even more compact storage
        savebj('zeros',zeros(100),'Compression','gzip')
@@ -675,6 +684,112 @@ jsonset.m
        % if mmap is parsed from a file, jsonset can perform disk-map like fast writing to modify the json content
        mmap = loadjson('/path/to/data.json', 'mmaponly', 1);
        jsonset('/path/to/data.json', mmap, '$.obj.string', '"new"', '$.obj.array', '[]')
+
+----------
+jsonpath.m
+----------
+
+.. code-block::
+
+       % JSONPath is a widely supported standard to index/search a large struct, such as those loaded from a JSON file
+       % the jsonpath.m function implements a subset of the features
+       % the below command returns the value of obj.key subfield, which is "value"
+       obj = loadjson('{"obj":{"key":"value1","array":[1,2,3],"sub":{"key":"value2","array":[]}}}');
+       jsonpath(obj, '$.obj.key')
+
+       % using [] operator, one can also index array elements, index start from 0; the output below is 2
+       jsonpath(obj, '$.obj.array[1]')
+
+       % [] operator supports range, for example below commands yields [1,2]
+       jsonpath(obj, '$.obj.array[0:1]')
+
+       % a negative index in [] counting elements backwards, -1 means the last element
+       jsonpath(obj, '$.obj.array[-1]')
+
+       % jsonpath.m supports JSONPath's deep-scan operator '..', it traverses through the struct
+       % and find all keys following .., here the output is {"value1", "value2"}
+       jsonpath(obj, '$.obj..key')
+
+       % you can further concatenate JSONPath operators to select outputs from the earlier ones, this outputs {'value2'}
+       jsonpath(obj, '$.obj..key[1]')
+
+       % instead of .keyname, you can use [keyname], below command is the same as above
+       jsonpath(obj, '$[obj]..[key][1]')
+
+       % one can escape special char, such as ".", in the key using special\.key or [special.key]
+       jsonpath(obj, '$.obj.special\.key.sub')
+
+
+-----------
+jsoncache.m
+-----------
+
+.. code-block::
+
+       % the _DataLink_ annotation in the JData specification permits linking of external data files
+       % in a JSON file - to make downloading/parsing externally linked data files efficient, such as
+       % processing large neuroimaging datasets hosted on http://neurojson.io, we have developed a system
+       % to download files on-demand and cache those locally. jsoncache.m is responsible of searching
+       % the local cache folders, if found the requested file, it returns the path to the local cache;
+       % if not found, it returns a SHA-256 hash of the URL as the file name, and the possible cache folders
+       %
+       % When loading a file from URL, below is the order of cache file search paths, ranking in search order
+       %
+       %    global-variable NEUROJSON_CACHE | if defined, this path will be searched first
+       %    [pwd '/.neurojson']             | on all OSes
+       %    /home/USERNAME/.neurojson       | on all OSes (per-user)
+       %    /home/USERNAME/.cache/neurojson | if on Linux (per-user)
+       %    /var/cache/neurojson            | if on Linux (system wide)
+       %    /home/USERNAME/Library/neurojson| if on MacOS (per-user)
+       %    /Library/neurojson              | if on MacOS (system wide)
+       %    C:\ProgramData\neurojson        | if on Windows (system wide)
+       %
+       % When saving a file from a URL, under the root cache folder, subfolders can be created;
+       % if the URL is one of a standard NeuroJSON.io URLs as below
+       %
+       %    https://neurojson.org/io/stat.cgi?action=get&db=DBNAME&doc=DOCNAME&file=sub-01/anat/datafile.nii.gz
+       %    https://neurojson.io:7777/DBNAME/DOCNAME
+       %    https://neurojson.io:7777/DBNAME/DOCNAME/datafile.suffix
+       %
+       % the file datafile.nii.gz will be downloaded to /home/USERNAME/.neurojson/io/DBNAME/DOCNAME/sub-01/anat/ folder
+       % if a URL does not follow the neurojson.io format, the cache folder has the below form
+       %
+       %    CACHEFOLDER{i}/domainname.com/XX/YY/XXYYZZZZ...
+       %
+       % where XXYYZZZZ.. is the SHA-256 hash of the full URL, XX is the first two digit, YY is the 3-4 digits
+
+       % below command searches CACHEFOLDER{i}/io/openneuro/ds000001/sub-01/anat/, and return the path/filename
+       [cachepath, filename] = jsoncache('https://neurojson.org/io/stat.cgi?action=get&db=openneuro&doc=ds000001&file=sub-01/anat/sub-01_inplaneT2.nii.gz&size=669578')
+
+       % this searches CACHEFOLDER{i}/raw.githubusercontent.com/55/d2, and the filename is 55d24a4bad6ecc3f5dc4d333be728e01c26b696ef7bc5dd0861b7fa672a28e8e.json
+       [cachepath, filename] = jsoncache('https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json')
+
+       % this searches cachefolder{i}/io/adhd200/Brown folder, and look for file Brown.json
+       [cachepath, filename] = jsoncache('https://neurojson.io:7777/adhd200/Brown')
+
+       % this searches cachefolder{i}/io/openneuro/ds003805 folder, and look for file ds003805.json
+       [cachepath, filename] = jsoncache('https://neurojson.io:7777/openneuro/ds003805')
+
+-----------
+jdlink.m
+-----------
+
+.. code-block::
+
+       % jdlink dynamically downloads, caches and parses data files from one or multiple URLs
+       % jdlink calls jsoncache to scan cache folders first, if a cache copy exists, it loads the cache first
+
+       % here we download a dataset from NeuroJSON.io, containing many linked data files
+       data = loadjson('https://neurojson.io:7777/openneuro/ds000001');
+
+       % we now use jsonpath to scan all linked resources under subfolder "anat"
+       alllinks = jsonpath(data, '$..anat.._DataLink_')
+
+       % let's download all linked nifti files (total 4) for sub-01 and sub-02, and load the files as niidata
+       niidata = jdlink(alllinks, 'regex', 'sub-0[12]_.*\.nii');
+
+       % if you just want to download/cache all files and do not want to parse the files, you can run
+       jdlink(alllinks);
 
 ---------
 examples
