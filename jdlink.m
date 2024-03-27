@@ -88,18 +88,23 @@ if (iscell(cachepath) && ~isempty(cachepath))
     if (opt.showlink)
         fprintf(1, 'downloading from URL: %s\n', uripath);
     end
-    rawdata = webread(uripath, weboptions('ContentType', 'binary'));
+
     fname = [cachepath{1} filesep filename];
     fpath = fileparts(fname);
     if (~exist(fpath, 'dir'))
         mkdir(fpath);
     end
-    fid = fopen(fname, 'wb');
-    if (fid == 0)
-        error('can not save URL to cache at path %s', fname);
+    if (exist('websave'))
+        websave(fname, uripath);
+    else
+        rawdata = urlread(uripath);
+        fid = fopen(fname, 'wb');
+        if (fid == 0)
+            error('can not save URL to cache at path %s', fname);
+        end
+        fwrite(fid, uint8(rawdata));
+        fclose(fid);
     end
-    fwrite(fid, uint8(rawdata));
-    fclose(fid);
     newdata = loadjd(fname, opt);
 elseif (~iscell(cachepath) && exist(cachepath, 'file'))
     if (opt.showlink)

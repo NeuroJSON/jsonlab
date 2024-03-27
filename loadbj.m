@@ -102,7 +102,11 @@ if (length(fname) < 4096 && exist(fname, 'file'))
     string = fread(fid, jsonopt('MaxBuffer', inf, opt), 'uint8=>char')';
     fclose(fid);
 elseif (all(fname < 128) && ~isempty(regexpi(fname, '^\s*(http|https|ftp|file)://')))
-    string = char(webread(fname, weboptions('ContentType', 'binary')))';
+    if (exist('webread'))
+        string = char(webread(fname, weboptions('ContentType', 'binary')))';
+    else
+        string = urlread(fname);
+    end
 elseif (~isempty(fname) && any(fname(1) == '[{SCHiUIulmLMhdDTFZN'))
     string = fname;
 else

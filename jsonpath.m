@@ -134,7 +134,7 @@ elseif (isstruct(input) || isa(input, 'containers.Map') || isa(input, 'table'))
             obj = {input(pathname)};
         end
     end
-    if (~exist('obj', 'var') && deepscan)
+    if (~exist('obj', 'var') || deepscan)
         if (isa(input, 'containers.Map'))
             items = keys(input);
         else
@@ -143,7 +143,9 @@ elseif (isstruct(input) || isa(input, 'containers.Map') || isa(input, 'table'))
         for idx = 1:length(items)
             if (isa(input, 'containers.Map'))
                 [val, isfound] = getonelevel(input(items{idx}), [paths{1:pathid - 1} {['..' pathname]}], pathid);
-            elseif (length(input) > 1) % struct array
+            elseif (isa(input, 'table'))
+                [val, isfound] = getonelevel({input.(items{idx})}, [paths{1:pathid - 1} {['..' pathname]}], pathid);
+            elseif (isstruct(input) && length(input) > 1) % struct array
                 [val, isfound] = getonelevel({input.(items{idx})}, [paths{1:pathid - 1} {['..' pathname]}], pathid);
             else
                 [val, isfound] = getonelevel(input.(items{idx}), [paths{1:pathid - 1} {['..' pathname]}], pathid);
