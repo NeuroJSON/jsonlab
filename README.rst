@@ -42,10 +42,10 @@ language-independent data annotation standard, all of which have been evolved
 from the over a decade development of JSONLab.
 
 JSONLab v2.9.8 - code named "Micronus Prime - beta" - is the beta-release of the next milestone (v3.0),
-containing a number of key feature enhancement and bug fixes. The major 
+containing a number of key feature enhancements and bug fixes. The major
 new features include
 
-1. exporting JSON Memory-Map for rapid disk-map like JSON/binary JSON reading
+1. exporting JSON Memory-Map (``jsonget,jsonset``) for rapid disk-map like reading/writing of JSON/binary JSON files
    and writing, implementing `JSON-Mmap spec v1 Draft 1 <https://github.com/NeuroJSON/jsonmmap>`_
 2. supporting JSONPath query (``jsonpath``) to MATLAB data and JSON/binary JSON file and streams, including
    deep-scan operators,
@@ -57,8 +57,8 @@ new features include
    processing of complex JSON-encoded datasets such as neuroimaging datasets hosted on https://neurojson.io
 6. support high-performance Blosc2 meta-compressor for storing large N-D array data,
 7. ``savejson/loadjson`` can use MATLAB/Octave built-in ``jsonencode/jsondecode`` using the ``BuiltinJSON`` option
-8. automatically switch from struct to containers.Map when encoded key-length exceeds 63
-9. provide fall-back zlib/gzip compression/decompression function on Octave when ZMat is not installed
+8. automatically switch from ``struct`` to ``containers.Map`` when encoded key-length exceeds 63
+9. provide fall-back zlib/gzip compression/decompression function (``octavezmat``) on Octave when ZMat is not installed
 
 There have been many major updates added to this release since the previous 
 release v2.0 in June 2020. A list of the major changes are summarized below
@@ -834,7 +834,10 @@ Data Compression: {zlib,gzip,base64,lzma,lzip,lz4,lz4hc,zstd,blosc2}encode.m
       output = zlibencode(diag([1,2,3,4]))
       [output, info] = zlibencode(uint8(magic(8)))
       outputbase64 = char(base64encode(output(:)))
+
+      % char, numeric and logical ND-arrays are acceptable inputs to the compression functions
       [output, info] = gzipencode(uint8(magic(8)))
+
       % setting a negative integer between -1 to -9 to set compression level: -9 being the highest
       [output, info] = zlibencode(uint8(magic(8)), -9)
 
@@ -856,10 +859,18 @@ Data Deompression: {zlib,gzip,base64,lzma,lzip,lz4,lz4hc,zstd,blosc2}decode.m
 
 .. code-block::
 
+      % passing on a compressed byte-array buffer to *decode function decompresses the buffer
       [compressed, info] = zlibencode(eye(10));
-      decompressd = zlibdecode(compressed);
-      decompressd = zlibdecode(compressed, info);
 
+      % the decompressed buffer is a byte-array
+      decompressd = zlibdecode(compressed);
+
+      % to fully recover the original data structure, one most use the info struct returned by the compressor
+      decompressd = zlibdecode(compressed, info)
+
+      % if one passes a zlib compressed buffer to a different decompressor, an error is reported
+      decompressd = gzipdecode(compressed, info)
+      outputbase64 = char(base64decode(base64encode('jsonlab test')))
 
 ========================================
 Using ``jsave/jload`` to share workspace
@@ -969,11 +980,10 @@ Once the necessary modules are installed, one can type ``python`` (or ``python3`
 
       import jdata as jd
       import numpy as np
-      from collections import OrderedDict
 
-      data1=jd.loadt('myfile.json',object_pairs_hook=OrderedDict);
-      data2=jd.loadb('myfile.bjd',object_pairs_hook=OrderedDict);
-      data3=jd.loadb('myfile.pmat',object_pairs_hook=OrderedDict);
+      data1=jd.loadt('myfile.json');
+      data2=jd.loadb('myfile.bjd');
+      data3=jd.loadb('myfile.pmat');
 
 where ``jd.loadt()`` function loads a text-based JSON file, performs
 JData decoding and converts the enclosed data into Python ``dict``, ``list`` 
