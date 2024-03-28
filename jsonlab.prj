@@ -114,6 +114,7 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/jdlink.m</file>
       <file>${PROJECT_ROOT}/jload.m</file>
       <file>${PROJECT_ROOT}/jsave.m</file>
+      <file>${PROJECT_ROOT}/json2couch.m</file>
       <file>${PROJECT_ROOT}/jsoncache.m</file>
       <file>${PROJECT_ROOT}/jsonget.m</file>
       <file>${PROJECT_ROOT}/jsonhash.m</file>

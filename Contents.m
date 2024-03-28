@@ -18,6 +18,7 @@
 %   jdlink             - data = jdlink(uripath)
 %   jload              - jload
 %   jsave              - jsave
+%   json2couch         - response = json2couch(jsonfile, couchdburl, dbname, docname, logininfo)
 %   jsoncache          - [cachepath, filename]=jsoncache(hyperlink)
 %   jsonget            - json=jsonget(fname,mmap,'$.jsonpath1','$.jsonpath2',...)
 %   jsonopt            - val=jsonopt(key,default,optstruct)
