@@ -8,6 +8,7 @@
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
 * Version: 2.9.8 (Micronus Prime - Beta)
 * URL: https://neurojson.org/jsonlab
+* User forum: https://github.com/orgs/NeuroJSON/discussions/categories/neurojson-json-format-specifications-and-parsers
 * JData Specification Version: V1 Draft-3 (https://neurojson.org/jdata/draft3)
 * Binary JData Specification Version: V1 Draft-2 (https://neurojson.org/bjdata/draft2)
 * JSON-Mmap Specification Version: V1 Draft-1 (https://neurojson.org/jsonmmap/draft1)
@@ -1072,11 +1073,10 @@ updates using the same convention (tab-width: 8, indentation: 4 spaces) as
 the upstream code.
 
 We appreciate any suggestions and feedbacks from you. Please use the following
-mailing list to report any questions you may have regarding JSONLab:
+user forum to ask any question you may have regarding JSONLab:
 
-      https://github.com/fangq/jsonlab/issues
+      https://github.com/orgs/NeuroJSON/discussions/categories/neurojson-json-format-specifications-and-parsers
 
-(Subscription to the mailing list is needed in order to post messages).
 
 
 ==========================
