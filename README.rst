@@ -60,6 +60,7 @@ new features include
 8. automatically switch from ``struct`` to ``containers.Map`` when encoded key-length exceeds 63
 9. provide fall-back zlib/gzip compression/decompression function (``octavezmat``) on Octave when ZMat is not installed
 10. include built-in ``.nii/.nii.gz/.jnii/.h5/.snirf/.tsv/.csv`` parsers to allow loadjd.m to read wide range of files
+11. include ``json2couch`` from jbids (https://github.com/NeuroJSON/jbids) to allow uploading json files to CouchDB server
 
 There have been many major updates added to this release since the previous 
 release v2.0 in June 2020. A list of the major changes are summarized below
@@ -68,7 +69,7 @@ new interface functions ``savejd/loadjd``, and options to use MATLAB/Octave buil
 ``jsonencode/jsondecode`` functions. The ``octave-jsonlab`` package has also been
 included in the official distributions of Debian Bullseye and Ubuntu 21.04 or newer.
 
-
+- 2024-03-28 [b39c374] [feat] add json2couch from jbids toolbox
 - 2024-03-27*[2e43586] [feat] merge ``nii/jnii/hdf5/tsv`` reading functions self-contained
 - 2024-03-27 [b482c8f] [test] pass all tests on matlab R2010b
 - 2024-03-27 [2008934] [doc] additional documentations on decompression functions
