@@ -148,6 +148,18 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/zlibencode.m</file>
       <file>${PROJECT_ROOT}/zstddecode.m</file>
       <file>${PROJECT_ROOT}/zstdencode.m</file>
+      <file>${PROJECT_ROOT}/getvarfrom.m</file>
+      <file>${PROJECT_ROOT}/loadbidstsv.m</file>
+      <file>${PROJECT_ROOT}/loadh5.m</file>
+      <file>${PROJECT_ROOT}/loadjnifti.m</file>
+      <file>${PROJECT_ROOT}/loadnifti.m</file>
+      <file>${PROJECT_ROOT}/memmapstream.m</file>
+      <file>${PROJECT_ROOT}/nii2jnii.m</file>
+      <file>${PROJECT_ROOT}/niicodemap.m</file>
+      <file>${PROJECT_ROOT}/niiformat.m</file>
+      <file>${PROJECT_ROOT}/niiheader2jnii.m</file>
+      <file>${PROJECT_ROOT}/regrouph5.m</file>
+      <file>${PROJECT_ROOT}/transposemat.m</file>
     </fileset.rootfiles>
     <fileset.depfun.included />
     <fileset.depfun.excluded />

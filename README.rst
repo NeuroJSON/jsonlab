@@ -59,6 +59,7 @@ new features include
 7. ``savejson/loadjson`` can use MATLAB/Octave built-in ``jsonencode/jsondecode`` using the ``BuiltinJSON`` option
 8. automatically switch from ``struct`` to ``containers.Map`` when encoded key-length exceeds 63
 9. provide fall-back zlib/gzip compression/decompression function (``octavezmat``) on Octave when ZMat is not installed
+10. include built-in ``.nii/.nii.gz/.jnii/.h5/.snirf/.tsv/.csv`` parsers to allow loadjd.m to read wide range of files
 
 There have been many major updates added to this release since the previous 
 release v2.0 in June 2020. A list of the major changes are summarized below
@@ -68,6 +69,17 @@ new interface functions ``savejd/loadjd``, and options to use MATLAB/Octave buil
 included in the official distributions of Debian Bullseye and Ubuntu 21.04 or newer.
 
 
+- 2024-03-27*[2e43586] [feat] merge ``nii/jnii/hdf5/tsv`` reading functions self-contained
+- 2024-03-27 [b482c8f] [test] pass all tests on matlab R2010b
+- 2024-03-27 [2008934] [doc] additional documentations on decompression functions
+- 2024-03-27 [0a582fb] [doc] add documentations for jsonpath, jsoncache, jdlink, and maxlinklevel
+- 2024-03-27 [5dba1de] [bug] ``..`` searches deep level of struct, make jdlink work for Octave 4.2 and 5.2
+- 2024-03-27 [fea481e] [doc] add line-by-line comment on examples, add ``jsonset/jsonget``
+- 2024-03-26 [e1d386d] [feat] support saving dictionary to json and bjdata
+- 2024-03-26 [dfc744b] [feat] support caching data from any URL using hash, add ``NO_ZMAT`` flag
+- 2024-03-24 [22d297e] [doc] fix README.rst formatting issues
+- 2024-03-24 [7e27db5] [doc] update documentation, preparing for v2.9.8 release
+- 2024-03-24 [1227a0b] [format] reformat
 - 2024-03-24 [67f30ca] [feat] support using \. or [] in JSONPath to escape dots in key names
 - 2024-03-24 [ee830cd] [bug] fix error_pos error when giving a non-existant input file
 - 2024-03-24 [d69686d] [feat] add jdlink to dynamically download and cache linked data

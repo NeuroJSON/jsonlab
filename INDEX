@@ -48,6 +48,15 @@ Compression and Decompression
  zstddecode
  zstdencode
  octavezmat
+HDF5 file parser
+ loadh5
+JNIfTI file parser
+ loadjnifti
+ loadnifti
+ nii2jnii
+ niicodemap
+ niiformat
+ niiheader2jnii
 Helper Functions
  decodevarname
  encodevarname
@@ -59,3 +68,8 @@ Helper Functions
  mergestruct
  nestbracket2dim
  varargin2struct
+ getvarfrom
+ regrouph5
+ transposemat
+ memmapstream
+ loadbidstsv
