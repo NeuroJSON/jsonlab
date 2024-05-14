@@ -8,6 +8,7 @@
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
 * Version: 2.9.8 (Micronus Prime - Beta)
 * URL: https://neurojson.org/jsonlab
+* Download: https://neurojson.org/wiki/index.cgi?keywords=registration&tool=jsonlab&ref=github
 * User forum: https://github.com/orgs/NeuroJSON/discussions/categories/neurojson-json-format-specifications-and-parsers
 * JData Specification Version: V1 Draft-3 (https://neurojson.org/jdata/draft3)
 * Binary JData Specification Version: V1 Draft-2 (https://neurojson.org/bjdata/draft2)
