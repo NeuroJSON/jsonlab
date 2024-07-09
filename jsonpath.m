@@ -1,4 +1,4 @@
-function obj = jsonpath(root, jpath)
+function obj = jsonpath(root, jpath, varargin)
 %
 %    obj=jsonpath(root, jpath)
 %
@@ -35,7 +35,7 @@ if (~isempty(pat) && ~isempty(paths))
         paths(1) = [];
     end
     for i = 1:length(paths)
-        [obj, isfound] = getonelevel(obj, paths, i);
+        [obj, isfound] = getonelevel(obj, paths, i, varargin{:});
         if (~isfound)
             return
         end
@@ -44,7 +44,7 @@ end
 
 %% scan function
 
-function [obj, isfound] = getonelevel(input, paths, pathid)
+function [obj, isfound] = getonelevel(input, paths, pathid, varargin)
 
 pathname = paths{pathid};
 if (iscell(pathname))

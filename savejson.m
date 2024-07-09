@@ -293,7 +293,7 @@ if (iscell(item) || isa(item, 'string'))
     txt = cell2json(name, item, level, varargin{:});
 elseif (isstruct(item))
     txt = struct2json(name, item, level, varargin{:});
-elseif (isnumeric(item) || islogical(item))
+elseif (isnumeric(item) || islogical(item) || isa(item, 'timeseries'))
     txt = mat2json(name, item, level, varargin{:});
 elseif (ischar(item))
     if (~isempty(varargin{1}.compression) && numel(item) >= varargin{1}.compressstringsize)
@@ -593,6 +593,18 @@ dozip = opt.compression;
 zipsize = opt.compressarraysize;
 format = opt.formatversion;
 isnest = opt.nestarray;
+
+if (isa(item, 'timeseries'))
+    if (item.TimeInfo.isUniform && item.TimeInfo.Increment == 1)
+        if (ndims(item.Data) == 3 && size(item.Data, 1) == 1 && size(item.Data, 2) == 1)
+            item = permute(item.Data, [2 3 1]);
+        else
+            item = squeeze(item.Data);
+        end
+    else
+        item = [item.Time squeeze(item.Data)];
+    end
+end
 
 if (~opt.nosubstruct_ && (((isnest == 0) && length(size(item)) > 2) || issparse(item) || ~isreal(item) || ...
                           (isempty(item) && any(size(item))) || opt.arraytostruct || (~isempty(dozip) && numel(item) > zipsize)))

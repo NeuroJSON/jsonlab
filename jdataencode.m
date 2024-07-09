@@ -103,7 +103,7 @@ if (iscell(item))
     newitem = cell2jd(item, varargin{:});
 elseif (isstruct(item))
     newitem = struct2jd(item, varargin{:});
-elseif (isnumeric(item) || islogical(item))
+elseif (isnumeric(item) || islogical(item) || isa(item, 'timeseries'))
     newitem = mat2jd(item, varargin{:});
 elseif (ischar(item) || isa(item, 'string'))
     newitem = mat2jd(item, varargin{:});
@@ -192,6 +192,18 @@ newitem = struct(N('_ArrayType_'), class(item), N('_ArraySize_'), size(item));
 
 zipmethod = varargin{1}.compression;
 minsize = varargin{1}.compressarraysize;
+
+if (isa(item, 'timeseries'))
+    if (item.TimeInfo.isUniform && item.TimeInfo.Increment == 1)
+        if (ndims(item.Data) == 3 && size(item.Data, 1) == 1 && size(item.Data, 2) == 1)
+            item = permute(item.Data, [2 3 1]);
+        else
+            item = squeeze(item.Data);
+        end
+    else
+        item = [item.Time squeeze(item.Data)];
+    end
+end
 
 % 2d numerical (real/complex/sparse) arrays with _ArrayShape_ encoding enabled
 if (varargin{1}.usearrayshape && ndims(item) == 2 && ~isvector(item))
