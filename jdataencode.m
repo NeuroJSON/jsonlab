@@ -414,12 +414,15 @@ end
 
 %% -------------------------------------------------------------------------
 function newitem = any2jd(item, varargin)
-
-N = @(x) N_(x, varargin{:});
-newitem.(N('_DataInfo_')) = struct('MATLABObjectClass', class(item), 'MATLABObjectSize', size(item));
-newitem.(N('_ByteStream_')) = getByteStreamFromArray(item);  % use undocumented matlab function
-if (varargin{1}.base64)
-    newitem.(N('_ByteStream_')) = char(base64encode(newitem.(N('_ByteStream_'))));
+try
+    N = @(x) N_(x, varargin{:});
+    newitem.(N('_DataInfo_')) = struct('MATLABObjectClass', class(item), 'MATLABObjectSize', size(item));
+    newitem.(N('_ByteStream_')) = getByteStreamFromArray(item);  % use undocumented matlab function
+    if (varargin{1}.base64)
+        newitem.(N('_ByteStream_')) = char(base64encode(newitem.(N('_ByteStream_'))));
+    end
+catch
+    error('any2jd: failed to convert object of type %s', class(item));
 end
 
 %% -------------------------------------------------------------------------
