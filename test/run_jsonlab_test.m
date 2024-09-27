@@ -3,7 +3,7 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test
 %   or
 % run_jsonlab_test(tests)
-% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','bugs'})
+% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','jdict','bugs'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -19,6 +19,7 @@ function run_jsonlab_test(tests)
 %         'jmap': test jsonmmap features in loadjson
 %         'bmap': test jsonmmap features in loadbj
 %         'jpath': test jsonpath
+%         'jdict': test jdict
 %         'bugs': test specific bug fixes
 %
 % license:
@@ -28,7 +29,7 @@ function run_jsonlab_test(tests)
 %
 
 if (nargin == 0)
-    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', 'bugs'};
+    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', 'jdict', 'bugs'};
 end
 
 %%
@@ -418,6 +419,33 @@ if (ismember('jpath', tests))
     test_jsonlab('jsonpath scan struct array', @savejson, jsonpath(testdata, '$.book[*]..author[*]'), '[]', 'compact', 1);
 
     clear testdata;
+end
+
+%%
+if (ismember('jdict', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test jdict\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    testdata = struct('key1', struct('subkey1', 1, 'subkey2', [1, 2, 3]), 'subkey2', 'str');
+    testdata.key1.subkey3 = {8, 'test', struct('subsubkey1', 0)};
+    jd = jdict(testdata);
+
+    test_jsonlab('jd.(''key1'').(''subkey1'')', @savejson, jd.('key1').('subkey1'), '[1]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').(''subkey3'')', @savejson, jd.('key1').('subkey3'), '[8,"test",{"subsubkey1":0}]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').(''subkey3'')()', @savejson, jd.('key1').('subkey3')(), '[8,"test",{"subsubkey1":0}]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').(''subkey3'').v(1)', @savejson, jd.('key1').('subkey3').v(1), '[8]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').(''subkey3'').v(3).(''subsubkey1'')', @savejson, jd.('key1').('subkey3').v(3).('subsubkey1'), '[0]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').(''subkey3'').v(2).v()', @savejson, jd.('key1').('subkey3').v(2).v(), '"test"', 'compact', 1);
+    test_jsonlab('jd.(''$.key1.subkey1'')', @savejson, jd.('$.key1.subkey1'), '[1]', 'compact', 1);
+    test_jsonlab('jd.(''$.key1.subkey2'')()', @savejson, jd.('$.key1.subkey2')(), '[1,2,3]', 'compact', 1);
+    test_jsonlab('jd.(''$.key1.subkey2'').v()', @savejson, jd.('$.key1.subkey2').v().v(1), '[1]', 'compact', 1);
+    test_jsonlab('jd.(''$.key1.subkey2'')().v(1)', @savejson, jd.('$.key1.subkey2')().v(1), '[1]', 'compact', 1);
+    test_jsonlab('jd.(''$.key1.subkey3[2].subsubkey1', @savejson, jd.('$.key1.subkey3[2].subsubkey1'), '[0]', 'compact', 1);
+    test_jsonlab('jd.(''$..subkey2'')', @savejson, jd.('$..subkey2'), '["str",[1,2,3]]', 'compact', 1);
+    test_jsonlab('jd.(''$..subkey2'').v(2)', @savejson, jd.('$..subkey2').v(2), '[1,2,3]', 'compact', 1);
+
+    clear testdata jd;
 end
 
 %%

@@ -101,6 +101,8 @@ function newitem = obj2jd(item, varargin)
 
 if (iscell(item))
     newitem = cell2jd(item, varargin{:});
+elseif (isa(item, 'jdict'))
+    newitem = obj2jd(item(), varargin{:});
 elseif (isstruct(item))
     newitem = struct2jd(item, varargin{:});
 elseif (isnumeric(item) || islogical(item) || isa(item, 'timeseries'))

@@ -20,6 +20,8 @@ JData Specification
 Interface
  loadjd
  savejd
+Key Access
+ jdict
 JSON Mmap
  jsonget
  jsonset

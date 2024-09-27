@@ -291,6 +291,8 @@ function txt = obj2json(name, item, level, varargin)
 
 if (iscell(item) || isa(item, 'string'))
     txt = cell2json(name, item, level, varargin{:});
+elseif (isa(item, 'jdict'))
+    txt = obj2json(name, item, level, varargin{:});
 elseif (isstruct(item))
     txt = struct2json(name, item, level, varargin{:});
 elseif (isnumeric(item) || islogical(item) || isa(item, 'timeseries'))

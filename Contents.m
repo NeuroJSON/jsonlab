@@ -15,6 +15,7 @@
 %   jdatadecode        - newdata=jdatadecode(data,opt,...)
 %   jdataencode        - jdata=jdataencode(data)
 %   jdatahash.m        - key = jdatahash(data, algorithm)
+%   jdict              - jd = jdict(data)
 %   jdlink             - data = jdlink(uripath)
 %   jload              - jload
 %   jsave              - jsave
