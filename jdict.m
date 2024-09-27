@@ -15,6 +15,8 @@ classdef jdict < handle
     %
     %    indexing:
     %        jd.('key1').('subkey1')... can retrieve values that are recursively index keys that are
+    %        jd.key1.subkey1... can also retrieve the same data regardless
+    %              if the underlying data is struct, containers.Map or dictionary
     %        jd.('key1').('subkey1').v(1) if the subkey key1 is an array, this can retrieve the first element
     %        jd.('key1').('subkey1').v(1).('subsubkey1') the indexing can be further applied for deeper objects
     %        jd.('$.key1.subkey1') if the indexing starts with '$' this allows a JSONPath based index
@@ -42,6 +44,7 @@ classdef jdict < handle
     %
     %        % getting values
     %        jd.('key1').('subkey1')                % return jdict(1)
+    %        jd.keys.subkey1                        % return jdict(1)
     %        jd.('key1').('subkey3')                % return jdict(obj.key1.subkey3)
     %        jd.('key1').('subkey3')()              % return obj.key1.subkey3
     %        jd.('key1').('subkey3').v(1)           % return jdict({8})
@@ -57,6 +60,13 @@ classdef jdict < handle
     %
     %        % setting values
     %        jd.('subkey2') = 'newstr'              % setting obj.subkey2 to 'newstr'
+    %
+    %        % loading complex data from REST-API
+    %        jd = jdict('https://neurojson.io:7777/cotilab/NeuroCaptain_2024');
+    %
+    %        jd.('Atlas_Age_19_0')
+    %        jd.Atlas_Age_19_0.('Landmark_10_10').('$.._DataLink_')
+    %        jd.Atlas_Age_19_0.Landmark_10_10.('$.._DataLink_')()
     %
     %    license:
     %        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -77,6 +87,7 @@ classdef jdict < handle
                     catch
                         obj.data = val;
                     end
+                    return
                 end
                 if (isa(val, 'jdict'))
                     obj = val;
