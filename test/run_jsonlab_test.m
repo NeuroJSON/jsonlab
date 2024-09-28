@@ -448,8 +448,8 @@ if (ismember('jdict', tests))
     jd.('key1').('subkey2').v([2, 3]) = [10, 11];
     jd.('key1').('subkey3').v(2) = 'mod';
     jd.('key1').('subkey3').v(3).('subsubkey1') = 1;
-    % jd.('key1').('subkey3').v(3).('subsubkey2') = 'new';
-    test_jsonlab('jd.(''key1'').(''subkey3'')', @savejson, jd.('key1').('subkey3'), '[8,"mod",{"subsubkey1":1}]', 'compact', 1);
+    jd.('key1').('subkey3').v(3).('subsubkey2') = 'new';
+    test_jsonlab('jd.(''key1'').(''subkey3'')', @savejson, jd.('key1').('subkey3'), '[8,"mod",{"subsubkey1":1,"subsubkey2":"new"}]', 'compact', 1);
     test_jsonlab('jd.(''key1'').(''subkey2'')', @savejson, jd.('key1').('subkey2'), '[2,10,11]', 'compact', 1);
 
     clear testdata jd;

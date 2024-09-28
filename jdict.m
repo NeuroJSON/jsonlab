@@ -42,6 +42,7 @@
 %        jd = jdict(obj);
 %
 %        % getting values
+%        jd()                                   % return obj
 %        jd.('key1').('subkey1')                % return jdict(1)
 %        jd.keys.subkey1                        % return jdict(1)
 %        jd.('key1').('subkey3')                % return jdict(obj.key1.subkey3)
@@ -70,6 +71,11 @@
 %        jd.('Atlas_Age_19_0')
 %        jd.Atlas_Age_19_0.('Landmark_10_10').('$.._DataLink_')
 %        jd.Atlas_Age_19_0.Landmark_10_10.('$.._DataLink_')()
+%
+%        % creating and managing hierachical data with any key value
+%        jd = jdict;
+%        jd.('_DataInfo_') = struct('toolbox', 'jsonlab', 'version', '3.0.0')
+%        jd.('_DataInfo_').tojson()
 %
 %    license:
 %        BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -187,16 +193,25 @@ classdef jdict < handle
                     if (ischar(idx.subs))
                         if (((isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary')) && ~isKey(opcell{i}, idx.subs)))
                             idx.type = '()';
-                            opcell{i} = subsasgn(opcell{i}, idx, containers.Map());
+                            opcell{i}(idx.subs) = containers.Map();
                         elseif (isstruct(opcell{i}) && ~isfield(opcell{i}, idx.subs))
-                            opcell{i} = subsasgn(opcell{i}, idx, containers.Map());
+                            opcell{i}.(idx.subs) = containers.Map();
                         end
                     end
                 end
-                opcell{i + 1} = subsref(opcell{i}, idx);
+                if (exist('OCTAVE_VERSION', 'builtin') ~= 0) && (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                    opcell{i + 1} = opcell{i}(idx.subs);
+                else
+                    opcell{i + 1} = subsref(opcell{i}, idx);
+                end
             end
 
-            opcell{end - 1} = subsasgn(opcell{i}, idx, otherobj);
+            if (exist('OCTAVE_VERSION', 'builtin') ~= 0) && (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                opcell{i}(idx.subs) = otherobj;
+                opcell{end - 1} = opcell{i};
+            else
+                opcell{end - 1} = subsasgn(opcell{i}, idx, otherobj);
+            end
 
             for i = oplen - 1:-1:1
                 idx = idxkey(i);
