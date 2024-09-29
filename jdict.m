@@ -124,7 +124,7 @@ classdef jdict < handle
                 end
                 if (idx.type == '.' && isnumeric(idx.subs))
                     val = val(idx.subs);
-                elseif ((strcmp(idx.type, '()') || idx.type == '.') && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'keys', 'len'}) && i < oplen)
+                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'keys', 'len'}) && i < oplen)
                     if (strcmp(idx.subs, 'v'))
                         if (iscell(val) && strcmp(idxkey(i + 1).type, '()'))
                             idxkey(i + 1).type = '{}';
@@ -140,6 +140,9 @@ classdef jdict < handle
                     if (i < oplen)
                         val = jdict(val);
                     end
+                elseif (strcmp(idx.type, '.') && ischar(idx.subs) && strcmp(idx.subs, 'v') && oplen == 1)
+                    i = i + 1;
+                    continue;
                 elseif ((idx.type == '.' && ischar(idx.subs)) || (iscell(idx.subs) && ~isempty(idx.subs{1})))
                     onekey = idx.subs;
                     if (iscell(onekey))
