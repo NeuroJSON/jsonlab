@@ -87,13 +87,21 @@ classdef jdict < handle
     properties
         data
     end
+    properties (Access = private)
+        flags
+    end
     methods
 
-        function obj = jdict(val)
-            if (nargin == 1)
-                if (ischar(val) && ~isempty(regexp(val, '^https*://', 'once')))
+        function obj = jdict(val, varargin)
+            obj.flags = struct('builtinjson', 0);
+            if (nargin >= 1)
+                if (~isempty(varargin))
+                    allflags = [varargin(1:2:end); varargin(2:2:end)];
+                    obj.flags = struct(allflags{:});
+                end
+                if (ischar(val) && ~isempty(regexpi(val, '^https*://', 'once')))
                     try
-                        obj.data = loadjson(val);
+                        obj.data = obj.call_('loadjson', val);
                     catch
                         obj.data = val;
                     end
@@ -107,8 +115,9 @@ classdef jdict < handle
             end
         end
 
-        % overloading the getter function
         function val = subsref(obj, idxkey)
+            % overloading the getter function jd.('key').('subkey')
+
             oplen = length(idxkey);
             val = obj.data;
             if (oplen == 1 && strcmp(idxkey.type, '()') && isempty(idxkey.subs))
@@ -117,7 +126,6 @@ classdef jdict < handle
             i = 1;
             while i <= oplen
                 idx = idxkey(i);
-                % disp({i, savejson(idx)});
                 if (isempty(idx.subs))
                     i = i + 1;
                     continue
@@ -142,7 +150,7 @@ classdef jdict < handle
                     end
                 elseif (strcmp(idx.type, '.') && ischar(idx.subs) && strcmp(idx.subs, 'v') && oplen == 1)
                     i = i + 1;
-                    continue;
+                    continue
                 elseif ((idx.type == '.' && ischar(idx.subs)) || (iscell(idx.subs) && ~isempty(idx.subs{1})))
                     onekey = idx.subs;
                     if (iscell(onekey))
@@ -152,7 +160,7 @@ classdef jdict < handle
                         val = val.data;
                     end
                     if (ischar(onekey) && ~isempty(onekey) && onekey(1) == '$')
-                        val = jsonpath(val, onekey);
+                        val = obj.call_('jsonpath', val, onekey);
                     elseif (isstruct(val))
                         val = val.(onekey);
                     elseif (isa(val, 'containers.Map') || isa(val, 'dictionary'))
@@ -170,13 +178,13 @@ classdef jdict < handle
             end
         end
 
-        % overloading the setter function, obj.('idxkey')=otherobj
-        % expanded from rahnema1's sample at https://stackoverflow.com/a/79030223/4271392
         function obj = subsasgn(obj, idxkey, otherobj)
+            % overloading the setter function, obj.('key').('subkey')=otherobj
+            % expanded from rahnema1's sample at https://stackoverflow.com/a/79030223/4271392
             oplen = length(idxkey);
             opcell = cell (1, oplen + 1);
             if (isempty(obj.data))
-                obj.data = containers.Map();
+                obj.data = obj.newkey_();
             end
             opcell{1} = obj.data;
 
@@ -196,13 +204,13 @@ classdef jdict < handle
                     if (ischar(idx.subs))
                         if (((isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary')) && ~isKey(opcell{i}, idx.subs)))
                             idx.type = '()';
-                            opcell{i}(idx.subs) = containers.Map();
+                            opcell{i}(idx.subs) = obj.newkey_();
                         elseif (isstruct(opcell{i}) && ~isfield(opcell{i}, idx.subs))
-                            opcell{i}.(idx.subs) = containers.Map();
+                            opcell{i}.(idx.subs) = obj.newkey_();
                         end
                     end
                 end
-                if (exist('OCTAVE_VERSION', 'builtin') ~= 0) && (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                if (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
                     opcell{i + 1} = opcell{i}(idx.subs);
                 else
                     opcell{i + 1} = subsref(opcell{i}, idx);
@@ -218,6 +226,10 @@ classdef jdict < handle
 
             for i = oplen - 1:-1:1
                 idx = idxkey(i);
+                if (ischar(idx.subs) && strcmp(idx.type, '.') && (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary')))
+                    idx.type = '()';
+                end
+
                 if (ischar(idx.subs) && strcmp(idx.subs, 'v'))
                     opcell{i} = opcell{i + 1};
                     continue
@@ -239,14 +251,17 @@ classdef jdict < handle
         end
 
         function val = tojson(obj, varargin)
-            val = savejson('', obj.data, 'compact', 1, varargin{:});
+            % printing underlying data to compact-formed JSON string
+            val = obj.call_('jsonpath', '', obj.data, 'compact', 1, varargin{:});
         end
 
         function obj = fromjson(obj, fname, varargin)
-            obj.data = loadjd(fname, varargin{:});
+            % loading diverse data files using loadjd interface in jsonlab
+            obj.data = obj.call_('loadjd', fname, varargin{:});
         end
 
         function val = keys(obj)
+            % list subfields at the current level
             if (isstruct(obj.data))
                 val = fieldnames(obj.data);
             elseif (isa(obj.data, 'containers.Map') || isa(obj.data, 'dictionary'))
@@ -257,6 +272,7 @@ classdef jdict < handle
         end
 
         function val = len(obj)
+            % return the number of subfields at the current level
             val = length(obj.data);
         end
 
@@ -265,6 +281,38 @@ classdef jdict < handle
                 val = subsref(obj.data, varargin{:});
             else
                 val = obj.data;
+            end
+        end
+
+        function val = newkey_(obj)
+            % insert new key if does not exist
+            if (exist('containers.Map'))
+                val = containers.Map;
+            else
+                val = struct;
+            end
+        end
+
+        function varargout = call_(obj, func, varargin)
+            % interface to external functions and dependencies
+            if (~obj.flags.builtinjson)
+                if (~exist('loadjson', 'file'))
+                    error('you must first install jsonlab (https://github.com/NeuroJSON/jsonlab) or set "BuildinJSON" flag to 1');
+                end
+                fhandle = str2func(func);
+                [varargout{1:nargout}] = fhandle(varargin{:});
+            else
+                if (~exist('jsonencode', 'builtin') && ~strcmp(func, 'jsonpath'))
+                    error('jsonencode/jsondecode are not available, please install jsonlab (https://github.com/NeuroJSON/jsonlab) and set "BuiltinJSON" flag to 0');
+                end
+                switch func
+                    case 'loadjson'
+                        [varargout{1:nargout}] = jsondecode(webread(varargin{:}));
+                    case 'savejson'
+                        [varargout{1:nargout}] = jsonencode(varargin{:});
+                    case 'jsonpath'
+                        error('please install jsonlab (https://github.com/NeuroJSON/jsonlab) and set "BuiltinJSON" flag to 0');
+                end
             end
         end
 
