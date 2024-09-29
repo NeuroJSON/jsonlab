@@ -252,7 +252,7 @@ classdef jdict < handle
 
         function val = tojson(obj, varargin)
             % printing underlying data to compact-formed JSON string
-            val = obj.call_('jsonpath', '', obj.data, 'compact', 1, varargin{:});
+            val = obj.call_('savejson', '', obj.data, 'compact', 1, varargin{:});
         end
 
         function obj = fromjson(obj, fname, varargin)
