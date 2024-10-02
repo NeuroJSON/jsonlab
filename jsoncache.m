@@ -56,7 +56,7 @@ function [cachepath, filename] = jsoncache(dbname, docname, filename, domain)
 %
 % example:
 %    [cachepath, filename] = jsoncache('https://neurojson.org/io/stat.cgi?action=get&db=openneuro&doc=ds000001&file=sub-01/anat/sub-01_inplaneT2.nii.gz&size=669578')
-%    [cachepath, filename] = jsoncache('https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json')
+%    [cachepath, filename] = jsoncache('https://raw.githubusercontent.com/NeuroJSON/jsonlab/master/examples/example1.json')
 %    [cachepath, filename] = jsoncache('https://neurojson.io:7777/adhd200/Brown')
 %    [cachepath, filename] = jsoncache('https://neurojson.io:7777/openneuro/ds003805')
 %

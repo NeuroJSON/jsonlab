@@ -36,7 +36,7 @@ if (~isempty(regexp(tsvfile, '\.[Gg][Zz]$', 'once')))
     fclose(finput);
 
     if (~exist('gzipdecode', 'file'))
-        error('To process zipped files, you must install gzipdecode.m from the JSONLab toolbox: http://github.com/fangq/jsonlab');
+        error('To process zipped files, you must install gzipdecode.m from the JSONLab toolbox: http://github.com/NeuroJSON/jsonlab');
     end
     fid = char(gzipdecode(tsvdata));
     clear tsvdata;

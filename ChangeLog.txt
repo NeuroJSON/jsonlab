@@ -65,7 +65,7 @@ JSONlab ChangeLog (key features marked by *):
  2023-04-21 [49eceb0] Fix typo not found by codespell
  2023-04-21 [75b1fdc] Fix typos found by codespell
  2023-04-17 [8fea393] revert savejson change
- 2023-04-17 [9554a44] Merge branch 'master' of github.com:fangq/jsonlab
+ 2023-04-17 [9554a44] Merge branch 'master' of github.com:NeuroJSON/jsonlab
  2023-04-17 [3c32aff] speed up string encoding and decoding
  2023-04-09*[8c8464f] rename jamm files to pmat - portable mat, will add jsonmmap
  2023-04-09 [aa1c2a4] drop ubuntu-18.04
@@ -295,7 +295,7 @@ JSONlab ChangeLog (key features marked by *):
  2014/11/22  show progress bar in loadjson ('ShowProgress') 
  2014/11/17 *add Compact option in savejson to output compact JSON format ('Compact')
  2014/11/17  add FastArrayParser in loadjson to specify fast parser applicable levels
- 2014/09/18 *start official github mirror: https://github.com/fangq/jsonlab
+ 2014/09/18 *start official github mirror: https://github.com/NeuroJSON/jsonlab
 
 == JSONlab 1.0.0-RC1 (codename: Optimus - RC1), FangQ <q.fang (at) neu.edu> ==
 

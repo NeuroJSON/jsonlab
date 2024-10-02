@@ -17,8 +17,8 @@
 * Acknowledgement: This project is supported by US National Institute of Health (NIH) 
   grant `U24-NS124027 <https://reporter.nih.gov/project-details/10308329>`_
 
-.. image:: https://github.com/fangq/jsonlab/actions/workflows/run_test.yml/badge.svg
-    :target: https://github.com/fangq/jsonlab/actions/workflows/run_test.yml
+.. image:: https://github.com/NeuroJSON/jsonlab/actions/workflows/run_test.yml/badge.svg
+    :target: https://github.com/NeuroJSON/jsonlab/actions/workflows/run_test.yml
 
 #################
 Table of Contents
@@ -125,7 +125,7 @@ included in the official distributions of Debian Bullseye and Ubuntu 21.04 or ne
 - 2023-04-21 [49eceb0] Fix typo not found by codespell
 - 2023-04-21 [75b1fdc] Fix typos found by codespell
 - 2023-04-17 [8fea393] revert savejson change
-- 2023-04-17 [9554a44] Merge branch 'master' of github.com:fangq/jsonlab
+- 2023-04-17 [9554a44] Merge branch 'master' of github.com:NeuroJSON/jsonlab
 - 2023-04-17 [3c32aff] speed up string encoding and decoding
 - 2023-04-09*[8c8464f] rename jamm files to pmat - portable mat, will add jsonmmap
 - 2023-04-09 [aa1c2a4] drop ubuntu-18.04
@@ -491,7 +491,7 @@ loadjson.m
 
        % if a URL is provided, loadjson reads JSON data from the URL and return the parsed results,
        % similar to webread, except loadjson calls jdatadecode to decode JData annotations
-       dat=loadjson('https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json')
+       dat=loadjson('https://raw.githubusercontent.com/NeuroJSON/jsonlab/master/examples/example1.json')
 
        % using the 'BuildinJSON' flag, one can use the built-in jsondecode.m in MATLAB (R2016+)
        % or Octave (7.0+) to parse the JSON data for better speed, note that jsondecode encode
@@ -503,10 +503,10 @@ loadjson.m
        dat=loadjson('{"obj":{"an object with a key longer than 63":"value","array":[1,2,3]}}', 'UseMap', 1)
 
        % loadjson can further download the linked data pointed by _DataLink_ tag, and merge with the parent
-       dat=loadjson('{"obj":{"_DataLink_":"https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json"},"array":[1,2]}','maxlinklevel',1)
+       dat=loadjson('{"obj":{"_DataLink_":"https://raw.githubusercontent.com/NeuroJSON/jsonlab/master/examples/example1.json"},"array":[1,2]}','maxlinklevel',1)
 
        % a JSONPath can be attached to the URL to retrieve a sub element
-       dat=loadjson('{"obj":{"_DataLink_":"https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json:$.address.city"},"array":[1,2]}','maxlinklevel',1)
+       dat=loadjson('{"obj":{"_DataLink_":"https://raw.githubusercontent.com/NeuroJSON/jsonlab/master/examples/example1.json:$.address.city"},"array":[1,2]}','maxlinklevel',1)
 
        % loadjson can optionally return a JSON-memory-map object, which defines each JSON element's
        % memory buffer offset and length to enable disk-map like fast read/write operations
@@ -777,7 +777,7 @@ jsoncache.m
        [cachepath, filename] = jsoncache('https://neurojson.org/io/stat.cgi?action=get&db=openneuro&doc=ds000001&file=sub-01/anat/sub-01_inplaneT2.nii.gz&size=669578')
 
        % this searches CACHEFOLDER{i}/raw.githubusercontent.com/55/d2, and the filename is 55d24a4bad6ecc3f5dc4d333be728e01c26b696ef7bc5dd0861b7fa672a28e8e.json
-       [cachepath, filename] = jsoncache('https://raw.githubusercontent.com/fangq/jsonlab/master/examples/example1.json')
+       [cachepath, filename] = jsoncache('https://raw.githubusercontent.com/NeuroJSON/jsonlab/master/examples/example1.json')
 
        % this searches cachefolder{i}/io/adhd200/Brown folder, and look for file Brown.json
        [cachepath, filename] = jsoncache('https://neurojson.io:7777/adhd200/Brown')
@@ -1047,15 +1047,15 @@ following command:
 
 .. code:: shell
 
-      git clone https://github.com/fangq/jsonlab.git jsonlab
+      git clone https://github.com/NeuroJSON/jsonlab.git jsonlab
 
 or browsing the github site at
 
-      https://github.com/fangq/jsonlab
+      https://github.com/NeuroJSON/jsonlab
 
 Please report any bugs or issues to the below URL:
 
-      https://github.com/fangq/jsonlab/issues
+      https://github.com/NeuroJSON/jsonlab/issues
 
 Sometimes, you may find it is necessary to modify JSONLab to achieve your 
 goals, or attempt to modify JSONLab functions to fix a bug that you have 
@@ -1068,7 +1068,7 @@ clicking on the "fork" button on top-right of JSONLab's github page. Once you fo
 jsonlab to your own directory, you should then implement the changes in your
 own fork. After thoroughly testing it and you are confident the modification 
 is complete and effective, you can then click on the "New pull request" 
-button, and on the left, select fangq/jsonlab as the "base". Then type
+button, and on the left, select NeuroJSON/jsonlab as the "base". Then type
 in the description of the changes. You are responsible to format the code
 updates using the same convention (tab-width: 8, indentation: 4 spaces) as
 the upstream code.

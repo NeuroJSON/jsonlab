@@ -58,10 +58,10 @@ function nii = nii2jnii(filename, format, varargin)
 %
 %          To load gzipped input files (.nii.gz/.hdr.gz/.img.gz), one must
 %          install the ZMat Toolbox (http://github.com/NeuroJSON/zmat) and
-%          JSONLab Toolbox (http://github.com/fangq/jsonlab);
+%          JSONLab Toolbox (http://github.com/NeuroJSON/jsonlab);
 %
 %          To save files into the text/binary JNIfTI formatted files, one
-%          need to install JSONLab (http://github.com/fangq/jsonlab).
+%          need to install JSONLab (http://github.com/NeuroJSON/jsonlab).
 %
 %    this file was initially developed for the MCX project: https://github.com/fangq/mcx/blob/master/utils/mcxloadnii.m
 %
@@ -95,7 +95,7 @@ if (~isempty(regexp(hdrfile, '\.[Gg][Zz]$', 'once')) || (exist('OCTAVE_VERSION',
 
     if (regexp(hdrfile, '\.[Gg][Zz]$'))
         if (~exist('gzipdecode', 'file'))
-            error('To process zipped files, you must install gzipdecode.m from the JSONLab toolbox: http://github.com/fangq/jsonlab');
+            error('To process zipped files, you must install gzipdecode.m from the JSONLab toolbox: http://github.com/NeuroJSON/jsonlab');
         end
         gzdata = gzipdecode(input);
     else
@@ -294,7 +294,7 @@ end
 
 if (nargout == 0 && strcmp(format, 'nii') == 0 && strcmp(format, 'jnii') == 0)
     if (~exist('savejson', 'file'))
-        error('you must first install JSONLab from http://github.com/fangq/jsonlab/');
+        error('you must first install JSONLab from http://github.com/NeuroJSON/jsonlab/');
     end
     if (regexp(format, '\.jnii$'))
         savejson('', nii, 'FileName', format, varargin{:});
