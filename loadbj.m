@@ -274,7 +274,7 @@ end
 if (~isempty(type))
     if (count >= 0)
         [object, adv] = parse_block(inputstr, pos, type, count, varargin{:});
-        if (~isempty(dim))
+        if (~isempty(dim) && length(dim) > 1)
             object = permute(reshape(object, fliplr(dim(:)')), length(dim):-1:1);
         end
         pos = pos + adv;
