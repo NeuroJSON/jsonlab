@@ -31,7 +31,7 @@ i = 1;
 while (i <= len)
     if (isstruct(varargin{i}))
         opt = mergestruct(opt, varargin{i});
-    elseif (ischar(varargin{i}) && i < len)
+    elseif ((ischar(varargin{i}) || isa(varargin{i}, 'string')) && i < len)
         opt.(lower(varargin{i})) = varargin{i + 1};
         i = i + 1;
     else
