@@ -302,9 +302,13 @@ if cc ~= ']'
             [val, pos] = parse_value(inputstr, pos, [], varargin{:});
         end
         object{end + 1} = val;
-        [cc, pos] = next_char(inputstr, pos);
-        if cc == ']'
+        if count > 0 && length(object) >= count
             break
+        else
+            [cc, pos] = next_char(inputstr, pos);
+            if cc == ']' || (count > 0 && length(object) >= count)
+                break
+            end
         end
     end
 end
