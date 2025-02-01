@@ -53,7 +53,7 @@ if (ismember('js', tests))
     test_jsonlab('empty string', @savejson, '', '""', 'compact', 1);
     test_jsonlab('string escape', @savejson, sprintf('jdata\n\b\ashall\tprevail\t"\"\\'), '"jdata\n\b\ashall\tprevail\t\"\"\\"');
     if (exist('string'))
-        test_jsonlab('string type', @savejson, string(sprintf('jdata\n\b\ashall\tprevail')), '["jdata\n\b\ashall\tprevail"]', 'compact', 1);
+        test_jsonlab('string type', @savejson, string(sprintf('jdata\n\b\ashall\tprevail')), '"jdata\n\b\ashall\tprevail"', 'compact', 1);
         test_jsonlab('string array', @savejson, [string('jdata'), string('shall'), string('prevail')], '["jdata","shall","prevail"]', 'compact', 1);
     end
     test_jsonlab('empty name', @savejson, loadjson('{"":""}'), '{"":""}', 'compact', 1);

@@ -289,7 +289,7 @@ end
 %% -------------------------------------------------------------------------
 function txt = obj2json(name, item, level, varargin)
 
-if (iscell(item) || isa(item, 'string'))
+if (iscell(item) || (isa(item, 'string') && numel(item) > 1))
     txt = cell2json(name, item, level, varargin{:});
 elseif (isa(item, 'jdict'))
     txt = obj2json(name, item, level, varargin{:});
