@@ -111,7 +111,7 @@ if (jsonopt('Recursive', 1, opt) == 1)
 end
 
 %% handle array data
-if (isfield(data, N_('_ArrayType_')) && (isfield(data, N_('_ArrayData_')) || isfield(data, N_('_ArrayZipData_'))))
+if (isfield(data, N_('_ArrayType_')) && (isfield(data, N_('_ArrayData_')) || (isfield(data, N_('_ArrayZipData_')) && ~isstruct(data.(N_('_ArrayZipData_'))))))
     newdata = cell(len, 1);
     for j = 1:len
         if (isfield(data, N_('_ArrayZipSize_')) && isfield(data, N_('_ArrayZipData_')))
