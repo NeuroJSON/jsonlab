@@ -870,9 +870,14 @@ end
 %% -------------------------------------------------------------------------
 function val = S_(str, varargin)
 ismsgpack = varargin{1}.messagepack;
+isdebug = varargin{1}.debug;
 Smarker = varargin{1}.SM_;
 if (length(str) == 1)
-    val = [Smarker(1) str];
+    if (isdebug)
+        val = [Smarker(1) sprintf('<%d>', str)];
+    else
+        val = [Smarker(1) str];
+    end
 else
     if (ismsgpack)
         val = [Imsgpk_(length(str), 218, 160, varargin{:}) str];

@@ -217,7 +217,7 @@ if (ismember('bj', tests))
     end
     test_jsonlab('row vector', @savebj, [1, 2, 3], '[$U#U<3><1><2><3>', 'debug', 1);
     test_jsonlab('column vector', @savebj, [1; 2; 3], '[$U#[$U#U<2><3><1><1><2><3>', 'debug', 1);
-    test_jsonlab('mixed array', @savebj, {'a', 1, 0.9}, '[CaU<1>D<0.9>]', 'debug', 1);
+    test_jsonlab('mixed array', @savebj, {'a', 1, 0.9}, '[C<97>U<1>D<0.9>]', 'debug', 1);
     test_jsonlab('char array', @savebj, ['AC'; 'EG'], '[SU<2>ACSU<2>EG]', 'debug', 1);
     test_jsonlab('maps', @savebj, struct('a', 1, 'b', 'test'), '{U<1>aU<1>U<1>bSU<4>test}', 'debug', 1);
     test_jsonlab('2d array', @savebj, [1, 2, 3; 4, 5, 6], '[$U#[$U#U<2><2><3><1><2><3><4><5><6>', 'debug', 1);
@@ -241,6 +241,12 @@ if (ismember('bj', tests))
                  '[{U<1>iD<1.1>U<1>dSU<3>str}{U<1>iD<1.1>U<1>dSU<3>str}]', 'debug', 1);
     test_jsonlab('encoded fieldnames', @savebj, struct(encodevarname('_i'), 1, encodevarname('i_'), 'str'), ...
                  '{U<2>_iU<1>U<2>i_SU<3>str}', 'debug', 1);
+    test_jsonlab('single byte', @savebj, loadbj(['B' 65]), 'C<65>', 'debug', 1);
+    test_jsonlab('byte 1D vector', @savebj, loadbj(['[$B#U' 3 61 62 65]), 'SU<3>=>A', 'debug', 1);
+    test_jsonlab('optimized byte 1D vector', @savebj, loadbj(['[$B#[$U#U' 1 4 61 62 65 66]), 'SU<4>=>AB', 'debug', 1);
+    test_jsonlab('object with byte key', @savebj, loadbj(['{' 'i' 3 'lat' 'B' -1 'i' 4 'long' 'U' 2 'i' 3 'alt' 'B' 210 '}']), '{U<3>latC<0>U<4>longU<2>U<3>altC<210>}', 'debug', 1);
+    test_jsonlab('optimized object with byte key', @savebj, loadbj(['{$C#U' 3 'i' 3 'lat' 10 'i' 4 'long' 9 'i' 3 'alt' 240]), '{U<3>latC<10>U<4>longC<9>U<3>altC<240>}', 'debug', 1);
+
     if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
         test_jsonlab('encoded fieldnames without decoding', @savebj, struct(encodevarname('_i'), 1, encodevarname('i_'), 'str'), ...
                      '{U<2>_iU<1>U<2>i_SU<3>str}', 'debug', 1, 'UnpackHex', 0);
