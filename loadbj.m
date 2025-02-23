@@ -247,6 +247,7 @@ end
 pos = parse_char(inputstr, pos, '[');
 object = cell(0, 1);
 dim = [];
+iscolumn = 0;
 type = '';
 count = -1;
 [cc, pos] = next_char(inputstr, pos);
@@ -263,6 +264,9 @@ if (cc == '#')
             error_pos('ND array size specifier does not support embedding', inputstr, pos);
         end
         varargin{1}.noembedding_ = 1;
+        if (pos + 1 < length(inputstr) && inputstr(pos + 1) == '[')
+            iscolumn = 1;
+        end
         [dim, pos] = parse_array(inputstr, pos, varargin{:});
         count = prod(double(dim));
         varargin{1}.noembedding_ = 0;
@@ -275,7 +279,11 @@ if (~isempty(type))
     if (count >= 0)
         [object, adv] = parse_block(inputstr, pos, type, count, varargin{:});
         if (~isempty(dim) && length(dim) > 1)
-            object = permute(reshape(object, fliplr(dim(:)')), length(dim):-1:1);
+            if (iscolumn == 0)
+                object = permute(reshape(object, fliplr(dim(:)')), length(dim):-1:1);
+            else
+                object = reshape(object, dim);
+            end
         end
         pos = pos + adv;
         return

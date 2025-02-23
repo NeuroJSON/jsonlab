@@ -241,6 +241,9 @@ if (ismember('bj', tests))
                  '[{U<1>iD<1.1>U<1>dSU<3>str}{U<1>iD<1.1>U<1>dSU<3>str}]', 'debug', 1);
     test_jsonlab('encoded fieldnames', @savebj, struct(encodevarname('_i'), 1, encodevarname('i_'), 'str'), ...
                  '{U<2>_iU<1>U<2>i_SU<3>str}', 'debug', 1);
+    test_jsonlab('optimized 2D row-major array', @savebj, loadbj(['[$i#[$U#U' 2 2 3 61 62 65 66 67 68]), '[$U#[$U#U<2><2><3><61><62><65><66><67><68>', 'debug', 1);
+    test_jsonlab('optimized 2D column-major array', @savebj, loadbj(['[$U#[[$U#U' 2 2 3 ']' 61 62 65 66 67 68]), '[$U#[$U#U<2><2><3><61><65><67><62><66><68>', 'debug', 1);
+
     test_jsonlab('single byte', @savebj, loadbj(['B' 65]), 'C<65>', 'debug', 1);
     test_jsonlab('byte 1D vector', @savebj, loadbj(['[$B#U' 3 61 62 65]), 'SU<3>=>A', 'debug', 1);
     test_jsonlab('optimized byte 1D vector', @savebj, loadbj(['[$B#[$U#U' 1 4 61 62 65 66]), 'SU<4>=>AB', 'debug', 1);
