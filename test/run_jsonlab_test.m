@@ -247,7 +247,7 @@ if (ismember('bj', tests))
     test_jsonlab('single byte', @savebj, loadbj(['B' 65]), 'C<65>', 'debug', 1);
     test_jsonlab('byte 1D vector', @savebj, loadbj(['[$B#U' 3 61 62 65]), 'SU<3>=>A', 'debug', 1);
     test_jsonlab('optimized byte 1D vector', @savebj, loadbj(['[$B#[$U#U' 1 4 61 62 65 66]), 'SU<4>=>AB', 'debug', 1);
-    test_jsonlab('object with byte key', @savebj, loadbj(['{' 'i' 3 'lat' 'B' -1 'i' 4 'long' 'U' 2 'i' 3 'alt' 'B' 210 '}']), '{U<3>latC<0>U<4>longU<2>U<3>altC<210>}', 'debug', 1);
+    test_jsonlab('object with byte key', @savebj, loadbj(['{' 'i' 3 'lat' 'B' 0 'i' 4 'long' 'U' 2 'i' 3 'alt' 'B' 210 '}']), '{U<3>latC<0>U<4>longU<2>U<3>altC<210>}', 'debug', 1);
     test_jsonlab('optimized object with byte key', @savebj, loadbj(['{$C#U' 3 'i' 3 'lat' 10 'i' 4 'long' 9 'i' 3 'alt' 240]), '{U<3>latC<10>U<4>longC<9>U<3>altC<240>}', 'debug', 1);
 
     if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
