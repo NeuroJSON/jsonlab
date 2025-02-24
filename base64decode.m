@@ -33,15 +33,45 @@ end
 if (exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3)
     output = zmat(varargin{1}, 0, 'base64');
     return
-elseif (isoctavemesh)
-    try
-        output = matlab.net.base64decode(varargin{1});
-    catch
-        error('You must install the ZMat toolbox (http://github.com/NeuroJSON/zmat) to use this function in Octave');
-    end
 end
 
-error(javachk('jvm'));
+jvmerr = javachk('jvm');
+
+if (isoctavemesh || isempty(jvmerr))
+    map = uint8(zeros(1, 256) + 65);
+    map(uint8(['A':'Z', 'a':'z', '0':'9', '+/='])) = 0:64;
+    map(uint8('-_')) = 62:63;
+    x = map(varargin{1}(:));
+
+    x(x > 64) = []; % remove non-base64 chars
+    x(x == 64) = []; % remove padding characters
+
+    nebytes = length(x);
+    nchunks = ceil(nebytes / 4);
+    if rem(nebytes, 4) > 0
+        x(end + 1:4 * nchunks) = 0;
+    end
+    x = reshape(uint8(x), 4, nchunks);
+    output = repmat(uint8(0), 3, nchunks);
+
+    output(1, :) = bitshift(x(1, :), 2);
+    output(1, :) = bitor(output(1, :), bitshift(x(2, :), -4));
+    output(2, :) = bitshift(x(2, :), 4);
+    output(2, :) = bitor(output(2, :), bitshift(x(3, :), -2));
+    output(3, :) = bitshift(x(3, :), 6);
+    output(3, :) = bitor(output(3, :), x(4, :));
+
+    switch rem(nebytes, 4)
+        case 2
+            output = output(1:end - 2);
+        case 3
+            output = output(1:end - 1);
+    end
+    output = output(:)';
+    return
+end
+
+error(jvmerr);
 
 if (ischar(varargin{1}))
     varargin{1} = uint8(varargin{1});
