@@ -9,6 +9,10 @@ function output = base64decode(varargin)
 % Copyright (c) 2012, Kota Yamaguchi
 % URL: https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities
 %
+% Octave version written by Jarek Tuszynski, SAIC, <jaroslaw.w.tuszynski at saic.com>
+% based on 2004 code by Peter J. Acklam <pjacklam at online.no>, URL: http://home.online.no/~pjacklam
+% URL: https://www.mathworks.com/matlabcentral/fileexchange/12907-xml_io_tools
+%
 % Modified by: Qianqian Fang (q.fang <at> neu.edu)
 %
 % input:
