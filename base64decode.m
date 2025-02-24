@@ -34,7 +34,11 @@ if (exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3)
     output = zmat(varargin{1}, 0, 'base64');
     return
 elseif (isoctavemesh)
-    error('You must install the ZMat toolbox (http://github.com/NeuroJSON/zmat) to use this function in Octave');
+    try
+        output = matlab.net.base64decode(varargin{1});
+    catch
+        error('You must install the ZMat toolbox (http://github.com/NeuroJSON/zmat) to use this function in Octave');
+    end
 end
 
 error(javachk('jvm'));
