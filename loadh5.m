@@ -66,12 +66,21 @@ opt.dotranspose = jsonopt('Transpose', 1, opt);
 opt.stringarray = jsonopt('StringArray', 0, opt);
 opt.rootpath = path;
 
-if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
-    [varargout{1:nargout}] = load(filename, '-hdf5');
-    if (opt.dotranspose)
-        varargout{1} = transposemat(varargout{1});
+if (exist('OCTAVE_VERSION', 'builtin') ~= 0 && exist('h5info') == 0)
+    try
+        try
+            [varargout{1:nargout}] = load(filename, '-hdf5');
+            if (opt.dotranspose)
+                varargout{1} = transposemat(varargout{1});
+            end
+            return
+        catch
+            pkg load oct-hdf5;
+        end
+    catch
+        error(['To use EasyH5 in Octave, one must install oct-hdf5 first using\n\t' ...
+               'pkg install https://github.com/fangq/oct-hdf5/archive/refs/heads/main.zip\n%s'], '');
     end
-    return
 end
 
 if (isa(filename, 'H5ML.id'))
@@ -103,12 +112,12 @@ end
 try
     if (nargin > 1 && ~isempty(path))
         try
-            rootgid = H5G.open(loc, path);
+            rootgid = H5G.open(loc, path, 0);
             [varargout{1:nargout}] = load_one(rootgid, opt);
             H5G.close(rootgid);
         catch
             [gname, dname] = fileparts(path);
-            rootgid = H5G.open(loc, gname);
+            rootgid = H5G.open(loc, gname, 0);
             [status, res] = group_iterate(rootgid, dname, struct('data', struct, 'meta', struct, 'opt', opt));
             if (nargout > 0)
                 varargout{1} = res.data;
@@ -171,7 +180,12 @@ try
     meta = inputdata.meta;
 
     % objtype index
-    info = H5G.get_objinfo(group_id, objname, 0);
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        info = H5O.get_info_by_name(group_id, objname, 0);
+    else
+        info = H5G.get_objinfo(group_id, objname, 0);
+    end
+
     objtype = info.type;
     objtype = objtype + 1;
 
@@ -179,7 +193,7 @@ try
         % Group
         name = regexprep(objname, '.*/', '');
 
-        group_loc = H5G.open(group_id, name);
+        group_loc = H5G.open(group_id, name, 0);
         try
             [sub_data, sub_meta] = load_one(group_loc, inputdata.opt);
             H5G.close(group_loc);
@@ -297,8 +311,8 @@ if (isa(data, 'uint8') || isa(data, 'int8'))
 end
 
 % handeling string arrays (or cell of char strings)
-if (iscell(data) && length(data) > 1)
-    if (all(cellfun(@ischar, data)) && exist('string') && opt.stringarray)
+if (iscell(data) && all(cellfun(@ischar, data)))
+    if (exist('string') && opt.stringarray)
         data = string(data);
     end
 end
