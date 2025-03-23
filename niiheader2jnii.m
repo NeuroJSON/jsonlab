@@ -42,8 +42,8 @@ if (isfield(nii0.hdr, 'glmax'))
 end
 nii.NIFTIHeader.Description =    deblank(char(nii0.hdr.descrip));
 nii.NIFTIHeader.AuxFile =        deblank(char(nii0.hdr.aux_file));
-nii.NIFTIHeader.QForm =          nii0.hdr.qform_code;
-nii.NIFTIHeader.SForm =          nii0.hdr.sform_code;
+nii.NIFTIHeader.QForm =          niicodemap('qform_code', nii0.hdr.qform_code);
+nii.NIFTIHeader.SForm =          niicodemap('sform_code', nii0.hdr.sform_code);
 nii.NIFTIHeader.Quatern.b =      nii0.hdr.quatern_b;
 nii.NIFTIHeader.Quatern.c =      nii0.hdr.quatern_c;
 nii.NIFTIHeader.Quatern.d =      nii0.hdr.quatern_d;

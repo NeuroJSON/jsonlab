@@ -7,7 +7,7 @@ function nii = nii2jnii(filename, format, varargin)
 %
 %    A fast and portable NIFTI-1/2 and Analyze7.5 file parser and converter
 %    to the text and binary JNIfTI formats defined in JNIfTI specification:
-%    https://github.com/NeuroJSON/jnifti
+%    https://github.com/NeuroJSON/jnifty
 %
 %    This function is compatible with both MATLAB and GNU Octave.
 %    It accepts .nii, .nii.gz, .hdr/.img and .hdr.gz/.img.gz input files
@@ -51,23 +51,24 @@ function nii = nii2jnii(filename, format, varargin)
 %              magic: must be 'ni1\0' or 'n+1\0'
 %
 %              For the detailed nii header, please see
-%              https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h
+%              https://nifti.nimh.nih.gov/nifti-1/
 %
 %    dependency:
 %          No external dependency if reading .nii/.hdr/.img files;
 %
-%          To load gzipped input files (.nii.gz/.hdr.gz/.img.gz), one must
-%          install the ZMat Toolbox (http://github.com/NeuroJSON/zmat) and
-%          JSONLab Toolbox (http://github.com/NeuroJSON/jsonlab);
+%          To load gzipped input files (.nii.gz/.hdr.gz/.img.gz), one may
+%          install the ZMat Toolbox (https://github.com/NeuroJSON/zmat) and
+%          JSONLab Toolbox (https://github.com/NeuroJSON/jsonlab), although
+%          it is optional.
 %
 %          To save files into the text/binary JNIfTI formatted files, one
-%          need to install JSONLab (http://github.com/NeuroJSON/jsonlab).
+%          need to install JSONLab (https://github.com/NeuroJSON/jsonlab).
 %
 %    this file was initially developed for the MCX project: https://github.com/fangq/mcx/blob/master/utils/mcxloadnii.m
 %
-%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifti
+%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifty
 %
-%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifti for details
+%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifty for details
 %
 
 hdrfile = filename;
@@ -95,7 +96,7 @@ if (~isempty(regexp(hdrfile, '\.[Gg][Zz]$', 'once')) || (exist('OCTAVE_VERSION',
 
     if (regexp(hdrfile, '\.[Gg][Zz]$'))
         if (~exist('gzipdecode', 'file'))
-            error('To process zipped files, you must install gzipdecode.m from the JSONLab toolbox: http://github.com/NeuroJSON/jsonlab');
+            error('To process zipped files, you must install gzipdecode.m from the JSONLab toolbox: https://github.com/NeuroJSON/jsonlab');
         end
         gzdata = gzipdecode(input);
     else
@@ -294,7 +295,7 @@ end
 
 if (nargout == 0 && strcmp(format, 'nii') == 0 && strcmp(format, 'jnii') == 0)
     if (~exist('savejson', 'file'))
-        error('you must first install JSONLab from http://github.com/NeuroJSON/jsonlab/');
+        error('you must first install JSONLab from https://github.com/NeuroJSON/jsonlab/');
     end
     if (regexp(format, '\.jnii$'))
         savejson('', nii, 'FileName', format, varargin{:});

@@ -5,7 +5,7 @@ function jnii = loadjnifti(filename, varargin)
 %    jnii=loadjnifti(inputfile, 'Param1',value1, 'Param2',value2,...)
 %
 %    Load a standard NIFTI-1/2 file or text or binary JNIfTI file with
-%    format defined in JNIfTI specification: https://github.com/NeuroJSON/jnifti
+%    format defined in JNIfTI specification: https://github.com/NeuroJSON/jnifty
 %
 %    author: Qianqian Fang (q.fang <at> neu.edu)
 %
@@ -33,9 +33,9 @@ function jnii = loadjnifti(filename, varargin)
 %        savejnifti(jnii, 'magic10.jnii')
 %        newjnii=loadjnifti('magic10.jnii');
 %
-%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifti
+%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifty
 %
-%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifti for details
+%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifty for details
 %
 
 if (nargin < 1)
@@ -43,7 +43,7 @@ if (nargin < 1)
 end
 
 if (~exist('savejson', 'file'))
-    error('you must first install JSONLab from http://github.com/NeuroJSON/jsonlab/');
+    error('you must first install JSONLab from https://github.com/NeuroJSON/jsonlab/');
 end
 
 if (regexp(filename, '\.nii$'))

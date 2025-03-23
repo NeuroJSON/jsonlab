@@ -1,6 +1,6 @@
 Name: jsonlab
-Version: 2.9.8
-Date: 2024-25-03
+Version: 3.0.0
+Date: 2025-23-03
 Title: A JSON/UBJSON/MessagePack encoder/decoder for MATLAB/Octave
 Author: Qianqian Fang <fangqq@gmail.com>
 Maintainer: Qianqian Fang <fangqq@gmail.com>

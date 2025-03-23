@@ -9,8 +9,8 @@ function newval = niicodemap(name, value)
 %
 %    input:
 %        name: a header name as a string, currently support the below nii
-%              headers: 'intent_code', 'slice_code', 'datatype', 'qform',
-%              'sform' and 'xyzt_units' and their corresponding JNIfTI
+%              headers: 'intent_code', 'slice_code', 'datatype', 'qform_code',
+%              'sform_code' and 'xyzt_units' and their corresponding JNIfTI
 %              headers:
 %              'Intent','SliceType','DataType','QForm','SForm','Unit'
 %        value:the current header value, if it is a code, newval will
@@ -30,9 +30,9 @@ function newval = niicodemap(name, value)
 %
 %    this file was initially developed for the MCX project: https://github.com/fangq/mcx/blob/master/utils/mcxloadnii.m
 %
-%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifti
+%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifty
 %
-%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifti for details
+%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifty for details
 %
 
 % code to name look-up-table
@@ -42,14 +42,18 @@ if (~exist('containers.Map'))
     return
 end
 
-lut.intent_code = containers.Map([0, 2:24 1001:1011 2001:2005], ...
+lut.intent_code = containers.Map([0, 2:24 1001:1011 2001:2005 2006:2009 2016:2018], ...
                                  {'', 'corr', 'ttest', 'ftest', 'zscore', 'chi2', 'beta', ...
                                   'binomial', 'gamma', 'poisson', 'normal', 'ncftest', ...
                                   'ncchi2', 'logistic', 'laplace', 'uniform', 'ncttest', ...
                                   'weibull', 'chi', 'invgauss', 'extval', 'pvalue', ...
                                   'logpvalue', 'log10pvalue', 'estimate', 'label', 'neuronames', ...
                                   'matrix', 'symmatrix', 'dispvec', 'vector', 'point', 'triangle', ...
-                                  'quaternion', 'unitless', 'tseries', 'elem', 'rgb', 'rgba', 'shape'});
+                                  'quaternion', 'unitless', 'tseries', 'elem', 'rgb', 'rgba', 'shape', ...
+                                  'fsl_fnirt_displacement_field', 'fsl_cubic_spline_coefficients', ...
+                                  'fsl_dct_coefficients', 'fsl_quadratic_spline_coefficients', ...
+                                  'fsl_topup_cubic_spline_coefficients', 'fsl_topup_quadratic_spline_coefficients', ...
+                                  'fsl_topup_field'});
 
 lut.slice_code = containers.Map(0:6, {'', 'seq+', 'seq-', 'alt+', 'alt-', 'alt2+', 'alt-'});
 
@@ -61,10 +65,10 @@ lut.datatype = containers.Map([0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 768, 1024,
 lut.xyzt_units = containers.Map([0:3 8 16 24 32 40 48], ...
                                 {'', 'm', 'mm', 'um', 's', 'ms', 'us', 'hz', 'ppm', 'rad'});
 
-lut.qform = containers.Map(0:4, {'', 'scanner', 'aligned', 'talairach', 'mni'});
+lut.qform_code = containers.Map(0:5, {'', 'scanner_anat', 'aligned_anat', 'talairach', 'mni_152', 'template_other'});
 
 lut.unit = lut.xyzt_units;
-lut.sform = lut.qform;
+lut.sform_code = lut.qform_code;
 lut.slicetype = lut.slice_code;
 lut.intent = lut.intent_code;
 
@@ -74,9 +78,9 @@ tul.intent_code = containers.Map(values(lut.intent_code), keys(lut.intent_code))
 tul.slice_code = containers.Map(values(lut.slice_code), keys(lut.slice_code));
 tul.datatype = containers.Map(values(lut.datatype), keys(lut.datatype));
 tul.xyzt_units = containers.Map(values(lut.xyzt_units), keys(lut.xyzt_units));
-tul.qform = containers.Map(values(lut.qform), keys(lut.qform));
+tul.qform_code = containers.Map(values(lut.qform_code), keys(lut.qform_code));
 
-tul.sform = tul.qform;
+tul.sform_code = tul.qform_code;
 tul.slicetype = tul.slice_code;
 tul.intent = tul.intent_code;
 tul.unit = tul.xyzt_units;

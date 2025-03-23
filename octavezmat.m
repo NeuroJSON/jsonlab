@@ -6,7 +6,7 @@ function varargout = octavezmat(data, iscompress, zipmethod)
 % unzipdata = octavezmat(zipdata, info)
 %
 % Compress or decompress zlib and gzip memory buffers using zip/unzip/gzip/gunzip on Octave
-% in case ZMat toolbox (http://github.com/NeuroJSON/zmat) was not installed (ZMat is much faster)
+% in case ZMat toolbox (https://github.com/NeuroJSON/zmat) was not installed (ZMat is much faster)
 %
 % Author: Qianqian Fang (q.fang <at> neu.edu)
 %
@@ -59,7 +59,7 @@ function varargout = octavezmat(data, iscompress, zipmethod)
 nowarning = getvarfrom({'caller', 'base'}, 'NO_ZMAT');
 
 if (isempty(nowarning) || nowarning == 0)
-    warning('You are recommended to install ZMat (http://github.com/NeuroJSON/zmat) get much faster speed in Octave');
+    warning('You are recommended to install ZMat (https://github.com/NeuroJSON/zmat) get much faster speed in Octave');
 end
 
 if (nargin < 1)
@@ -102,7 +102,13 @@ if (~iscompress)
     tmpfile = [fname suff.(zipmethod)];
 end
 
-fd = fopen(tmpfile, 'wb');
+writeflag = 'wb';
+
+if (iscompress && strcmp(zipmethod, 'gzip'))
+    writeflag = [writeflag, 'z'];
+end
+
+fd = fopen(tmpfile, writeflag);
 if (~fd)
     error('unable to create temporary file');
 end
@@ -110,8 +116,12 @@ end
 fwrite(fd, typecast(data(:), 'uint8'), 'uint8');
 fclose(fd);
 
-if (iscompress)
-    outputfile = [fname suff.(zipmethod)];
+if (strcmp(zipmethod, 'gzip'))
+    outputfile = tmpfile;
+else
+    if (iscompress)
+        outputfile = [fname suff.(zipmethod)];
+    end
 end
 
 if (~iscompress)
@@ -122,22 +132,24 @@ if (~iscompress)
         else
             outputfile = outputfile{1};
         end
-    elseif (strcmp(zipmethod, 'gzip'))
-        gunzip(tmpfile);
     end
 else
     if (strcmp(zipmethod, 'zlib'))
         zip(outputfile, tmpfile);
-    elseif (strcmp(zipmethod, 'gzip'))
-        gzip(tmpfile);
     end
 end
 
-if (exist(tmpfile, 'file'))
+if (strcmp(zipmethod, 'zlib') && exist(tmpfile, 'file'))
     delete(tmpfile);
 end
 
-fd = fopen(outputfile, 'rb');
+readflag = 'rb';
+
+if (~iscompress && strcmp(zipmethod, 'gzip'))
+    readflag = [readflag, 'z'];
+end
+
+fd = fopen(outputfile, readflag);
 if (~fd)
     error('failed to unzip buffer');
 end

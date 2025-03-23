@@ -6,7 +6,7 @@ function varargout = gzipdecode(varargin)
 %
 % Decompressing a GZIP-compressed byte-stream to recover the original data
 % This function depends on JVM in MATLAB or, can optionally use the ZMat
-% toolbox (http://github.com/NeuroJSON/zmat)
+% toolbox (https://github.com/NeuroJSON/zmat)
 %
 % Copyright (c) 2012, Kota Yamaguchi
 % URL: https://www.mathworks.com/matlabcentral/fileexchange/39526-byte-encoding-utilities

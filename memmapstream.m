@@ -37,9 +37,9 @@ function outstruct = memmapstream(bytes, format, varargin)
 %              'uint8', [1,2], 'school'};
 %        data=memmapstream(bytestream,format);
 %
-%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifti
+%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifty
 %
-%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifti for details
+%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifty for details
 %
 
 if (nargin < 2)

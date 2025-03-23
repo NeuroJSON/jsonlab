@@ -13,9 +13,9 @@ function varargout = loadnifti (varargin)
 %    This function is an alias to nii2jnii
 %
 %
-%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifti
+%    this file is part of JNIfTI specification: https://github.com/NeuroJSON/jnifty
 %
-%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifti for details
+%    License: Apache 2.0, see https://github.com/NeuroJSON/jnifty for details
 %
 
 [varargout{1:nargout}] = nii2jnii(varargin{:});
