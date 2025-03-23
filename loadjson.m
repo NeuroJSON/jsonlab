@@ -26,6 +26,7 @@ function [data, mmap] = loadjson(fname, varargin)
 %           to a field in opt. opt can have the following
 %           fields (first in [.|.] is the default)
 %
+%           Raw [0|1]: if set to 1, loadjson returns the raw JSON string
 %           SimplifyCell [1|0]: if set to 1, loadjson will call cell2mat
 %                         for each element of the JSON data, and group
 %                         arrays based on the cell2mat rules.
@@ -76,6 +77,7 @@ function [data, mmap] = loadjson(fname, varargin)
 %                         returned mmap will be filtered by removing
 %                         entries containing any one of the string patterns
 %                         provided in a cell
+%           WebOptions {'Username', ..}: additional parameters for urlread
 %
 % output:
 %      dat: a cell array, where {...} blocks are converted into cell arrays,
@@ -152,35 +154,49 @@ function [data, mmap] = loadjson(fname, varargin)
 %
 
 opt = varargin2struct(varargin{:});
+webopt = jsonopt('WebOptions', {}, opt);
 
 if (regexp(fname, '^\s*(?:\[.*\])|(?:\{.*\})\s*$', 'once'))
-    string = fname;
+    jsonstring = fname;
+elseif (regexpi(fname, '^\s*(http|https|ftp|file)://'))
+    if (jsonopt('Header', 0, opt))
+        [status, jsonstring] = system(['curl --head "' fname '"']);
+        jsonstring = regexp(jsonstring, '\[\d+[a-z]*([^\n]+)\[\d+[a-z]*:\s*([^\r\n]*)', 'tokens');
+    else
+        jsonstring = urlread(fname, webopt{:});
+    end
 elseif (exist(fname, 'file'))
     try
         encoding = jsonopt('Encoding', '', opt);
         if (isempty(encoding))
-            string = fileread(fname);
+            jsonstring = fileread(fname);
         else
             fid = fopen(fname, 'r', 'n', encoding);
-            string = fread(fid, '*char')';
+            jsonstring = fread(fid, '*char')';
             fclose(fid);
         end
     catch
         try
-            string = urlread(fname);
+            jsonstring = urlread(fname, webopt{:});
         catch
-            string = urlread(['file://', fullfile(pwd, fname)]);
+            jsonstring = urlread(['file://', fullfile(pwd, fname)]);
         end
     end
-elseif (regexpi(fname, '^\s*(http|https|ftp|file)://'))
-    string = urlread(fname);
 else
     error('input file does not exist');
 end
 
+if (jsonopt('Raw', 0, opt) || jsonopt('Header', 0, opt))
+    data = jsonstring;
+    if (nargout > 1)
+        mmap = {};
+    end
+    return
+end
+
 if (jsonopt('BuiltinJSON', 0, opt) && exist('jsondecode', 'builtin'))
     try
-        newstring = regexprep(string, '[\r\n]', '');
+        newstring = regexprep(jsonstring, '[\r\n]', '');
         newdata = jsondecode(newstring);
         newdata = jdatadecode(newdata, 'Base64', 1, 'Recursive', 1, varargin{:});
         data = newdata;
@@ -191,8 +207,8 @@ if (jsonopt('BuiltinJSON', 0, opt) && exist('jsondecode', 'builtin'))
 end
 
 pos = 1;
-inputlen = length(string);
-inputstr = string;
+inputlen = length(jsonstring);
+inputstr = jsonstring;
 arraytokenidx = find(inputstr == '[' | inputstr == ']');
 arraytoken = inputstr(arraytokenidx);
 
