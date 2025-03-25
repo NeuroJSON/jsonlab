@@ -74,9 +74,9 @@ function loaddb(src, event)
     set(lsDb, 'String', (cellfun(@(x) x.id, dbs.database, 'UniformOutput', false)));
 end
 
-function loadds(src, event, keydata)
+function loadds(src, event)
     get(fmMain, 'SelectionType');
-    if strcmp(get(fmMain, 'SelectionType'), 'open')
+    if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
         idx = get(src, 'value');
         dbs = get(src, 'string');
         dslist = neuroj('list', dbs{idx});
@@ -85,9 +85,9 @@ function loadds(src, event, keydata)
     end
 end
 
-function loaddsdata(src, event, keydata)
+function loaddsdata(src, event)
     get(fmMain, 'SelectionType');
-    if strcmp(get(fmMain, 'SelectionType'), 'open')
+    if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
         idx = get(src, 'value');
         dbs = get(src, 'string');
         dbid = get(lsDb, 'tag');
@@ -98,12 +98,12 @@ function loaddsdata(src, event, keydata)
     end
 end
 
-function expandjsontree(src, event, keydata)
+function expandjsontree(src, event)
     if (~isa(get(lsJSON, 'userdata'), 'jdict'))
         return
     end
     get(fmMain, 'SelectionType');
-    if strcmp(get(fmMain, 'SelectionType'), 'open')
+    if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
         idx = get(src, 'value');
         dbs = get(src, 'string');
         rootpath = get(lsJSON, 'tag');
