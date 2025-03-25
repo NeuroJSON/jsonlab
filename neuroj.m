@@ -26,6 +26,7 @@ function [res, restapi, jsonstring] = neuroj(cmd, varargin)
 %                    regular expression pattern
 %                  - if dataset is a struct, find database using
 %                    the _find API
+%               'gui': start a GUI and interactively browse datasets
 %
 %            admin commands (require database admin credentials):
 %               'put': create database, create dataset under a dataset, or
@@ -40,6 +41,8 @@ function [res, restapi, jsonstring] = neuroj(cmd, varargin)
 %        jsonstring: the JSON raw data from the URL
 %
 %    example:
+%        neuroj('gui') % start neuroj client in the GUI mode
+%
 %        res = neuroj('list') % list all databases under res.database
 %        res = neuroj('list', 'cotilab') % list all dataset under res.dataset
 %        res = neuroj('list', 'cotilab', 'CSF_Neurophotonics_2025') % list all versions
@@ -63,6 +66,80 @@ function [res, restapi, jsonstring] = neuroj(cmd, varargin)
 if (nargin == 0)
     disp('NeuroJSON.io Client (https://neurojson.io)');
     fprintf('Format:\n\t[data, restapi] = neuroj(command, database, dataset, attachment, ...)\n\n');
+    return
+end
+
+function loaddb(src, event)
+    dbs = neuroj('list');
+    set(lsDb, 'String', (cellfun(@(x) x.id, dbs.database, 'UniformOutput', false)));
+end
+
+function loadds(src, event, keydata)
+    get(fmMain, 'SelectionType');
+    if strcmp(get(fmMain, 'SelectionType'), 'open')
+        idx = get(src, 'value');
+        dbs = get(src, 'string');
+        dslist = neuroj('list', dbs{idx});
+        set(lsDs, 'string', {dslist.dataset.id});
+        set(lsDb, 'tag', dbs{idx});
+    end
+end
+
+function loaddsdata(src, event, keydata)
+    get(fmMain, 'SelectionType');
+    if strcmp(get(fmMain, 'SelectionType'), 'open')
+        idx = get(src, 'value');
+        dbs = get(src, 'string');
+        dbid = get(lsDb, 'tag');
+        datasets = jdict(neuroj('get', dbid, dbs{idx}));
+        set(lsJSON, 'string', cellfun(@(x) decodevarname(x), datasets.keys(), 'UniformOutput', false), 'value', 1);
+        set(lsJSON, 'userdata', datasets);
+        set(lsJSON, 'tag', '');
+    end
+end
+
+function expandjsontree(src, event, keydata)
+    if (~isa(get(lsJSON, 'userdata'), 'jdict'))
+        return
+    end
+    get(fmMain, 'SelectionType');
+    if strcmp(get(fmMain, 'SelectionType'), 'open')
+        idx = get(src, 'value');
+        dbs = get(src, 'string');
+        rootpath = get(lsJSON, 'tag');
+        datasets = get(lsJSON, 'userdata');
+        if (isempty(rootpath))
+            rootpath = '$';
+        end
+        if (strcmp(dbs{idx}, '..'))
+            rootpath = regexprep(rootpath, '\[[^\]]+\]$', '');
+        else
+            rootpath = [rootpath '["' dbs{idx} '"]'];
+        end
+
+        datasets = datasets.(rootpath);
+        try
+            subitem = cellfun(@(x) decodevarname(x), datasets.keys(), 'UniformOutput', false);
+            if (~strcmp(rootpath, '$'))
+                subitem = {'..', subitem{:}};
+            end
+            set(lsJSON, 'string', subitem, 'value', 1);
+            set(lsJSON, 'tag', rootpath);
+        catch
+        end
+    end
+end
+
+if (nargin == 1 && strcmp(cmd, 'gui'))
+    fmMain = figure;
+    tbTool = uitoolbar(fmMain);
+    btLoadDb = uipushtool(tbTool, 'ClickedCallback', @loaddb);
+    if (~isoctavemesh)
+        btLoadDb.CData = rand(40, 40, 3);
+    end
+    lsDb = uicontrol(fmMain, 'tooltipstring', 'Database', 'style', 'listbox', 'units', 'normalized', 'position', [0 0 1 / 5 1], 'Callback', @loadds, 'KeyPressFcn', @loadds);
+    lsDs = uicontrol(fmMain, 'tooltipstring', 'Dataset', 'style', 'listbox', 'units', 'normalized', 'position', [1 / 5 0 1 / 4 1], 'Callback', @loaddsdata, 'KeyPressFcn', @loaddsdata);
+    lsJSON = uicontrol(fmMain, 'tooltipstring', 'Data', 'style', 'listbox', 'units', 'normalized', 'position', [9 / 20 0 1 - 9 / 20 1], 'Callback', @expandjsontree, 'KeyPressFcn', @expandjsontree);
     return
 end
 
@@ -231,4 +308,6 @@ elseif (strcmp(cmd, 'find'))
             end
         end
     end
+end
+
 end

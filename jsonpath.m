@@ -132,6 +132,8 @@ elseif (isstruct(input) || isa(input, 'containers.Map') || isa(input, 'table'))
     else
         if (isKey(input, pathname))
             obj = {input(pathname)};
+        elseif (isKey(input, decodevarname(pathname)))
+            obj = {input(decodevarname(pathname))};
         end
     end
     if (~exist('obj', 'var') || deepscan)
