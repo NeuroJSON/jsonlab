@@ -173,7 +173,7 @@ classdef jdict < handle
                 end
                 i = i + 1;
             end
-            if (~(isempty(idxkey(end).subs) && strcmp(idxkey(end).type, '()')))
+            if (~(isempty(idxkey(end).subs) && (strcmp(idxkey(end).type, '()') || strcmp(idxkey(end).type, '{}'))))
                 val = jdict(val);
             end
         end

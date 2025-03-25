@@ -9,6 +9,8 @@ function [res, restapi, jsonstring] = neuroj(cmd, varargin)
 %
 %    input:
 %        command: a string, must be one of
+%               'gui':
+%                  - start a GUI and interactively browse datasets
 %               'list':
 %                  - if followed by nothing, list all databases
 %                  - if database is given, list its all datasets
@@ -26,7 +28,6 @@ function [res, restapi, jsonstring] = neuroj(cmd, varargin)
 %                    regular expression pattern
 %                  - if dataset is a struct, find database using
 %                    the _find API
-%               'gui': start a GUI and interactively browse datasets
 %
 %            admin commands (require database admin credentials):
 %               'put': create database, create dataset under a dataset, or
@@ -69,77 +70,19 @@ if (nargin == 0)
     return
 end
 
-function loaddb(src, event)
-    dbs = neuroj('list');
-    set(lsDb, 'String', (cellfun(@(x) x.id, dbs.database, 'UniformOutput', false)));
-end
-
-function loadds(src, event)
-    get(fmMain, 'SelectionType');
-    if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
-        idx = get(src, 'value');
-        dbs = get(src, 'string');
-        dslist = neuroj('list', dbs{idx});
-        set(lsDs, 'string', {dslist.dataset.id});
-        set(lsDb, 'tag', dbs{idx});
-    end
-end
-
-function loaddsdata(src, event)
-    get(fmMain, 'SelectionType');
-    if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
-        idx = get(src, 'value');
-        dbs = get(src, 'string');
-        dbid = get(lsDb, 'tag');
-        datasets = jdict(neuroj('get', dbid, dbs{idx}));
-        set(lsJSON, 'string', cellfun(@(x) decodevarname(x), datasets.keys(), 'UniformOutput', false), 'value', 1);
-        set(lsJSON, 'userdata', datasets);
-        set(lsJSON, 'tag', '');
-    end
-end
-
-function expandjsontree(src, event)
-    if (~isa(get(lsJSON, 'userdata'), 'jdict'))
-        return
-    end
-    get(fmMain, 'SelectionType');
-    if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
-        idx = get(src, 'value');
-        dbs = get(src, 'string');
-        rootpath = get(lsJSON, 'tag');
-        datasets = get(lsJSON, 'userdata');
-        if (isempty(rootpath))
-            rootpath = '$';
-        end
-        if (strcmp(dbs{idx}, '..'))
-            rootpath = regexprep(rootpath, '\[[^\]]+\]$', '');
-        else
-            rootpath = [rootpath '["' dbs{idx} '"]'];
-        end
-
-        datasets = datasets.(rootpath);
-        try
-            subitem = cellfun(@(x) decodevarname(x), datasets.keys(), 'UniformOutput', false);
-            if (~strcmp(rootpath, '$'))
-                subitem = {'..', subitem{:}};
-            end
-            set(lsJSON, 'string', subitem, 'value', 1);
-            set(lsJSON, 'tag', rootpath);
-        catch
-        end
-    end
-end
+global fmMain lsDb lsDs lsJSON txValue
 
 if (nargin == 1 && strcmp(cmd, 'gui'))
-    fmMain = figure;
+    fmMain = figure('numbertitle', 'off', 'name', 'NeuroJSON.io Dataset Browser');
     tbTool = uitoolbar(fmMain);
-    btLoadDb = uipushtool(tbTool, 'ClickedCallback', @loaddb);
+    btLoadDb = uipushtool(tbTool, 'tooltipstring', 'List databases', 'ClickedCallback', @loaddb);
     if (~isoctavemesh)
-        btLoadDb.CData = rand(40, 40, 3);
+        btLoadDb.CData = zeros(40, 40, 3);
     end
     lsDb = uicontrol(fmMain, 'tooltipstring', 'Database', 'style', 'listbox', 'units', 'normalized', 'position', [0 0 1 / 5 1], 'Callback', @loadds, 'KeyPressFcn', @loadds);
     lsDs = uicontrol(fmMain, 'tooltipstring', 'Dataset', 'style', 'listbox', 'units', 'normalized', 'position', [1 / 5 0 1 / 4 1], 'Callback', @loaddsdata, 'KeyPressFcn', @loaddsdata);
-    lsJSON = uicontrol(fmMain, 'tooltipstring', 'Data', 'style', 'listbox', 'units', 'normalized', 'position', [9 / 20 0 1 - 9 / 20 1], 'Callback', @expandjsontree, 'KeyPressFcn', @expandjsontree);
+    lsJSON = uicontrol(fmMain, 'tooltipstring', 'Data', 'style', 'listbox', 'units', 'normalized', 'position', [9 / 20 1 / 4 1 - 9 / 20 3 / 4], 'Callback', @expandjsontree, 'KeyPressFcn', @expandjsontree);
+    txValue = uicontrol(fmMain, 'tooltipstring', 'Value', 'style', 'edit', 'max', 50, 'HorizontalAlignment', 'left', 'units', 'normalized', 'position', [9 / 20 0 1 - 9 / 20 1 / 4]);
     return
 end
 
@@ -310,4 +253,68 @@ elseif (strcmp(cmd, 'find'))
     end
 end
 
+function loaddb(src, event)
+global lsDb
+dbs = neuroj('list');
+set(lsDb, 'String', (cellfun(@(x) x.id, dbs.database, 'UniformOutput', false)));
+
+function loadds(src, event)
+global fmMain lsDb lsDs
+get(fmMain, 'SelectionType');
+if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
+    idx = get(src, 'value');
+    dbs = get(src, 'string');
+    dslist = neuroj('list', dbs{idx});
+    dslist.dataset = dslist.dataset(arrayfun(@(x) x.id(1) ~= '_', dslist.dataset));
+    set(lsDs, 'string', {dslist.dataset.id}, 'value', 1);
+    set(lsDb, 'tag', dbs{idx});
+end
+
+function loaddsdata(src, event)
+global fmMain lsDb lsJSON
+get(fmMain, 'SelectionType');
+if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
+    idx = get(src, 'value');
+    dbs = get(src, 'string');
+    dbid = get(lsDb, 'tag');
+    datasets = jdict(neuroj('get', dbid, dbs{idx}));
+    set(lsJSON, 'string', cellfun(@(x) decodevarname(x), datasets.keys(), 'UniformOutput', false), 'value', 1);
+    set(lsJSON, 'userdata', datasets);
+    set(lsJSON, 'tag', '');
+end
+
+function expandjsontree(src, event)
+global fmMain lsJSON txValue
+if (~isa(get(lsJSON, 'userdata'), 'jdict'))
+    return
+end
+get(fmMain, 'SelectionType');
+if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
+    idx = get(src, 'value');
+    dbs = get(src, 'string');
+    rootpath = get(lsJSON, 'tag');
+    datasets = get(lsJSON, 'userdata');
+    if (isempty(rootpath))
+        rootpath = '$';
+    end
+    if (strcmp(dbs{idx}, '..'))
+        rootpath = regexprep(rootpath, '\[[^\]]+\]$', '');
+    else
+        rootpath = [rootpath '["' dbs{idx} '"]'];
+    end
+
+    datasets = datasets.(rootpath);
+    try
+        if (iscell(datasets.keys()))
+            subitem = cellfun(@(x) decodevarname(x), datasets.keys(), 'UniformOutput', false);
+            if (~strcmp(rootpath, '$'))
+                subitem = {'..', subitem{:}};
+            end
+            set(lsJSON, 'string', subitem, 'value', 1);
+            set(lsJSON, 'tag', rootpath);
+        else
+            set(txValue, 'string', datasets.v());
+        end
+    catch
+    end
 end
