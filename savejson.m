@@ -108,6 +108,16 @@ function output = savejson(rootname, obj, varargin)
 %                         jsonencode, if presents (MATLAB R2016b or Octave
 %                         6) first. If jsonencode does not exist or failed,
 %                         this function falls back to the jsonlab savejson
+%           Whitespaces_: a struct customizing delimiters, including
+%                           tab: sprintf('\t')        indentation
+%                           newline: sprintf('\n')    newline between items
+%                           sep: ','                  delim. between items
+%                           quote: '"'                quotes for obj name
+%                           array: '[]'               start/end of array
+%                           obj: '{}'                 start/end of object
+%                         for example, when printing a compact JSON string,
+%                         the savejson function internally use
+%                           struct('tab', '', 'newline', '', 'sep', ',')
 %
 %        opt can be replaced by a list of ('param',value) pairs. The param
 %        string is equivalent to a field in opt and is case sensitive.
@@ -228,12 +238,14 @@ if ((isstruct(obj) || iscell(obj)) && isempty(rootname) && forceroot)
     rootname = 'root';
 end
 
-whitespaces = struct('tab', sprintf('\t'), 'newline', sprintf('\n'), 'sep', sprintf(',\n'));
+whitespaces = struct('tab', sprintf('\t'), 'newline', sprintf('\n'), 'sep', sprintf(',\n'), 'quote', '"', 'array', '[]', 'obj', '{}');
 if (opt.compact == 1)
-    whitespaces = struct('tab', '', 'newline', '', 'sep', ',');
+    whitespaces = struct('tab', '', 'newline', '', 'sep', ',', 'quote', '"', 'array', '[]', 'obj', '{}');
 end
 if (~isfield(opt, 'whitespaces_'))
     opt.whitespaces_ = whitespaces;
+else
+    opt.whitespaces_ = mergestruct(whitespaces, opt.whitespaces_);
 end
 
 nl = whitespaces.newline;
@@ -342,17 +354,17 @@ nl = ws.newline;
 bracketlevel = ~varargin{1}.singletcell;
 if (len > bracketlevel)
     if (~isempty(name))
-        txt = {padding0, '"', decodevarname(name, varargin{1}.unpackhex), '":[', nl};
+        txt = {padding0, ws.quote, decodevarname(name, varargin{1}.unpackhex), ws.quote, ':', ws.array(1), nl};
         name = '';
     else
-        txt = {padding0, '[', nl};
+        txt = {padding0, ws.array(1), nl};
     end
 elseif (len == 0)
     if (~isempty(name))
-        txt = {padding0, '"' decodevarname(name, varargin{1}.unpackhex) '":[]'};
+        txt = {padding0, ws.quote decodevarname(name, varargin{1}.unpackhex) ws.quote ':' ws.array};
         name = '';
     else
-        txt = {padding0, '[]'};
+        txt = {padding0, ws.array};
     end
     txt = sprintf('%s', txt{:});
     return
@@ -365,7 +377,7 @@ sep = {[',' nl], ''};
 txt = [txt{:}, cellfun(@(x, id) [obj2json(name, x, level + (dim(1) > 1) + (len > bracketlevel), varargin{:}), sep{(id == length(item)) + 1}], item, idx, 'UniformOutput', false)];
 
 if (len > bracketlevel)
-    txt(end + 1:end + 3) = {nl, padding0, ']'};
+    txt(end + 1:end + 3) = {nl, padding0, ws.array(2)};
 end
 txt = sprintf('%s', txt{:});
 
@@ -393,32 +405,32 @@ end
 
 if (isempty(item))
     if (~isempty(name))
-        txt = {padding0, '"', decodevarname(name, varargin{1}.unpackhex), '":[]'};
+        txt = {padding0, ws.quote, decodevarname(name, varargin{1}.unpackhex), ws.quote, ':', ws.array};
     else
-        txt = {padding0, '[]'};
+        txt = {padding0, ws.array};
     end
     txt = sprintf('%s', txt{:});
     return
 end
 if (~isempty(name))
     if (forcearray)
-        txt = {padding0, '"', decodevarname(name, varargin{1}.unpackhex), '":[', nl};
+        txt = {padding0, ws.quote, decodevarname(name, varargin{1}.unpackhex), ws.quote ':', ws.array(1), nl};
     end
 else
     if (forcearray)
-        txt = {padding0, '[', nl};
+        txt = {padding0, ws.array(1), nl};
     end
 end
 for j = 1:dim(2)
     if (dim(1) > 1)
-        txt(end + 1:end + 3) = {padding2, '[', nl};
+        txt(end + 1:end + 3) = {padding2, ws.array(1), nl};
     end
     for i = 1:dim(1)
         names = fieldnames(item(i, j));
         if (~isempty(name) && len == 1 && ~forcearray)
-            txt(end + 1:end + 5) = {padding1, '"', decodevarname(name, varargin{1}.unpackhex), '":{', nl};
+            txt(end + 1:end + 7) = {padding1, ws.quote, decodevarname(name, varargin{1}.unpackhex), ws.quote, ':', ws.obj(1), nl};
         else
-            txt(end + 1:end + 3) = {padding1, '{', nl};
+            txt(end + 1:end + 3) = {padding1, ws.obj(1), nl};
         end
         if (~isempty(names))
             for e = 1:length(names)
@@ -436,20 +448,20 @@ for j = 1:dim(2)
                 txt{end + 1} = nl;
             end
         end
-        txt(end + 1:end + 2) = {padding1, '}'};
+        txt(end + 1:end + 2) = {padding1, ws.obj(2)};
         if (i < dim(1))
             txt(end + 1:end + 2) = {',' nl};
         end
     end
     if (dim(1) > 1)
-        txt(end + 1:end + 3) = {nl, padding2, ']'};
+        txt(end + 1:end + 3) = {nl, padding2, ws.array(2)};
     end
     if (j < dim(2))
         txt(end + 1:end + 2) = {',' nl};
     end
 end
 if (forcearray)
-    txt(end + 1:end + 3) = {nl, padding0, ']'};
+    txt(end + 1:end + 3) = {nl, padding0, ws.array(2)};
 end
 txt = sprintf('%s', txt{:});
 
@@ -502,17 +514,17 @@ nl = ws.newline;
 
 if (isempty(item))
     if (~isempty(name))
-        txt = {padding0, '"', decodevarname(name, varargin{1}.unpackhex), '":[]'};
+        txt = {padding0, ws.quote, decodevarname(name, varargin{1}.unpackhex), ws.quote, ':', ws.array};
     else
-        txt = {padding0, '[]'};
+        txt = {padding0, ws.array};
     end
     txt = sprintf('%s', txt{:});
     return
 end
 if (~isempty(name))
-    txt = {padding0, '"', decodevarname(name, varargin{1}.unpackhex), '":{', nl};
+    txt = {padding0, ws.quote, decodevarname(name, varargin{1}.unpackhex), ws.quote, ':', ws.obj(1), nl};
 else
-    txt = {padding0, '{', nl};
+    txt = {padding0, ws.obj(1), nl};
 end
 
 for i = 1:dim(1)
@@ -528,7 +540,7 @@ for i = 1:dim(1)
         txt{end + 1} = nl;
     end
 end
-txt(end + 1:end + 3) = {nl, padding0, '}'};
+txt(end + 1:end + 3) = {nl, padding0, ws.obj(2)};
 txt = sprintf('%s', txt{:});
 
 %% -------------------------------------------------------------------------
@@ -547,11 +559,11 @@ sep = ws.sep;
 
 if (~isempty(name))
     if (len > 1)
-        txt = {padding1, '"', decodevarname(name, varargin{1}.unpackhex), '":[', nl};
+        txt = {padding1, ws.quote, decodevarname(name, varargin{1}.unpackhex), ws.quote ':', ws.array(1), nl};
     end
 else
     if (len > 1)
-        txt = {padding1, '[', nl};
+        txt = {padding1, ws.array(1), nl};
     end
 end
 for e = 1:len
@@ -561,13 +573,13 @@ for e = 1:len
         val = item(e, :);
     end
     if (len == 1)
-        obj = ['"' decodevarname(name, varargin{1}.unpackhex) '":' '"', val, '"'];
+        obj = [ws.quote decodevarname(name, varargin{1}.unpackhex) ws.quote ':' ws.quote, val, ws.quote];
         if (isempty(name))
-            obj = ['"', val, '"'];
+            obj = [ws.quote, val, ws.quote];
         end
         txt(end + 1:end + 2) = {padding1, obj};
     else
-        txt(end + 1:end + 4) = {padding0, '"', val, '"'};
+        txt(end + 1:end + 4) = {padding0, ws.quote, val, ws.quote};
     end
     if (e == len)
         sep = '';
@@ -575,7 +587,7 @@ for e = 1:len
     txt{end + 1} = sep;
 end
 if (len > 1)
-    txt(end + 1:end + 3) = {nl, padding1, ']'};
+    txt(end + 1:end + 3) = {nl, padding1, ws.array(2)};
 end
 txt = sprintf('%s', txt{:});
 
@@ -623,9 +635,9 @@ else
         txt = sprintf('%s%s', padding1, numtxt);
     else
         if (numel(item) == 1 && varargin{1}.singletarray == 0)
-            txt = sprintf('%s"%s":%s', padding1, decodevarname(name, opt.unpackhex), numtxt);
+            txt = sprintf('%s%s%s%s:%s', padding1, ws.quote, decodevarname(name, opt.unpackhex), ws.quote, numtxt);
         else
-            txt = sprintf('%s"%s":%s', padding1, decodevarname(name, opt.unpackhex), numtxt);
+            txt = sprintf('%s%s%s%s:%s', padding1, ws.quote, decodevarname(name, opt.unpackhex), ws.quote, numtxt);
         end
     end
     return
@@ -658,9 +670,9 @@ if (issparse(item))
             fulldata = [ix, iy, data];
         end
         txt = sprintf(dataformat, txt, padding0, '"_ArrayZipSize_":', regexprep(mat2str(size(fulldata)), '\s+', ','), sep);
-        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipType_":"', dozip, ['"' sep]);
+        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipType_":"', dozip, [ws.quote sep]);
         compfun = str2func([dozip 'encode']);
-        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipData_":"', base64encode(compfun(typecast(fulldata(:), 'uint8'))), ['"' nl]);
+        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipData_":"', base64encode(compfun(typecast(fulldata(:), 'uint8'))), [ws.quote nl]);
     else
         if (size(item, 1) == 1)
             % Row vector, store only column indices.
@@ -690,7 +702,7 @@ else
             fulldata = [real(item(:)) imag(item(:))]';
         end
         txt = sprintf(dataformat, txt, padding0, '"_ArrayZipSize_":', regexprep(mat2str(size(fulldata)), '\s+', ','), sep);
-        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipType_":"', dozip, ['"' sep]);
+        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipType_":"', dozip, [ws.quote sep]);
         encodeparam = {};
         if (~isempty(regexp(dozip, '^blosc2', 'once')))
             compfun = @blosc2encode;
@@ -698,7 +710,7 @@ else
         else
             compfun = str2func([dozip 'encode']);
         end
-        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipData_":"', char(base64encode(compfun(typecast(fulldata(:), 'uint8'), encodeparam{:}))), ['"' nl]);
+        txt = sprintf(dataformat, txt, padding0, '"_ArrayZipData_":"', char(base64encode(compfun(typecast(fulldata(:), 'uint8'), encodeparam{:}))), [ws.quote nl]);
     else
         if (isreal(item))
             txt = sprintf(dataformat, txt, padding0, '"_ArrayData_":', ...
@@ -711,7 +723,7 @@ else
     end
 end
 
-txt = sprintf('%s%s%s', txt, padding1, '}');
+txt = sprintf('%s%s%s', txt, padding1, ws.obj(2));
 
 %% -------------------------------------------------------------------------
 function txt = matlabobject2json(name, item, level, varargin)
@@ -775,15 +787,15 @@ if (size(mat, 1) == 1)
     post = '';
     level = level - 1;
 else
-    pre = sprintf('[%s', nl);
-    post = sprintf('%s%s]', nl, repmat(tab, 1, level - 1));
+    pre = sprintf('%s%s', ws.array(1), nl);
+    post = sprintf('%s%s%s', nl, repmat(tab, 1, level - 1), ws.array(2));
 end
 
 if (isempty(mat))
     if (varargin{1}.emptyarrayasnull)
         txt = 'null';
     else
-        txt = '[]';
+        txt = ws.array;
     end
     return
 end
@@ -795,7 +807,7 @@ end
 if (numel(mat) == 1 && varargin{1}.singletarray == 0 && level > 0)
     formatstr = [repmat([floatformat ','], 1, size(mat, 2) - 1) [floatformat sprintf(',%s', nl)]];
 else
-    formatstr = ['[' repmat([floatformat ','], 1, size(mat, 2) - 1) [floatformat sprintf('],%s', nl)]];
+    formatstr = [ws.array(1), repmat([floatformat ','], 1, size(mat, 2) - 1) [floatformat sprintf('%s,%s', ws.array(2), nl)]];
 end
 if (nargin >= 2 && size(mat, 1) > 1 && varargin{1}.arrayindent == 1)
     formatstr = [repmat(tab, 1, level) formatstr];
