@@ -70,19 +70,25 @@ if (nargin == 0)
     return
 end
 
-global fmMain lsDb lsDs lsJSON txValue
-
 if (nargin == 1 && strcmp(cmd, 'gui'))
-    fmMain = figure('numbertitle', 'off', 'name', 'NeuroJSON.io Dataset Browser');
-    tbTool = uitoolbar(fmMain);
-    btLoadDb = uipushtool(tbTool, 'tooltipstring', 'List databases', 'ClickedCallback', @loaddb);
+    handles.fmMain = figure('numbertitle', 'off', 'name', 'NeuroJSON.io Dataset Browser');
+    tbTool = uitoolbar(handles.fmMain);
+    handles.lsDb = uicontrol(handles.fmMain, 'tooltipstring', 'Database', 'style', 'listbox', 'units', 'normalized', 'position', [0 0 1 / 5 1]);
+    handles.lsDs = uicontrol(handles.fmMain, 'tooltipstring', 'Dataset', 'style', 'listbox', 'units', 'normalized', 'position', [1 / 5 0 1 / 4 1]);
+    handles.lsJSON = uicontrol(handles.fmMain, 'tooltipstring', 'Data', 'style', 'listbox', 'units', 'normalized', 'position', [9 / 20 1 / 4 1 - 9 / 20 3 / 4]);
+    handles.txValue = uicontrol(handles.fmMain, 'tooltipstring', 'Value', 'style', 'edit', 'max', 50, 'HorizontalAlignment', 'left', 'units', 'normalized', 'position', [9 / 20 0 1 - 9 / 20 1 / 4]);
+    handles.t0 = cputime;
+    handles.hbox = msgbox('Loading data', 'modal');
+    set(handles.hbox, 'visible', 'off');
+    set(handles.fmMain, 'userdata', handles);
+    set(handles.lsDb, 'Callback', @(src, events) loadds(src, events, handles.fmMain));
+    set(handles.lsDs, 'Callback', @(src, events) loaddsdata(src, events, handles.fmMain));
+    set(handles.lsJSON, 'Callback', @(src, events) expandjsontree(src, events, handles.fmMain));
+
+    btLoadDb = uipushtool(tbTool, 'tooltipstring', 'List databases', 'ClickedCallback', @(src, events) loaddb(src, events, handles.fmMain));
     if (~isoctavemesh)
         btLoadDb.CData = zeros(40, 40, 3);
     end
-    lsDb = uicontrol(fmMain, 'tooltipstring', 'Database', 'style', 'listbox', 'units', 'normalized', 'position', [0 0 1 / 5 1], 'Callback', @loadds, 'KeyPressFcn', @loadds);
-    lsDs = uicontrol(fmMain, 'tooltipstring', 'Dataset', 'style', 'listbox', 'units', 'normalized', 'position', [1 / 5 0 1 / 4 1], 'Callback', @loaddsdata, 'KeyPressFcn', @loaddsdata);
-    lsJSON = uicontrol(fmMain, 'tooltipstring', 'Data', 'style', 'listbox', 'units', 'normalized', 'position', [9 / 20 1 / 4 1 - 9 / 20 3 / 4], 'Callback', @expandjsontree, 'KeyPressFcn', @expandjsontree);
-    txValue = uicontrol(fmMain, 'tooltipstring', 'Value', 'style', 'edit', 'max', 50, 'HorizontalAlignment', 'left', 'units', 'normalized', 'position', [9 / 20 0 1 - 9 / 20 1 / 4]);
     return
 end
 
@@ -253,47 +259,56 @@ elseif (strcmp(cmd, 'find'))
     end
 end
 
-function loaddb(src, event)
-global lsDb
+function loaddb(src, event, hwin)
+handles = get(hwin, 'userdata');
+set(handles.hbox, 'visible', 'on');
 dbs = neuroj('list');
-set(lsDb, 'String', (cellfun(@(x) x.id, dbs.database, 'UniformOutput', false)));
+set(handles.lsDb, 'String', (cellfun(@(x) x.id, dbs.database, 'UniformOutput', false)));
+set(handles.hbox, 'visible', 'off');
 
-function loadds(src, event)
-global fmMain lsDb lsDs
-get(fmMain, 'SelectionType');
-if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
+function loadds(src, event, hwin)
+handles = get(hwin, 'userdata');
+set(handles.hbox, 'visible', 'on');
+if (isfield(event, 'Key') && strcmp(event.Key, 'enter')) || strcmp(get(handles.fmMain, 'SelectionType'), 'open') || (cputime - handles.t0) < 0.01
     idx = get(src, 'value');
     dbs = get(src, 'string');
     dslist = neuroj('list', dbs{idx});
     dslist.dataset = dslist.dataset(arrayfun(@(x) x.id(1) ~= '_', dslist.dataset));
-    set(lsDs, 'string', {dslist.dataset.id}, 'value', 1);
-    set(lsDb, 'tag', dbs{idx});
+    set(handles.lsDs, 'string', {dslist.dataset.id}, 'value', 1);
+    set(handles.lsDb, 'tag', dbs{idx});
 end
+handles.t0 = cputime;
+set(hwin, 'userdata', handles);
+set(handles.hbox, 'visible', 'off');
 
-function loaddsdata(src, event)
-global fmMain lsDb lsJSON
-get(fmMain, 'SelectionType');
-if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
+function loaddsdata(src, event, hwin)
+handles = get(hwin, 'userdata');
+set(handles.hbox, 'visible', 'on');
+if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(handles.fmMain, 'SelectionType'), 'open') || (cputime - handles.t0) < 0.01
     idx = get(src, 'value');
     dbs = get(src, 'string');
-    dbid = get(lsDb, 'tag');
+    dbid = get(handles.lsDb, 'tag');
     datasets = jdict(neuroj('get', dbid, dbs{idx}));
-    set(lsJSON, 'string', cellfun(@(x) decodevarname(x), datasets.keys(), 'UniformOutput', false), 'value', 1);
-    set(lsJSON, 'userdata', datasets);
-    set(lsJSON, 'tag', '');
+    set(handles.lsJSON, 'string', cellfun(@(x) decodevarname(x), datasets.keys(), 'UniformOutput', false), 'value', 1);
+    set(handles.lsJSON, 'userdata', datasets);
+    set(handles.lsJSON, 'tag', '');
 end
+handles.t0 = cputime;
+set(hwin, 'userdata', handles);
+set(handles.hbox, 'visible', 'off');
 
-function expandjsontree(src, event)
-global fmMain lsJSON txValue
-if (~isa(get(lsJSON, 'userdata'), 'jdict'))
+function expandjsontree(src, event, hwin)
+handles = get(hwin, 'userdata');
+if (~isa(get(handles.lsJSON, 'userdata'), 'jdict'))
     return
 end
-get(fmMain, 'SelectionType');
-if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'SelectionType'), 'open')
+set(handles.hbox, 'visible', 'on');
+
+if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(handles.fmMain, 'SelectionType'), 'open') || (cputime - handles.t0) < 0.01
     idx = get(src, 'value');
     dbs = get(src, 'string');
-    rootpath = get(lsJSON, 'tag');
-    datasets = get(lsJSON, 'userdata');
+    rootpath = get(handles.lsJSON, 'tag');
+    datasets = get(handles.lsJSON, 'userdata');
     if (isempty(rootpath))
         rootpath = '$';
     end
@@ -310,11 +325,14 @@ if isfield(event, 'Key') && strcmp(event.Key, 'enter') || strcmp(get(fmMain, 'Se
             if (~strcmp(rootpath, '$'))
                 subitem = {'..', subitem{:}};
             end
-            set(lsJSON, 'string', subitem, 'value', 1);
-            set(lsJSON, 'tag', rootpath);
+            set(handles.lsJSON, 'string', subitem, 'value', 1);
+            set(handles.lsJSON, 'tag', rootpath);
         else
-            set(txValue, 'string', datasets.v());
+            set(handles.txValue, 'string', datasets.v());
         end
     catch
     end
 end
+handles.t0 = cputime;
+set(hwin, 'userdata', handles);
+set(handles.hbox, 'visible', 'off');
