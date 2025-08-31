@@ -208,10 +208,6 @@ if (type2byte(typeidx, 2) == 0)
     return
 end
 
-if (type2str{typeidx, 2} > 1)
-    nii.hdr.dim = [nii.hdr.dim(1) + 1 uint16(nii.datalen) nii.hdr.dim(2:end)];
-end
-
 if (nargin > 1 && strcmp(format, 'niiheader'))
     return
 end
@@ -221,6 +217,10 @@ if (regexp(filename, '\.[Hh][Dd][Rr](\.[Gg][Zz])*$'))
 end
 
 imgbytenum = prod(double(nii.hdr.dim(2:nii.hdr.dim(1) + 1))) * nii.voxelbyte;
+
+if (type2str{typeidx, 2} > 1)
+    nii.hdr.dim = [nii.hdr.dim(1) + 1 uint16(nii.datalen) nii.hdr.dim(2:end)];
+end
 
 if (isnii == 0 && ~isempty(regexp(filename, '\.[Gg][Zz]$', 'once')))
     finput = fopen(filename, 'rb');
