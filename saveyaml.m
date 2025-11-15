@@ -167,7 +167,7 @@ if (~isempty(name))
     lines = cell(1, len);
     for i = 1:len
         lines{i} = obj2yaml('', item{i}, level + 1, varargin{:});
-        if (~startsWith(strtrim(lines{i}), '-'))
+        if (isempty(regexp(strtrim(lines{i}), '^-', 'once')))
             lines{i} = sprintf('%s- %s', repmat(' ', 1, (level + 1) * opt.indent), strtrim(lines{i}));
         end
     end
@@ -176,7 +176,7 @@ else
     lines = cell(1, len);
     for i = 1:len
         lines{i} = obj2yaml('', item{i}, level, varargin{:});
-        if (~startsWith(strtrim(lines{i}), '-'))
+        if (isempty(regexp(strtrim(lines{i}), '^-', 'once')))
             lines{i} = sprintf('%s- %s', repmat(' ', 1, level * opt.indent), strtrim(lines{i}));
         end
     end
