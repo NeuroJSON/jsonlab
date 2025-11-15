@@ -29,7 +29,7 @@ function run_jsonlab_test(tests)
 %
 
 if (nargin == 0)
-    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', 'jdict', 'bugs'};
+    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', 'jdict', 'bugs', 'yaml', 'yamlopt'};
 end
 
 %%
@@ -472,4 +472,85 @@ if (ismember('bugs', tests))
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     test_jsonlab('simplify cell arrays mixing numbers and chars', @savejson, loadjson('[1,0,"-","L",900]'), '[1,0,"-","L",900]', 'compact', 1);
     test_jsonlab('simplify cell arrays with string elements', @savejson, loadjson('["j","s","o","n"]'), '["j","s","o","n"]', 'compact', 1);
+end
+
+%%
+if (ismember('yaml', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test YAML functions\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % Basic types
+    test_jsonlab('single integer', @saveyaml, 5, '5');
+    test_jsonlab('single float', @saveyaml, 3.14, '3.14');
+    test_jsonlab('boolean true', @saveyaml, true, 'true', 'ParseLogical', 1);
+    test_jsonlab('boolean false', @saveyaml, false, 'false', 'ParseLogical', 1);
+    test_jsonlab('empty array', @saveyaml, [], '[]');
+    test_jsonlab('empty cell', @saveyaml, {}, '[]');
+    test_jsonlab('simple string', @saveyaml, 'test', 'test');
+    test_jsonlab('string with spaces', @saveyaml, 'hello world', '"hello world"');
+
+    % Vectors and arrays
+    test_jsonlab('row vector', @saveyaml, [1, 2, 3], '[1, 2, 3]');
+    test_jsonlab('column vector', @saveyaml, [1; 2; 3], sprintf('- [1]\n- [2]\n- [3]'));
+    test_jsonlab('2d array', @saveyaml, [1, 2, 3; 4, 5, 6], sprintf('- [1, 2, 3]\n- [4, 5, 6]'));
+    test_jsonlab('cell array', @saveyaml, {'a', 'b', 'c'}, sprintf('- a\n- b\n- c'));
+    test_jsonlab('mixed cell array', @saveyaml, {'a', 1, 0.9}, sprintf('- a\n- 1\n- 0.9'));
+    test_jsonlab('char array', @saveyaml, ['AC'; 'EG'], sprintf('|\n  AC\n  EG'));
+
+    % Structs
+    test_jsonlab('simple struct', @saveyaml, struct('name', 'test', 'value', 5), sprintf('name: test\nvalue: 5'));
+    test_jsonlab('nested struct', @saveyaml, struct('person', struct('name', 'John', 'age', 30)), ...
+                 sprintf('person:\n  name: John\n  age: 30'));
+    test_jsonlab('struct array', @saveyaml, repmat(struct('i', 1.1, 'd', 'str'), [1, 2]), ...
+                 sprintf('- i: 1.1\n  d: str\n- i: 1.1\n  d: str'));
+
+    % Special characters
+    test_jsonlab('string with colon', @saveyaml, struct('url', 'http://example.com'), 'url: "http://example.com"');
+    test_jsonlab('string with dash', @saveyaml, struct('version', 'ubuntu-22.04'), 'version: ubuntu-22.04');
+    test_jsonlab('string with at sign', @saveyaml, struct('action', 'actions/checkout@v3'), 'action: "actions/checkout@v3"');
+    test_jsonlab('string with brackets', @saveyaml, struct('pattern', '[a-z]+'), 'pattern: "[a-z]+"');
+
+    % Inline arrays
+    test_jsonlab('inline number array', @saveyaml, struct('values', [1, 2, 3]), 'values: [1, 2, 3]');
+    test_jsonlab('inline string array in cell', @saveyaml, struct('items', {{'a', 'b', 'c'}}), sprintf('items:\n  - a\n  - b\n  - c'));
+
+    % Load tests
+    test_jsonlab('load simple key-value', @saveyaml, loadyaml('name: test'), 'name: test');
+    test_jsonlab('load integer', @saveyaml, loadyaml('value: 5'), 'value: 5');
+    test_jsonlab('load float', @saveyaml, loadyaml('value: 3.14'), 'value: 3.14');
+    test_jsonlab('load boolean true', @saveyaml, loadyaml('flag: true'), 'flag: true');
+    test_jsonlab('load boolean false', @saveyaml, loadyaml('flag: false'), 'flag: false');
+    test_jsonlab('load null', @saveyaml, loadyaml('value: null'), 'value: null', 'EmptyArrayAsNull', 1);
+    test_jsonlab('load simple list', @saveyaml, loadyaml(sprintf('- a\n- b\n- c')), sprintf('- a\n- b\n- c'));
+    test_jsonlab('load inline array', @saveyaml, loadyaml('values: [1, 2, 3]'), 'values: [1, 2, 3]');
+    test_jsonlab('load inline string array', @saveyaml, loadyaml('items: [a, b, c]'), sprintf('items:\n  - a\n  - b\n  - c'));
+    test_jsonlab('load nested object', @saveyaml, loadyaml(sprintf('person:\n  name: John\n  age: 30')), ...
+                 sprintf('person:\n  name: John\n  age: 30'));
+    test_jsonlab('load array of objects', @saveyaml, loadyaml(sprintf('- name: Alice\n  age: 25\n- name: Bob\n  age: 30')), ...
+                 sprintf('- name: Alice\n  age: 25\n- name: Bob\n  age: 30'));
+
+    % Multi-document
+    test_jsonlab('load multi-document', @saveyaml, loadyaml(sprintf('---\nname: doc1\n---\nname: doc2')), ...
+                 sprintf('- name: doc1\n- name: doc2'));
+end
+
+%%
+if (ismember('yamlopt', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test YAML function options\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % Test saveyaml options
+    test_jsonlab('indent option', @saveyaml, struct('a', struct('b', 1)), ...
+                 sprintf('a:\n    b: 1'), 'Indent', 4);
+    test_jsonlab('float format option', @saveyaml, pi, '3.142', 'FloatFormat', '%.3f');
+    test_jsonlab('int format option', @saveyaml, uint8(5), '5', 'IntFormat', '%d');
+
+    % Test multi-document
+    test_jsonlab('save multi-document', @saveyaml, {struct('a', 1), struct('b', 2)}, ...
+                 sprintf('---\na: 1\n---\nb: 2'), 'MultiDocument', 1);
+
+    % Test loadyaml options
+    test_jsonlab('simplify cell option', @saveyaml, loadyaml(sprintf('- 1\n- 2\n- 3'), 'SimplifyCell', 1), '[1, 2, 3]');
 end

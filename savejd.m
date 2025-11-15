@@ -23,6 +23,7 @@ function varargout = savejd(varargin)
 %                *.json,.jnii,.jdt,.jmsh,.jnirs,.jbids: JSON/JData based data files, see https://neurojson.org/jdata/draft2
 %                *.bjd,.bnii,.jdb,.bmsh,.bnirs,.pmat: binary JData (BJData) files, see https://neurojson.org/bjdata/draft2
 %                *.ubj: UBJSON-encoded files, see http://ubjson.org
+%                *.yaml: YAML files, see https://yaml.org/
 %                *.msgpack: MessagePack-encoded files, see http://msgpack.org
 %                *.h5,.hdf5,.snirf: HDF5 files, see https://www.hdfgroup.org/
 %        opt: (optional) for JSON/JData files, these are optional 'param',value pairs
@@ -70,11 +71,13 @@ elseif (regexpi(filename, '\.bjd$|\.bnii$|\.jdb$|\.jbat$|\.bmsh$|\.bnirs$|\.pmat
     [varargout{1:nargout}] = savebj(varargin{:});
 elseif (regexpi(filename, '\.ubj$'))
     [varargout{1:nargout}] = saveubjson(varargin{:});
+elseif (regexpi(filename, '\.yaml$'))
+    [varargout{1:nargout}] = saveyaml(varargin{:});
 elseif (regexpi(filename, '\.msgpack$'))
     [varargout{1:nargout}] = savemsgpack(varargin{:});
 elseif (regexpi(filename, '\.h5$|\.hdf5$|\.snirf$'))
     if (~exist('saveh5', 'file'))
-        error('you must first install EasyH5 from http://github.com/NeuroJSON/easyh5/');
+        error('you must first install EasyH5 from https://github.com/NeuroJSON/easyh5/');
     end
     if (~isfield(opt, 'rootname'))
         if (nargin >= 3 && ischar(varargin{1}))
@@ -85,5 +88,5 @@ elseif (regexpi(filename, '\.h5$|\.hdf5$|\.snirf$'))
     end
     [varargout{1:nargout}] = saveh5(varargin{2}, filename, opt);
 else
-    error('file suffix must be one of .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf,.pmat');
+    error('file suffix must be one of .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.yaml,.msgpack,.h5,.hdf5,.snirf,.pmat');
 end

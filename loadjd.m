@@ -15,6 +15,7 @@ function varargout = loadjd(filename, varargin)
 %                *.json,.jnii,.jdt,.jmsh,.jnirs,.jbids: JSON/JData based data files, see https://neurojson.org/jdata/draft2
 %                *.bjd,.bnii,.jdb,.bmsh,.bnirs,.pmat: binary JData (BJData) files, see https://neurojson.org/bjdata/draft2
 %                *.ubj: UBJSON-encoded files, see http://ubjson.org
+%                *.yaml: YAML files, see https://yaml.org/
 %                *.msgpack: MessagePack-encoded files, see http://msgpack.org
 %                *.h5,.hdf5,.snirf,.nwb: HDF5 files, see https://www.hdfgroup.org/
 %                *.nii,.nii.gz: NIfTI files, need http://github.com/NeuroJSON/jnifty
@@ -53,6 +54,8 @@ elseif (regexpi(filename, '\.bjd$|\.bnii$|\.jdb$|\.jbat$|\.bmsh$|\.bnirs$|\.pmat
     [varargout{1:nargout}] = loadbj(filename, varargin{:});
 elseif (regexpi(filename, '\.ubj$'))
     [varargout{1:nargout}] = loadubjson(filename, varargin{:});
+elseif (regexpi(filename, '\.yaml$'))
+    [varargout{1:nargout}] = loadyaml(filename, varargin{:});
 elseif (regexpi(filename, '\.msgpack$'))
     [varargout{1:nargout}] = loadmsgpack(filename, varargin{:});
 elseif (regexpi(filename, '\.h5$|\.hdf5$|\.snirf$|\.nwb$'))
@@ -77,6 +80,6 @@ elseif (regexpi(filename, '\.tsv$|\.tsv\.gz$|\.csv$|\.csv\.gz$'))
 elseif (regexpi(filename, '\.mat$|\.bvec$|\.bval$'))
     [varargout{1:nargout}] = load(filename, varargin{:});
 else
-    warning('only support parsing .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.msgpack,.h5,.hdf5,.snirf,.pmat,.nwb,.nii,.nii.gz,.tsv,.tsv.gz,.csv,.csv.gz,.mat,.bvec,.bval; load unparsed raw data');
+    warning('only support parsing .json,.jnii,.jdt,.jmsh,.jnirs,.jbids,.bjd,.bnii,.jdb,.bmsh,.bnirs,.ubj,.yaml,.msgpack,.h5,.hdf5,.snirf,.pmat,.nwb,.nii,.nii.gz,.tsv,.tsv.gz,.csv,.csv.gz,.mat,.bvec,.bval; load unparsed raw data');
     [varargout{1:nargout}] = fileread(filename);
 end
