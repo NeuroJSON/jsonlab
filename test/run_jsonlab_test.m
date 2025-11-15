@@ -487,7 +487,7 @@ if (ismember('yaml', tests))
     test_jsonlab('boolean false', @saveyaml, false, 'false', 'ParseLogical', 1);
     test_jsonlab('empty array', @saveyaml, [], '[]');
     test_jsonlab('empty cell', @saveyaml, {}, '[]');
-    test_jsonlab('simple string', @saveyaml, 'test', 'test');
+    test_jsonlab('simple string', @saveyaml, 'teststring', 'teststring');
     test_jsonlab('string with spaces', @saveyaml, 'hello world', '"hello world"');
 
     % Vectors and arrays
