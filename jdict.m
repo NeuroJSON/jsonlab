@@ -31,6 +31,9 @@
 %        jd.tojson('compression', 'zlib', ...) convers the data to a JSON string with savejson() options
 %        jd.keys() return the sub-key names of the object - if it a struct, dictionary or containers.Map - or 1:length(data) if it is an array
 %        jd.len() return the length of the sub-keys
+%        jd{'attrname'} get/set attributes using curly brace indexing
+%        jd.setattr(jsonpath, attrname, value) set attribute at any path
+%        jd.getattr(jsonpath, attrname) get attribute from any path
 %
 %        if using matlab, the .v(...) method can be replaced by bare
 %        brackets .(...), but in octave, one must use .v(...)
@@ -65,6 +68,14 @@
 %        jd.('key1').('subkey3').v(3).('subsubkey1') = 1;     % modify keyed value
 %        jd.('key1').('subkey3').v(3).('subsubkey2') = 'new'; % add new key
 %
+%        % attributes
+%        jd{'dims'} = {'x','y','z'};            % set attribute
+%        %% {'attr'} is MATLAB-only
+%        jd.('a'){'dims'} = {'time','space'};   % set attribute on nested element(MATLAB only, Octave use .setattr())
+%        %% use .setattr() in MATLAB/Octave
+%        jd.('a').setattr('dims',{'time','space'});  % set attributes
+%        jd.('a'){'dims'}                       % print attribute on nested element
+%
 %        % loading complex data from REST-API
 %        jd = jdict('https://neurojson.io:7777/cotilab/NeuroCaptain_2024');
 %
@@ -86,14 +97,18 @@
 classdef jdict < handle
     properties
         data
+        attr
     end
     properties (Access = private)
         flags
+        currentpath
     end
     methods
 
         function obj = jdict(val, varargin)
             obj.flags = struct('builtinjson', 0);
+            obj.attr = containers.Map();
+            obj.currentpath = char(36);
             if (nargin >= 1)
                 if (~isempty(varargin))
                     allflags = [varargin(1:2:end); varargin(2:2:end)];
@@ -108,7 +123,10 @@ classdef jdict < handle
                     return
                 end
                 if (isa(val, 'jdict'))
-                    obj = val;
+                    obj.data = val.data;
+                    obj.attr = val.attr;
+                    obj.currentpath = val.currentpath;
+                    obj.flags = val.flags;
                 else
                     obj.data = val;
                 end
@@ -119,8 +137,19 @@ classdef jdict < handle
             % overloading the getter function jd.('key').('subkey')
 
             oplen = length(idxkey);
+
+            % handle curly brace indexing for attributes
+            if (oplen == 1 && strcmp(idxkey(1).type, '{}'))
+                if (iscell(idxkey(1).subs) && length(idxkey(1).subs) == 1 && ischar(idxkey(1).subs{1}))
+                    val = obj.getattr(obj.currentpath, idxkey(1).subs{1});
+                    return
+                end
+            end
+
             val = obj.data;
-            if (oplen == 1 && strcmp(idxkey.type, '()') && isempty(idxkey.subs))
+            trackpath = obj.currentpath;
+
+            if (oplen == 1 && strcmp(idxkey(1).type, '()') && isempty(idxkey(1).subs))
                 return
             end
             i = 1;
@@ -130,28 +159,45 @@ classdef jdict < handle
                     i = i + 1;
                     continue
                 end
-                if (idx.type == '.' && isnumeric(idx.subs))
+
+                % handle {} attribute access in navigation chain
+                if (strcmp(idx.type, '{}') && iscell(idx.subs) && length(idx.subs) == 1 && ischar(idx.subs{1}))
+                    val = obj.getattr(trackpath, idx.subs{1});
+                    i = i + 1;
+                    continue
+                end
+
+                if (strcmp(idx.type, '.') && isnumeric(idx.subs))
                     val = val(idx.subs);
-                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'keys', 'len'}) && i < oplen)
+                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'keys', 'len', 'setattr', 'getattr'}) && i < oplen)
                     if (strcmp(idx.subs, 'v'))
                         if (iscell(val) && strcmp(idxkey(i + 1).type, '()'))
                             idxkey(i + 1).type = '{}';
                         end
                         if (~isempty(idxkey(i + 1).subs))
-                            val = v(jdict(val), idxkey(i + 1));
+                            tempobj = jdict(val);
+                            tempobj.attr = obj.attr;
+                            tempobj.currentpath = trackpath;
+                            val = v(tempobj, idxkey(i + 1));
                         end
                     else
                         fhandle = str2func(idx.subs);
-                        val = fhandle(jdict(val), idxkey(i + 1).subs{:});
+                        tempobj = jdict(val);
+                        tempobj.attr = obj.attr;
+                        tempobj.currentpath = trackpath;
+                        val = fhandle(tempobj, idxkey(i + 1).subs{:});
                     end
                     i = i + 1;
                     if (i < oplen)
-                        val = jdict(val);
+                        tempobj = jdict(val);
+                        tempobj.attr = obj.attr;
+                        tempobj.currentpath = trackpath;
+                        val = tempobj;
                     end
                 elseif (strcmp(idx.type, '.') && ischar(idx.subs) && strcmp(idx.subs, 'v') && oplen == 1)
                     i = i + 1;
                     continue
-                elseif ((idx.type == '.' && ischar(idx.subs)) || (iscell(idx.subs) && ~isempty(idx.subs{1})))
+                elseif ((strcmp(idx.type, '.') && ischar(idx.subs)) || (iscell(idx.subs) && ~isempty(idx.subs{1})))
                     onekey = idx.subs;
                     if (iscell(onekey))
                         onekey = onekey{1};
@@ -159,12 +205,15 @@ classdef jdict < handle
                     if (isa(val, 'jdict'))
                         val = val.data;
                     end
-                    if (ischar(onekey) && ~isempty(onekey) && onekey(1) == '$')
+                    if (ischar(onekey) && ~isempty(onekey) && onekey(1) == char(36))
                         val = obj.call_('jsonpath', val, onekey);
+                        trackpath = onekey;
                     elseif (isstruct(val))
                         val = val.(onekey);
+                        trackpath = [trackpath '.' onekey];
                     elseif (isa(val, 'containers.Map') || isa(val, 'dictionary'))
                         val = val(onekey);
+                        trackpath = [trackpath '.' onekey];
                     else
                         error('key name "%s" not found', onekey);
                     end
@@ -173,14 +222,64 @@ classdef jdict < handle
                 end
                 i = i + 1;
             end
-            if (~(isempty(idxkey(end).subs) && (strcmp(idxkey(end).type, '()') || strcmp(idxkey(end).type, '{}'))))
-                val = jdict(val);
+
+            if ((strcmp(idxkey(end).type, '{}') && iscell(idxkey(end).subs) && length(idxkey(end).subs) == 1 && ischar(idxkey(end).subs{1})))
+                return
+            elseif (~(isempty(idxkey(end).subs) && (strcmp(idxkey(end).type, '()') || strcmp(idxkey(end).type, '{}'))))
+                newobj = jdict(val);
+                newobj.attr = obj.attr;
+                newobj.currentpath = trackpath;
+                val = newobj;
             end
         end
 
         function obj = subsasgn(obj, idxkey, otherobj)
             % overloading the setter function, obj.('key').('subkey')=otherobj
             % expanded from rahnema1's sample at https://stackoverflow.com/a/79030223/4271392
+
+            % handle curly brace indexing for setting attributes
+            oplen = length(idxkey);
+            if (oplen == 1 && strcmp(idxkey(1).type, '{}'))
+                if (iscell(idxkey(1).subs) && ~isempty(idxkey(1).subs))
+                    attrn = idxkey(1).subs{1};
+                    if (ischar(attrn))
+                        obj.setattr(obj.currentpath, attrn, otherobj);
+                        return
+                    end
+                end
+            end
+
+            % handle compound indexing like jd.('a'){'dims'} = value
+            if (oplen >= 2 && strcmp(idxkey(oplen).type, '{}'))
+                if (iscell(idxkey(oplen).subs) && ~isempty(idxkey(oplen).subs))
+                    attrn = idxkey(oplen).subs{1};
+                    if (ischar(attrn))
+                        % Build the path by navigating through keys
+                        temppath = obj.currentpath;
+                        for i = 1:oplen - 1
+                            idx = idxkey(i);
+                            if (strcmp(idx.type, '.') || strcmp(idx.type, '()'))
+                                if (iscell(idx.subs))
+                                    onekey = idx.subs{1};
+                                else
+                                    onekey = idx.subs;
+                                end
+                                if (ischar(onekey) && ~isempty(onekey))
+                                    if (onekey(1) ~= char(36))
+                                        temppath = [temppath '.' onekey];
+                                    else
+                                        temppath = onekey;
+                                    end
+                                end
+                            end
+                        end
+                        % set attribute on original object with computed path
+                        obj.setattr(temppath, attrn, otherobj);
+                        return
+                    end
+                end
+            end
+
             oplen = length(idxkey);
             opcell = cell (1, oplen + 1);
             if (isempty(obj.data))
@@ -198,7 +297,7 @@ classdef jdict < handle
                         end
                         continue
                     end
-                    if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == '$')
+                    if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
                         error('setting values based on JSONPath indices is not yet supported');
                     end
                     if (ischar(idx.subs))
@@ -313,6 +412,38 @@ classdef jdict < handle
                     case 'jsonpath'
                         error('please install jsonlab (https://github.com/NeuroJSON/jsonlab) and set "BuiltinJSON" flag to 0');
                 end
+            end
+        end
+
+        function attr = setattr(obj, jsonpath, attrname, attrvalue)
+            if (nargin == 3)
+                attrvalue = attrname;
+                attrname = jsonpath;
+                jsonpath = obj.currentpath;
+            end
+            if (~isKey(obj.attr, jsonpath))
+                obj.attr(jsonpath) = containers.Map();
+            end
+            attrmap = obj.attr(jsonpath);
+            attrmap(attrname) = attrvalue;
+            obj.attr(jsonpath) = attrmap;
+            attr = obj.attr;
+        end
+
+        function val = getattr(obj, jsonpath, attrname)
+            if (nargin == 2)
+                attrname = jsonpath;
+                jsonpath = obj.currentpath;
+            end
+            if (~isKey(obj.attr, jsonpath))
+                val = [];
+                return
+            end
+            attrmap = obj.attr(jsonpath);
+            if (isKey(attrmap, attrname))
+                val = attrmap(attrname);
+            else
+                val = [];
             end
         end
 

@@ -29,7 +29,7 @@ function run_jsonlab_test(tests)
 %
 
 if (nargin == 0)
-    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', 'jdict', 'bugs', 'yaml', 'yamlopt'};
+    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', 'jdict', 'bugs', 'yaml', 'yamlopt', 'xarray'};
 end
 
 %%
@@ -553,4 +553,183 @@ if (ismember('yamlopt', tests))
 
     % Test loadyaml options
     test_jsonlab('simplify cell option', @saveyaml, loadyaml(sprintf('- 1\n- 2\n- 3'), 'SimplifyCell', 1), '[1, 2, 3]');
+end
+
+%%
+if (ismember('xarray', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test jdict xarray-like attributes\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % Test 1: Root level dims attribute
+    jd1 = jdict(rand(10, 20, 30));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd1.setattr('dims', {'time', 'channels', 'trials'});
+    else
+        jd1{'dims'} = {'time', 'channels', 'trials'};
+    end
+    r1 = jd1{'dims'};
+    if (iscell(r1) && length(r1) == 3 && strcmp(r1{1}, 'time'))
+        fprintf(1, 'Testing root level dims: ok\n');
+    else
+        warning('Test root level dims: failed');
+    end
+
+    % Test 2: Root level units attribute
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd1.setattr('units', 'uV');
+    else
+        jd1{'units'} = 'uV';
+    end
+    r2 = jd1{'units'};
+    if (strcmp(r2, 'uV'))
+        fprintf(1, 'Testing root level units: ok\n');
+    else
+        warning('Test root level units: failed');
+    end
+
+    % Test 3: Multiple attributes on same object
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd1.setattr('description', 'test data');
+    else
+        jd1{'description'} = 'test data';
+    end
+    r3 = jd1{'description'};
+    if (strcmp(r3, 'test data'))
+        fprintf(1, 'Testing multiple attrs on same object: ok\n');
+    else
+        warning('Test multiple attrs: failed');
+    end
+
+    % Test 4: Second level on key a
+    jd2 = jdict(struct('a', rand(5, 10), 'b', rand(8, 12)));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd2.('a').setattr('dims', {'x', 'y'});
+    else
+        jd2.('a'){'dims'} = {'x', 'y'};
+    end
+    r4 = jd2.('a'){'dims'};
+    if (iscell(r4) && length(r4) == 2 && strcmp(r4{1}, 'x'))
+        fprintf(1, 'Testing 2nd level key a: ok\n');
+    else
+        warning('Test 2nd level key a: failed');
+    end
+
+    % Test 5: Second level on key b
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd2.('b').setattr('dims', {'rows', 'cols'});
+    else
+        jd2.('b'){'dims'} = {'rows', 'cols'};
+    end
+    r5 = jd2.('b'){'dims'};
+    if (iscell(r5) && strcmp(r5{1}, 'rows'))
+        fprintf(1, 'Testing 2nd level key b: ok\n');
+    else
+        warning('Test 2nd level key b: failed');
+    end
+
+    % Test 6: Verify independence of attributes
+    ra = jd2.('a'){'dims'};
+    rb = jd2.('b'){'dims'};
+    if (strcmp(ra{1}, 'x') && strcmp(rb{1}, 'rows'))
+        fprintf(1, 'Testing attribute independence: ok\n');
+    else
+        warning('Test attribute independence: failed');
+    end
+
+    % Test 7: Third level nested
+    jd3 = jdict(struct('level1', struct('level2', struct('data', rand(4, 5, 6)))));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd3.('level1').('level2').('data').setattr('dims', {'i', 'j', 'k'});
+    else
+        jd3.('level1').('level2').('data'){'dims'} = {'i', 'j', 'k'};
+    end
+    r7 = jd3.('level1').('level2').('data'){'dims'};
+    if (iscell(r7) && length(r7) == 3 && strcmp(r7{1}, 'i'))
+        fprintf(1, 'Testing 3rd level nested: ok\n');
+    else
+        warning('Test 3rd level nested: failed');
+    end
+
+    % Test 8: Attribute overwrite
+    jd4 = jdict(rand(5, 5));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd4.setattr('dims', {'old1', 'old2'});
+        jd4.setattr('dims', {'new1', 'new2'});
+    else
+        jd4{'dims'} = {'old1', 'old2'};
+        jd4{'dims'} = {'new1', 'new2'};
+    end
+    r8 = jd4{'dims'};
+    if (iscell(r8) && strcmp(r8{1}, 'new1'))
+        fprintf(1, 'Testing attribute overwrite: ok\n');
+    else
+        warning('Test attribute overwrite: failed');
+    end
+
+    % Test 9: Non-existent attribute returns empty
+    jd5 = jdict(rand(3, 3));
+    r9 = jd5{'nonexistent'};
+    if (isempty(r9))
+        fprintf(1, 'Testing non-existent attr returns empty: ok\n');
+    else
+        warning('Test non-existent attr: failed');
+    end
+
+    % Test 10: Nested struct with sibling attributes
+    jd6 = jdict(struct('exp1', struct('trial1', rand(10, 5), 'trial2', rand(10, 5))));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd6.('exp1').('trial1').setattr('dims', {'time', 'channels'});
+        jd6.('exp1').('trial2').setattr('dims', {'samples', 'sensors'});
+    else
+        jd6.('exp1').('trial1'){'dims'} = {'time', 'channels'};
+        jd6.('exp1').('trial2'){'dims'} = {'samples', 'sensors'};
+    end
+    r10a = jd6.('exp1').('trial1'){'dims'};
+    r10b = jd6.('exp1').('trial2'){'dims'};
+    if (strcmp(r10a{1}, 'time') && strcmp(r10b{1}, 'samples'))
+        fprintf(1, 'Testing sibling key independence: ok\n');
+    else
+        warning('Test sibling key independence: failed');
+    end
+
+    % Test 11: Attribute persistence across navigation
+    jd7 = jdict(struct('data', ones(3, 4)));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd7.('data').setattr('dims', {'x', 'y'});
+        jd7.('data').setattr('sampling_rate', 1000);
+    else
+        jd7.('data'){'dims'} = {'x', 'y'};
+        jd7.('data'){'sampling_rate'} = 1000;
+    end
+    r11a = jd7.('data'){'dims'};
+    r11b = jd7.('data'){'sampling_rate'};
+    if (iscell(r11a) && r11b == 1000)
+        fprintf(1, 'Testing attr persistence: ok\n');
+    else
+        warning('Test attr persistence: failed');
+    end
+
+    % Test 12: Multiple attributes different types
+    jd8 = jdict(rand(10, 20));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd8.setattr('dims', {'time', 'space'});
+        jd8.setattr('units', 'meters');
+        jd8.setattr('count', 42);
+        jd8.setattr('flag', true);
+    else
+        jd8{'dims'} = {'time', 'space'};
+        jd8{'units'} = 'meters';
+        jd8{'count'} = 42;
+        jd8{'flag'} = true;
+    end
+    r12a = jd8{'dims'};
+    r12b = jd8{'units'};
+    r12c = jd8{'count'};
+    r12d = jd8{'flag'};
+    if (iscell(r12a) && strcmp(r12b, 'meters') && r12c == 42 && r12d == true)
+        fprintf(1, 'Testing multiple attr types: ok\n');
+    else
+        warning('Test multiple attr types: failed');
+    end
 end
