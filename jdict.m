@@ -205,12 +205,58 @@ classdef jdict < handle
                     if (isa(val, 'jdict'))
                         val = val.data;
                     end
+
+                    % check if dimension-based indexing
+                    dims = obj.getattr(trackpath, 'dims');
+                    if (~isempty(dims) && iscell(dims) && i < oplen && strcmp(idxkey(i + 1).type, '()'))
+                        dimpos = find(strcmp(dims, onekey));
+                        if (~isempty(dimpos) && ~isempty(idxkey(i + 1).subs))
+                            nddata = length(dims);
+                            indices = cell(1, nddata);
+                            for j = 1:nddata
+                                indices{j} = ':';
+                            end
+                            indices{dimpos(1)} = idxkey(i + 1).subs{1};
+                            subsargs = struct('type', '()', 'subs', {indices});
+                            val = subsref(val, subsargs);
+                            newobj = jdict(val);
+                            newobj.attr = obj.attr;
+                            newobj.currentpath = trackpath;
+                            val = newobj;
+                            i = i + 2;
+                            continue
+                        end
+                    end
+
                     if (ischar(onekey) && ~isempty(onekey) && onekey(1) == char(36))
                         val = obj.call_('jsonpath', val, onekey);
                         trackpath = onekey;
                     elseif (isstruct(val))
-                        val = val.(onekey);
-                        trackpath = [trackpath '.' onekey];
+                        % check if struct array - if so, get field from all elements
+                        if (numel(val) > 1 && isfield(val, onekey))
+                            % struct array - extract field from all elements
+                            val = {val.(onekey)};
+                            if (all(cellfun(@isnumeric, val)) && all(cellfun(@(x) isequal(size(x), size(val{1})), val)))
+                                % try to concatenate if all same size numeric
+                                try
+                                    val = cat(ndims(val{1}) + 1, val{:});
+                                catch
+                                    % keep as cell if concatenation fails
+                                end
+                            end
+                            trackpath = [trackpath '.' onekey];
+                            % check if next operation is () for indexing the result
+                            if (i < oplen && strcmp(idxkey(i + 1).type, '()') && ~isempty(idxkey(i + 1).subs))
+                                subsargs = struct('type', '()', 'subs', idxkey(i + 1).subs);
+                                val = subsref(val, subsargs);
+                                i = i + 2;
+                                continue
+                            end
+                        else
+                            % single struct or scalar field access
+                            val = val.(onekey);
+                            trackpath = [trackpath '.' onekey];
+                        end
                     elseif (isa(val, 'containers.Map') || isa(val, 'dictionary'))
                         val = val(onekey);
                         trackpath = [trackpath '.' onekey];
@@ -276,6 +322,67 @@ classdef jdict < handle
                         % set attribute on original object with computed path
                         obj.setattr(temppath, attrn, otherobj);
                         return
+                    end
+                end
+            end
+
+            % handle dimension-based assignment like jd.time(1:10) = newval
+            if (oplen >= 2 && strcmp(idxkey(oplen).type, '()'))
+                % check if second-to-last is a dimension name
+                if (strcmp(idxkey(oplen - 1).type, '.') && ischar(idxkey(oplen - 1).subs))
+                    dimname = idxkey(oplen - 1).subs;
+                    % build path to the data
+                    temppath = obj.currentpath;
+                    for i = 1:oplen - 2
+                        idx = idxkey(i);
+                        if (strcmp(idx.type, '.') || strcmp(idx.type, '()'))
+                            if (iscell(idx.subs))
+                                onekey = idx.subs{1};
+                            else
+                                onekey = idx.subs;
+                            end
+                            if (ischar(onekey) && ~isempty(onekey))
+                                if (onekey(1) ~= char(36))
+                                    temppath = [temppath '.' onekey];
+                                else
+                                    temppath = onekey;
+                                end
+                            end
+                        end
+                    end
+                    % check if dimname is in dims
+                    dims = obj.getattr(temppath, 'dims');
+                    if (~isempty(dims) && iscell(dims))
+                        dimpos = find(strcmp(dims, dimname));
+                        if (~isempty(dimpos) && ~isempty(idxkey(oplen).subs))
+                            % navigate to the data
+                            data = obj.data;
+                            if (oplen > 2)
+                                data = subsref(obj, idxkey(1:oplen - 2));
+                                if (isa(data, 'jdict'))
+                                    data = data.data;
+                                end
+                            end
+                            % build full indices
+                            nddata = length(dims);
+                            indices = cell(1, nddata);
+                            for j = 1:nddata
+                                indices{j} = ':';
+                            end
+                            indices{dimpos(1)} = idxkey(oplen).subs{1};
+                            % perform assignment
+                            subsargs = struct('type', '()', 'subs', {indices});
+                            if (oplen > 2)
+                                % need to assign back through the chain
+                                subidx = idxkey(1:oplen - 2);
+                                tempdata = subsref(obj.data, subidx);
+                                tempdata = subsasgn(tempdata, subsargs, otherobj);
+                                obj.data = subsasgn(obj.data, subidx, tempdata);
+                            else
+                                obj.data = subsasgn(obj.data, subsargs, otherobj);
+                            end
+                            return
+                        end
                     end
                 end
             end
