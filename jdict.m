@@ -133,15 +133,16 @@ classdef jdict < handle
             end
         end
 
-        function val = subsref(obj, idxkey)
+        function varargout = subsref(obj, idxkey)
             % overloading the getter function jd.('key').('subkey')
 
             oplen = length(idxkey);
+            varargout = cell(1, nargout);
 
-            % handle curly brace indexing for attributes
+            % handle {} indexing for attributes
             if (oplen == 1 && strcmp(idxkey(1).type, '{}'))
                 if (iscell(idxkey(1).subs) && length(idxkey(1).subs) == 1 && ischar(idxkey(1).subs{1}))
-                    val = obj.getattr(obj.currentpath, idxkey(1).subs{1});
+                    varargout{1} = obj.getattr(obj.currentpath, idxkey(1).subs{1});
                     return
                 end
             end
@@ -150,6 +151,7 @@ classdef jdict < handle
             trackpath = obj.currentpath;
 
             if (oplen == 1 && strcmp(idxkey(1).type, '()') && isempty(idxkey(1).subs))
+                varargout{1} = val;
                 return
             end
             i = 1;
@@ -162,7 +164,7 @@ classdef jdict < handle
 
                 % handle {} attribute access in navigation chain
                 if (strcmp(idx.type, '{}') && iscell(idx.subs) && length(idx.subs) == 1 && ischar(idx.subs{1}))
-                    val = obj.getattr(trackpath, idx.subs{1});
+                    val = [obj.getattr(trackpath, idx.subs{1})];
                     i = i + 1;
                     continue
                 end
@@ -270,6 +272,7 @@ classdef jdict < handle
             end
 
             if ((strcmp(idxkey(end).type, '{}') && iscell(idxkey(end).subs) && length(idxkey(end).subs) == 1 && ischar(idxkey(end).subs{1})))
+                varargout{1} = val;
                 return
             elseif (~(isempty(idxkey(end).subs) && (strcmp(idxkey(end).type, '()') || strcmp(idxkey(end).type, '{}'))))
                 newobj = jdict(val);
@@ -277,6 +280,7 @@ classdef jdict < handle
                 newobj.currentpath = trackpath;
                 val = newobj;
             end
+            varargout{1} = val;
         end
 
         function obj = subsasgn(obj, idxkey, otherobj)
