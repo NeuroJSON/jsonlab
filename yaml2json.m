@@ -1,7 +1,7 @@
 function jsonstr = yaml2json(yamlstr)
 % Convert YAML to JSON
 
-lines = strsplit(yamlstr, {'\n', '\r\n'}, 'CollapseDelimiters', false);
+lines = regexp(yamlstr, '\s*\r*\n', 'split');
 
 % Find document separators
 docstarts = [];
@@ -20,7 +20,7 @@ else
         doclines = lines(docstarts(i) + 1:docstarts(i + 1) - 1);
         documents{end + 1} = convertLines(doclines);
     end
-    jsonstr = strjoin(documents, newline);
+    jsonstr = sprintf('%s\n', documents{:});
 end
 
 %% -------------------------------------------------------------------------
@@ -115,7 +115,7 @@ if firstitem.islist
                             break
                         end
                     end
-                    parts{end + 1} = ['{' strjoin(objparts, ',') '}'];
+                    parts{end + 1} = ['{' sprintf('%s,', objparts{1:end - 1}) objparts{end} '}'];
                     idx = childidx;
                 else
                     % Single key-value in object
@@ -134,8 +134,7 @@ if firstitem.islist
             break
         end
     end
-
-    jsonstr = ['[' strjoin(parts, ',') ']'];
+    jsonstr = ['[' sprintf('%s,', parts{1:end - 1}) parts{end} ']'];
     nextidx = idx;
 else
     % Build object
@@ -163,8 +162,7 @@ else
             break
         end
     end
-
-    jsonstr = ['{' strjoin(parts, ',') '}'];
+    jsonstr = ['{' sprintf('%s,', parts{1:end - 1}) parts{end} '}'];
     nextidx = idx;
 end
 
@@ -185,12 +183,12 @@ elseif length(str) >= 2 && ((str(1) == '"' && str(end) == '"') || (str(1) == '''
 elseif str(1) == '['
     % Inline YAML array - need to parse and quote items
     content = str(2:end - 1); % Remove [ ]
-    items = strsplit(content, ',');
+    items = regexp(content, '\s*,\s*', 'split');
     formatted = {};
     for i = 1:length(items)
         formatted{i} = formatVal(strtrim(items{i}));
     end
-    val = ['[' strjoin(formatted, ',') ']'];
+    val = ['[', sprintf('%s,', formatted{1:end - 1}), formatted{end}, ']'];
 elseif str(1) == '{'
     % Inline YAML object - pass through for now
     val = str;

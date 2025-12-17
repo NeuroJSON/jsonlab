@@ -93,7 +93,7 @@ if (opt.multidocument && iscell(obj))
     for i = 1:numel(obj)
         yamldocs{i} = obj2yaml('', obj{i}, rootlevel, opt);
     end
-    yaml = ['---' sprintf('\n') strjoin(yamldocs, [sprintf('\n') '---' sprintf('\n')])];
+    yaml = ['---' sprintf('\n') joinlines(yamldocs, [sprintf('\n') '---' sprintf('\n')])];
 else
     yaml = obj2yaml(rootname, obj, rootlevel, opt);
 end
@@ -171,7 +171,7 @@ if (~isempty(name))
             lines{i} = sprintf('%s- %s', repmat(' ', 1, (level + 1) * opt.indent), strtrim(lines{i}));
         end
     end
-    txt = sprintf('%s\n%s', txt, strjoin(lines, sprintf('\n')));
+    txt = sprintf('%s\n%s', txt, joinlines(lines, sprintf('\n')));
 else
     lines = cell(1, len);
     for i = 1:len
@@ -180,7 +180,7 @@ else
             lines{i} = sprintf('%s- %s', repmat(' ', 1, level * opt.indent), strtrim(lines{i}));
         end
     end
-    txt = strjoin(lines, sprintf('\n'));
+    txt = joinlines(lines, sprintf('\n'));
 end
 
 %% -------------------------------------------------------------------------
@@ -243,13 +243,13 @@ else
         for e = 1:length(names)
             lines{e} = obj2yaml(names{e}, item.(names{e}), level + 1, varargin{:});
         end
-        txt = sprintf('%s\n%s', txt, strjoin(lines, sprintf('\n')));
+        txt = sprintf('%s\n%s', txt, joinlines(lines, sprintf('\n')));
     else
         lines = cell(1, length(names));
         for e = 1:length(names)
             lines{e} = obj2yaml(names{e}, item.(names{e}), level, varargin{:});
         end
-        txt = strjoin(lines, sprintf('\n'));
+        txt = joinlines(lines, sprintf('\n'));
     end
 end
 
@@ -295,7 +295,7 @@ if (~isempty(name))
             lines{i} = obj2yaml(num2str(names{i}), val{i}, level + 1, varargin{:});
         end
     end
-    txt = sprintf('%s\n%s', txt, strjoin(lines, sprintf('\n')));
+    txt = sprintf('%s\n%s', txt, joinlines(lines, sprintf('\n')));
 else
     lines = cell(1, length(names));
     for i = 1:length(names)
@@ -305,7 +305,7 @@ else
             lines{i} = obj2yaml(num2str(names{i}), val{i}, level, varargin{:});
         end
     end
-    txt = strjoin(lines, sprintf('\n'));
+    txt = joinlines(lines, sprintf('\n'));
 end
 
 %% -------------------------------------------------------------------------
@@ -561,3 +561,9 @@ elseif (islogical(val) && opt.parselogical)
 else
     valstr = 'null';
 end
+
+%% -------------------------------------------------------------------------
+
+function str = joinlines(lines, sep)
+
+str = [sprintf(['%s' sep], lines{1:end - 1}) lines{end}];
