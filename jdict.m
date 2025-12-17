@@ -181,6 +181,8 @@ classdef jdict < handle
                             tempobj.attr = obj.attr;
                             tempobj.currentpath = trackpath;
                             val = v(tempobj, idxkey(i + 1));
+                        elseif(isa(val, 'jdict'))
+                            val = val.data;
                         end
                     else
                         fhandle = str2func(idx.subs);
