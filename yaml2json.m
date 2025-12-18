@@ -1,5 +1,25 @@
 function jsonstr = yaml2json(yamlstr)
 % Convert YAML to JSON
+%
+% jsonstr = yaml2json(yamlstr)
+%
+% Convert a YAML string to JSON format for parsing with loadjson
+%
+% input:
+%      yamlstr: a YAML string
+%
+% output:
+%      jsonstr: a JSON string
+%
+% examples:
+%      jsonstr = yaml2json('name: value')
+%      jsonstr = yaml2json(sprintf('- a\n- b\n- c'))
+%
+% license:
+%     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
+%
+% -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
+%
 
 lines = regexp(yamlstr, '\s*\r*\n', 'split');
 
@@ -35,6 +55,12 @@ for i = 1:length(lines)
 
     if isempty(trimmed) || trimmed(1) == '#'
         continue
+    end
+
+    % Check if entire line is a JSON literal (array or object)
+    if (trimmed(1) == '[' || trimmed(1) == '{')
+        jsonstr = trimmed;
+        return
     end
 
     indent = length(line) - length(trimmed);
