@@ -231,10 +231,10 @@ classdef jdict < handle
                             continue
                         end
                     end
-
+                    escapedonekey = regexprep(onekey, '(?<=[^\\]|^)\.', '\\.');
                     if (ischar(onekey) && ~isempty(onekey) && onekey(1) == char(36))
                         val = obj.call_('jsonpath', val, onekey);
-                        trackpath = onekey;
+                        trackpath = escapedonekey;
                     elseif (isstruct(val))
                         % check if struct array - if so, get field from all elements
                         if (numel(val) > 1 && isfield(val, onekey))
@@ -248,7 +248,7 @@ classdef jdict < handle
                                     % keep as cell if concatenation fails
                                 end
                             end
-                            trackpath = [trackpath '.' onekey];
+                            trackpath = [trackpath '.' escapedonekey];
                             % check if next operation is () for indexing the result
                             if (i < oplen && strcmp(idxkey(i + 1).type, '()') && ~isempty(idxkey(i + 1).subs))
                                 subsargs = struct('type', '()', 'subs', idxkey(i + 1).subs);
@@ -259,11 +259,11 @@ classdef jdict < handle
                         else
                             % single struct or scalar field access
                             val = val.(onekey);
-                            trackpath = [trackpath '.' onekey];
+                            trackpath = [trackpath '.' escapedonekey];
                         end
                     elseif (isa(val, 'containers.Map') || isa(val, 'dictionary'))
                         val = val(onekey);
-                        trackpath = [trackpath '.' onekey];
+                        trackpath = [trackpath '.' escapedonekey];
                     else
                         error('key name "%s" not found', onekey);
                     end
@@ -322,11 +322,12 @@ classdef jdict < handle
                                 else
                                     onekey = idx.subs;
                                 end
+                                escapedonekey = regexprep(onekey, '(?<=[^\\]|^)\.', '\\.');
                                 if (ischar(onekey) && ~isempty(onekey))
                                     if (onekey(1) ~= char(36))
-                                        temppath = [temppath '.' onekey];
+                                        temppath = [temppath '.' escapedonekey];
                                     else
-                                        temppath = onekey;
+                                        temppath = escapedonekey;
                                     end
                                 end
                             end
@@ -353,11 +354,12 @@ classdef jdict < handle
                             else
                                 onekey = idx.subs;
                             end
+                            escapedonekey = regexprep(onekey, '(?<=[^\\]|^)\.', '\\.');
                             if (ischar(onekey) && ~isempty(onekey))
                                 if (onekey(1) ~= char(36))
-                                    temppath = [temppath '.' onekey];
+                                    temppath = [temppath '.' escapedonekey];
                                 else
-                                    temppath = onekey;
+                                    temppath = escapedonekey;
                                 end
                             end
                         end
