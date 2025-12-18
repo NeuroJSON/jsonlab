@@ -171,7 +171,7 @@ classdef jdict < handle
 
                 if (strcmp(idx.type, '.') && isnumeric(idx.subs))
                     val = val(idx.subs);
-                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'keys', 'len', 'setattr', 'getattr'}) && i < oplen)
+                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'keys', 'len', 'size', 'setattr', 'getattr'}) && i < oplen)
                     if (strcmp(idx.subs, 'v'))
                         if (iscell(val) && strcmp(idxkey(i + 1).type, '()'))
                             idxkey(i + 1).type = '{}';
@@ -278,8 +278,14 @@ classdef jdict < handle
                 return
             elseif (~(isempty(idxkey(end).subs) && (strcmp(idxkey(end).type, '()') || strcmp(idxkey(end).type, '{}'))))
                 newobj = jdict(val);
-                newobj.attr = obj.attr;
-                newobj.currentpath = trackpath;
+                attrkeys = keys(obj.attr);
+                newobj.attr = containers.Map();
+                for i = 1:length(attrkeys)
+                    if (strncmp(attrkeys{i}, trackpath, length(trackpath)))
+                        newobj.attr(strrep(attrkeys{i}, trackpath, char(36))) = obj.attr(attrkeys{i});
+                    end
+                end
+                newobj.currentpath = char(36);
                 val = newobj;
             end
             varargout{1} = val;
@@ -418,7 +424,12 @@ classdef jdict < handle
                             idx.type = '()';
                             opcell{i}(idx.subs) = obj.newkey_();
                         elseif (isstruct(opcell{i}) && ~isfield(opcell{i}, idx.subs))
-                            opcell{i}.(idx.subs) = obj.newkey_();
+                            try
+                                opcell{i}.(idx.subs) = obj.newkey_();
+                            catch
+                                opcell{i} = containers.Map(fieldnames(opcell{i}), struct2cell(opcell{i}));
+                                opcell{i}(idx.subs) = obj.newkey_();
+                            end
                         end
                     end
                 end
@@ -433,6 +444,9 @@ classdef jdict < handle
                 opcell{i}(idx.subs) = otherobj;
                 opcell{end - 1} = opcell{i};
             else
+                if (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                    idx = struct('type', '()', 'subs', idx.subs);
+                end
                 opcell{end - 1} = subsasgn(opcell{i}, idx, otherobj);
             end
 
@@ -485,7 +499,16 @@ classdef jdict < handle
 
         function val = len(obj)
             % return the number of subfields at the current level
-            val = length(obj.data);
+            if (isstruct(obj.data))
+                val = length(fieldnames(obj.data));
+            else
+                val = length(obj.data);
+            end
+        end
+
+        function val = size(obj)
+            % return the dimension vector of the data
+            val = size(obj.data);
         end
 
         function val = v(obj, varargin)
@@ -544,6 +567,10 @@ classdef jdict < handle
         end
 
         function val = getattr(obj, jsonpath, attrname)
+            if (nargin == 1)
+                val = keys(obj.attr);
+                return
+            end
             if (nargin == 2)
                 attrname = jsonpath;
                 jsonpath = obj.currentpath;
