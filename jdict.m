@@ -8,12 +8,13 @@
 %    author: Qianqian Fang (q.fang <at> neu.edu)
 %
 %    input:
-%        data: a hierachical data structure made of struct, containers.Map, dictionary, or cell arrays
-%              if data is a string starting with http:// or https://,
-%              loadjson(data) will be used to dynamically load the data
+%        data: an array, or hierachical data structure made of struct,
+%               containers.Map, dictionary, or cell arrays; if data is a
+%               string starting with http:// or https://, loadjson(data)
+%               will be used to dynamically load the data
 %
 %    indexing:
-%        jd.('key1').('subkey1')... can retrieve values that are recursively index keys that are
+%        jd.('key1').('subkey1')... can retrieve values that are recursively index keys
 %        jd.key1.subkey1... can also retrieve the same data regardless
 %              if the underlying data is struct, containers.Map or dictionary
 %        jd.('key1').('subkey1').v(1) if the subkey key1 is an array, this can retrieve the first element
@@ -26,11 +27,12 @@
 %    member functions:
 %        jd() or jd.v() returns the underlying hierachical data
 %        jd.('cell1').v(i) or jd.('array1').v(2:3) returns specified elements if the element is a cell or array
-%        jd.('key1'),('subkey1').v() returns the underlying hierachical data at the specified subkeys
+%        jd.('key1').('subkey1').v() returns the underlying hierachical data at the specified subkeys
 %        jd.tojson() convers the underlying data to a JSON string
 %        jd.tojson('compression', 'zlib', ...) convers the data to a JSON string with savejson() options
 %        jd.keys() return the sub-key names of the object - if it a struct, dictionary or containers.Map - or 1:length(data) if it is an array
 %        jd.len() return the length of the sub-keys
+%        jd.size() return the dimension vector
 %        jd{'attrname'} get/set attributes using curly brace indexing
 %        jd.setattr(jsonpath, attrname, value) set attribute at any path
 %        jd.getattr(jsonpath, attrname) get attribute from any path
@@ -39,20 +41,22 @@
 %        brackets .(...), but in octave, one must use .v(...)
 %
 %    examples:
-%        obj = struct('key1', struct('subkey1',1, 'subkey2',[1,2,3]), 'subkey2', 'str');
-%        obj.key1.subkey3 = {8,'test',containers.Map('subsubkey1',0)};
 %
-%        jd = jdict(obj);
+%        jd = jdict;
+%        jd.key1 = struct('subkey1',1, 'subkey2',[1,2,3]);
+%        jd.key2 = 'str';
+%        jd.key1.subkey3 = {8,'test',containers.Map('special key',10)};
 %
 %        % getting values
 %        jd()                                   % return obj
-%        jd.('key1').('subkey1')                % return jdict(1)
-%        jd.keys.subkey1                        % return jdict(1)
-%        jd.('key1').('subkey3')                % return jdict(obj.key1.subkey3)
-%        jd.('key1').('subkey3')()              % return obj.key1.subkey3
-%        jd.('key1').('subkey3').v(1)           % return jdict({8})
-%        jd.('key1').('subkey3').('subsubkey1') % return jdict(obj.key1.subkey3(2))
-%        jd.('key1').('subkey3').v(2).v()       % return {'test'}
+%        jd.key1.subkey1                        % return jdict(1)
+%        jd.('key1').('subkey1')                % same as above
+%        jd.key1.('subkey1')                    % same as above
+%        jd.key1.subkey3                        % return jdict(obj.key1.subkey3)
+%        jd.key1.subkey3()                      % return obj.key1.subkey3
+%        jd.key1.subkey3.v(1)                   % return jdict(8)
+%        jd.key1.subkey3.v(3).('special key')   % return jdict(10)
+%        jd.key1.subkey3.v(2).v()               % return 'test'
 %        jd.('$.key1.subkey1')                  % return jdict(1)
 %        jd.('$.key1.subkey2')()                % return 'str'
 %        jd.('$.key1.subkey2').v().v(1)         % return jdict(1)
@@ -62,22 +66,23 @@
 %        jd.('$..subkey2').v(2)                 % return jdict([1,2,3])
 %
 %        % setting values
-%        jd.('subkey2') = 'newstr'              % setting obj.subkey2 to 'newstr'
-%        jd.('key1').('subkey2').v(1) = 2;                    % modify indexed element
-%        jd.('key1').('subkey2').v([2, 3]) = [10, 11];        % modify multiple values
-%        jd.('key1').('subkey3').v(3).('subsubkey1') = 1;     % modify keyed value
-%        jd.('key1').('subkey3').v(3).('subsubkey2') = 'new'; % add new key
+%        jd.subkey2 = 'newstr'                  % setting obj.subkey2 to 'newstr'
+%        jd.key1.subkey2.v(1) = 2;              % modify indexed element
+%        jd.key1.subkey2.v([2, 3]) = [10, 11];  % modify multiple values
+%        jd.key1.subkey3.v(3).('special key') = 1;    % modify keyed value
+%        jd.key1.newkey = 'new';                % add new key
 %
 %        % attributes
-%        jd{'dims'} = {'x','y','z'};            % set attribute
-%        %% {'attr'} is MATLAB-only
-%        jd.('a'){'dims'} = {'time','space'};   % set attribute on nested element(MATLAB only, Octave use .setattr())
-%        %% use .setattr() in MATLAB/Octave
-%        jd.('a').setattr('dims',{'time','space'});  % set attributes
-%        jd.('a'){'dims'}                       % print attribute on nested element
+%        jd.vol = zeros(2,3,4);                 % set 3d arrays
+%        jd.vol{'dims'} = {'x','y','z'};        % set dimension labels (MATLAB-only)
+%        jd.vol.setattr('dims', {'x','y','z'}); % set attribute in Octave
+%        jd.vol{'dims'}                         % print dimension names
+%        jd.vol{'units'} = 'mm';                % set any custom attributes
+%        jd.vol.getattr('units')                % retrieve attributes
+%        jd.vol.getattr()                       % list all attribute paths
 %
 %        % loading complex data from REST-API
-%        jd = jdict('https://neurojson.io:7777/cotilab/NeuroCaptain_2024');
+%        jd = jdict('https://neurojson.io:7777/cotilab/NeuroCaptain_2025');
 %
 %        jd.('Atlas_Age_19_0')
 %        jd.Atlas_Age_19_0.('Landmark_10_10').('$.._DataLink_')
