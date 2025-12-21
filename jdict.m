@@ -169,7 +169,7 @@ classdef jdict < handle
 
                 % handle {} attribute access in navigation chain
                 if (strcmp(idx.type, '{}') && iscell(idx.subs) && length(idx.subs) == 1 && ischar(idx.subs{1}))
-                    val = [obj.getattr(trackpath, idx.subs{1})];
+                    val = obj.getattr(trackpath, idx.subs{1});
                     i = i + 1;
                     continue
                 end
@@ -374,14 +374,6 @@ classdef jdict < handle
                     if (~isempty(dims) && iscell(dims))
                         dimpos = find(strcmp(dims, dimname));
                         if (~isempty(dimpos) && ~isempty(idxkey(oplen).subs))
-                            % navigate to the data
-                            data = obj.data;
-                            if (oplen > 2)
-                                data = subsref(obj, idxkey(1:oplen - 2));
-                                if (isa(data, 'jdict'))
-                                    data = data.data;
-                                end
-                            end
                             % build full indices
                             nddata = length(dims);
                             indices = cell(1, nddata);
