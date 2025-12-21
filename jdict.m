@@ -575,7 +575,11 @@ classdef jdict < handle
 
         function val = getattr(obj, jsonpath, attrname)
             if (nargin == 1)
-                val = keys(obj.attr);
+                if (isKey(obj.attr, obj.currentpath))
+                    val = keys(obj.attr(obj.currentpath));
+                else
+                    val = [];
+                end
                 return
             end
             if (nargin == 2)
