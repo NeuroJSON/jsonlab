@@ -13,6 +13,28 @@
 %               string starting with http:// or https://, loadjson(data)
 %               will be used to dynamically load the data
 %
+%    constructors:
+%        jd = jdict creates an empty jdict object (like an empty struct or containers.Map)
+%        jd = jdict(data) wraps any matlab data (array, cell, struct, dictionary, ...) into a new jdict object
+%        jd = jdict(data, 'param1', value1, 'param2', value2, ...) use param/value pairs to initilize jd.flags
+%        jd = jdict(data, 'attr', attrmap) initilize data attributes using a containers.Map with JSONPath as keys
+%
+%    member functions:
+%        jd.('cell1').v(i) or jd.('array1').v(2:3) returns specified elements if the element is a cell or array
+%        jd.('key1').('subkey1').v() returns the underlying hierachical data at the specified subkeys
+%        jd.tojson() convers the underlying data to a JSON string
+%        jd.tojson('compression', 'zlib', ...) convers the data to a JSON string with savejson() options
+%        jd.keys() returns the sub-key names of the object - if it a struct, dictionary or containers.Map - or 1:length(data) if it is an array
+%        jd.len() returns the length of the sub-keys
+%        jd.size() returns the dimension vector
+%        jd.isKey(key) tests if a string-based key exists in the data, or number-based key is within the data array length
+%        jd{'attrname'} gets/sets attributes using curly bracket indexing; jd{'attrname'}=val only works in MATLAB; use setattr() in octave
+%        jd.setattr(jsonpath, attrname, value) sets attribute at any path
+%        jd.getattr(jsonpath, attrname) gets attribute from any path
+%
+%        if using matlab, the .v(...) method can be replaced by bare
+%        brackets .(...), but in octave, one must use .v(...)
+%
 %    indexing:
 %        jd.('key1').('subkey1')... can retrieve values that are recursively index keys
 %        jd.key1.subkey1... can also retrieve the same data regardless
@@ -23,22 +45,6 @@
 %        jd.('$.key1.subkey1[0]') using a JSONPath can also read array-based subkey element
 %        jd.('$.key1.subkey1[0].subsubkey1') JSONPath can also apply further indexing over objects of diverse types
 %        jd.('$.key1..subkey') JSONPath can use '..' deep-search operator to find and retrieve subkey appearing at any level below
-%
-%    member functions:
-%        jd() or jd.v() returns the underlying hierachical data
-%        jd.('cell1').v(i) or jd.('array1').v(2:3) returns specified elements if the element is a cell or array
-%        jd.('key1').('subkey1').v() returns the underlying hierachical data at the specified subkeys
-%        jd.tojson() convers the underlying data to a JSON string
-%        jd.tojson('compression', 'zlib', ...) convers the data to a JSON string with savejson() options
-%        jd.keys() return the sub-key names of the object - if it a struct, dictionary or containers.Map - or 1:length(data) if it is an array
-%        jd.len() return the length of the sub-keys
-%        jd.size() return the dimension vector
-%        jd{'attrname'} get/set attributes using curly brace indexing
-%        jd.setattr(jsonpath, attrname, value) set attribute at any path
-%        jd.getattr(jsonpath, attrname) get attribute from any path
-%
-%        if using matlab, the .v(...) method can be replaced by bare
-%        brackets .(...), but in octave, one must use .v(...)
 %
 %    examples:
 %
@@ -101,15 +107,16 @@
 
 classdef jdict < handle
     properties
-        data
-        attr
+        data    % underlying data: any matlab data (array, struct, cell, containers.Map, dictionary etc), retrieve via .v()
+        attr    % data attributes, stored via a containers.Map with JSONPath-based keys, retrieve via .getattr() or {}
     end
     properties (Access = private)
-        flags
-        currentpath
+        flags          % additional options, will be passed to jsonlab utility functions such as savejson/loadjson
+        currentpath    % internal variable tracking the current path when lookup embedded data at current depth
     end
     methods
 
+        % constructor: initialize a jdict object
         function obj = jdict(val, varargin)
             obj.flags = struct('builtinjson', 0);
             obj.attr = containers.Map();
@@ -118,6 +125,9 @@ classdef jdict < handle
                 if (~isempty(varargin))
                     allflags = [varargin(1:2:end); varargin(2:2:end)];
                     obj.flags = struct(allflags{:});
+                    if (isfield(obj.flags, 'attr'))
+                        obj.attr = obj.flags.attr;
+                    end
                 end
                 if (ischar(val) && ~isempty(regexpi(val, '^https*://', 'once')))
                     try
@@ -138,6 +148,7 @@ classdef jdict < handle
             end
         end
 
+        % overloaded indexing operator: handling assignments at arbitrary depths
         function varargout = subsref(obj, idxkey)
             % overloading the getter function jd.('key').('subkey')
 
@@ -176,7 +187,7 @@ classdef jdict < handle
 
                 if (strcmp(idx.type, '.') && isnumeric(idx.subs))
                     val = val(idx.subs);
-                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'keys', 'len', 'size', 'setattr', 'getattr'}) && i < oplen)
+                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'isKey', 'keys', 'len', 'size', 'setattr', 'getattr'}) && i < oplen)
                     if (strcmp(idx.subs, 'v'))
                         if (iscell(val) && strcmp(idxkey(i + 1).type, '()'))
                             idxkey(i + 1).type = '{}';
@@ -195,6 +206,10 @@ classdef jdict < handle
                         tempobj.attr = obj.attr;
                         tempobj.currentpath = trackpath;
                         val = fhandle(tempobj, idxkey(i + 1).subs{:});
+                        if (i == oplen - 1 && strcmp(idx.subs, 'isKey'))
+                            varargout{1} = val;
+                            return
+                        end
                     end
                     i = i + 1;
                     if (i < oplen)
@@ -296,11 +311,12 @@ classdef jdict < handle
             varargout{1} = val;
         end
 
+        % overloaded assignment operator: handling assignments at arbitrary depths
         function obj = subsasgn(obj, idxkey, otherobj)
             % overloading the setter function, obj.('key').('subkey')=otherobj
             % expanded from rahnema1's sample at https://stackoverflow.com/a/79030223/4271392
 
-            % handle curly brace indexing for setting attributes
+            % handle curly bracket indexing for setting attributes
             oplen = length(idxkey);
             if (oplen == 1 && strcmp(idxkey(1).type, '{}'))
                 if (iscell(idxkey(1).subs) && ~isempty(idxkey(1).subs))
@@ -475,11 +491,13 @@ classdef jdict < handle
             obj.data = opcell{1};
         end
 
+        % export data to json
         function val = tojson(obj, varargin)
             % printing underlying data to compact-formed JSON string
             val = obj.call_('savejson', '', obj.data, 'compact', 1, varargin{:});
         end
 
+        % load data from over a dozen data formats, including json and binary json
         function obj = fromjson(obj, fname, varargin)
             % loading diverse data files using loadjd interface in jsonlab
             obj.data = obj.call_('loadjd', fname, varargin{:});
@@ -496,6 +514,19 @@ classdef jdict < handle
             end
         end
 
+        % test if a key or index exists
+        function val = isKey(obj, key)
+            % list subfields at the current level
+            if (isstruct(obj.data))
+                val = isfield(obj.data, key);
+            elseif (isa(obj.data, 'containers.Map') || isa(obj.data, 'dictionary'))
+                val = isKey(obj.data, key);
+            else
+                val = (key < length(obj.data));
+            end
+        end
+
+        % return the number of subfields or array length
         function val = len(obj)
             % return the number of subfields at the current level
             if (isstruct(obj.data))
@@ -505,11 +536,13 @@ classdef jdict < handle
             end
         end
 
+        % return the dimension vector
         function val = size(obj)
             % return the dimension vector of the data
             val = size(obj.data);
         end
 
+        % return the enclosed data
         function val = v(obj, varargin)
             if (~isempty(varargin))
                 val = subsref(obj.data, varargin{:});
@@ -518,8 +551,8 @@ classdef jdict < handle
             end
         end
 
+        % internal: insert new key if does not exist
         function val = newkey_(obj)
-            % insert new key if does not exist
             if (exist('containers.Map'))
                 val = containers.Map;
             else
@@ -527,6 +560,7 @@ classdef jdict < handle
             end
         end
 
+        % internal: call member functions or external functions
         function varargout = call_(obj, func, varargin)
             % interface to external functions and dependencies
             if (~obj.flags.builtinjson)
@@ -550,6 +584,7 @@ classdef jdict < handle
             end
         end
 
+        % set specified data attributes
         function attr = setattr(obj, jsonpath, attrname, attrvalue)
             if (nargin == 3)
                 attrvalue = attrname;
@@ -565,6 +600,7 @@ classdef jdict < handle
             attr = obj.attr;
         end
 
+        % return specified data attributes, if not specified, list all attributes
         function val = getattr(obj, jsonpath, attrname)
             if (nargin == 1)
                 if (isKey(obj.attr, obj.currentpath))
