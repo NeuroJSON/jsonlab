@@ -347,7 +347,7 @@ if (isfield(data, N_('_ArrayType_')) && (isfield(data, N_('_ArrayData_')) || (is
     end
     if (isfield(data, N_('_ArrayLabel_')))
         newdata = jdict(newdata);
-        newdata{'dims'} = data(j).(N_('_ArrayLabel_'));
+        newdata.setattr('dims', data(j).(N_('_ArrayLabel_')));
     end
 end
 
