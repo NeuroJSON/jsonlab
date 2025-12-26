@@ -608,11 +608,7 @@ classdef jdict < handle
         % return specified data attributes, if not specified, list all attributes
         function val = getattr(obj, jsonpath, attrname)
             if (nargin == 1)
-                if (isKey(obj.attr, obj.currentpath))
-                    val = keys(obj.attr(obj.currentpath));
-                else
-                    val = [];
-                end
+                val = keys(obj.attr);
                 return
             end
             if (nargin == 2)
