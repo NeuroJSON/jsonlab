@@ -47,7 +47,7 @@ function jdata = jdataencode(data, varargin)
 %                  struct; otherwise, keep it as map
 %         Compression: ['zlib'|'gzip','lzma','lz4','lz4hc'] - use zlib method
 %                  to compress data array
-%         CompressArraySize: [100|int]: only to compress an array if the
+%         CompressArraySize: [300|int]: only to compress an array if the
 %                  total element count is larger than this number.
 %         FormatVersion [2|float]: set the JSONLab output version; since
 %                  v2.0, JSONLab uses JData specification Draft 1
@@ -86,7 +86,7 @@ end
 opt.compression = jsonopt('Compression', '', opt);
 opt.nestarray = jsonopt('NestArray', 0, opt);
 opt.formatversion = jsonopt('FormatVersion', 2, opt);
-opt.compressarraysize = jsonopt('CompressArraySize', 100, opt);
+opt.compressarraysize = jsonopt('CompressArraySize', 300, opt);
 opt.base64 = jsonopt('Base64', 0, opt);
 opt.mapasstruct = jsonopt('MapAsStruct', 0, opt);
 opt.usearrayzipsize = jsonopt('UseArrayZipSize', 1, opt);
@@ -102,7 +102,9 @@ function newitem = obj2jd(item, varargin)
 if (iscell(item))
     newitem = cell2jd(item, varargin{:});
 elseif (isa(item, 'jdict'))
-    newitem = obj2jd(item(), varargin{:});
+    attrpath = item.getattr();
+    varargin{1}.annotatearray = ~isempty(attrpath);
+    newitem = obj2jd(item.v(), varargin{:});
 elseif (isstruct(item))
     newitem = struct2jd(item, varargin{:});
 elseif (isnumeric(item) || islogical(item) || isa(item, 'timeseries'))
@@ -123,6 +125,26 @@ elseif (isobject(item))
     newitem = matlabobject2jd(item, varargin{:});
 else
     newitem = item;
+end
+
+if (isa(item, 'jdict'))  % apply attribute
+    if (isempty(attrpath))
+        return
+    end
+
+    newitem = jdict(newitem);
+
+    for i = 1:length(attrpath)
+        attr = item.getattr(attrpath{i}).v();
+        attrname = keys(attr);
+        for j = 1:length(attrname)
+            if (strcmp(attrname{j}, 'dims'))
+                newitem.(attrpath{i}).(encodevarname('_ArrayLabel_')) = attr(attrname{j});
+            else
+                newitem.(attrpath{i}).(attrname{j}) = attr(attrname{j});
+            end
+        end
+    end
 end
 
 %% -------------------------------------------------------------------------

@@ -88,7 +88,7 @@ function output = savejson(rootname, obj, varargin)
 %                            array dimensions, and
 %                         "_ArrayZipData_": the "base64" encoded
 %                             compressed binary array data.
-%           CompressArraySize [100|int]: only to compress an array if the total
+%           CompressArraySize [300|int]: only to compress an array if the total
 %                         element count is larger than this number.
 %           CompressStringSize [inf|int]: only to compress a string if the total
 %                         element count is larger than this number.
@@ -155,13 +155,13 @@ end
 
 opt.isoctave = isoctavemesh;
 
-opt.compression = jsonopt('Compression', '', opt);
+opt.compression = jsonopt('Compression', 'zlib', opt);
 opt.nestarray = jsonopt('NestArray', 0, opt);
 opt.compact = jsonopt('Compact', 0, opt);
 opt.singletcell = jsonopt('SingletCell', 1, opt);
 opt.singletarray = jsonopt('SingletArray', 0, opt);
 opt.formatversion = jsonopt('FormatVersion', 3, opt);
-opt.compressarraysize = jsonopt('CompressArraySize', 100, opt);
+opt.compressarraysize = jsonopt('CompressArraySize', 300, opt);
 opt.compressstringsize = jsonopt('CompressStringSize', inf, opt);
 opt.intformat = jsonopt('IntFormat', '%.0f', opt);
 opt.floatformat = jsonopt('FloatFormat', '%.16g', opt);
@@ -304,7 +304,7 @@ function txt = obj2json(name, item, level, varargin)
 if (iscell(item) || (isa(item, 'string') && numel(item) > 1))
     txt = cell2json(name, item, level, varargin{:});
 elseif (isa(item, 'jdict'))
-    txt = obj2json(name, item, level, varargin{:});
+    txt = obj2json(name, item.v(), level, varargin{:});
 elseif (isstruct(item))
     txt = struct2json(name, item, level, varargin{:});
 elseif (isnumeric(item) || islogical(item) || isa(item, 'timeseries'))

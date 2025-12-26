@@ -1,14 +1,18 @@
 function obj = jsonpath(root, jpath, varargin)
 %
 %    obj=jsonpath(root, jpath)
+%    obj=jsonpath(root, jpath, newvalue)
 %
-%    Query and retrieve elements from matlab data structures using JSONPath
+%    Getting or setting data elements from matlab data structures using
+%    JSONPath
 %
 %    author: Qianqian Fang (q.fang <at> neu.edu)
 %
 %    input:
 %        root: a matlab data structure like an array, cell, struct, etc
 %        jpath: a string in the format of JSONPath, see loadjson help
+%        newvalue: if present, the data specified at the path jpath will be
+%               replaced by newvalue
 %
 %    output:
 %        obj: if the specified element exist, obj returns the result
@@ -34,11 +38,29 @@ if (~isempty(pat) && ~isempty(paths))
     if (strcmp(paths{1}, '$'))
         paths(1) = [];
     end
-    for i = 1:length(paths)
-        [obj, isfound] = getonelevel(obj, paths, i, varargin{:});
-        if (~isfound)
-            return
+    if (isempty(varargin))
+        for i = 1:length(paths)
+            [obj, isfound] = getonelevel(obj, paths, i, varargin{:});
+            if (~isfound)
+                return
+            end
         end
+    else
+        datastack = cell(1, length(paths) + 1);
+        datastack{1} = obj;
+        for i = 1:length(paths)
+            [datastack{i + 1}, isfound] = getonelevel(datastack{i}, paths, i, varargin{:});
+            if (~isfound)
+                error(['data with a jsonpath ' jpath ' does not exist']);
+            end
+        end
+        idx = struct('type', '.', 'subs', paths{end}{1}(2:end));
+        datastack{end - 1} = subsasgn(jdict(datastack{i}), idx, varargin{1});
+        for i = length(paths) - 1:-1:1
+            idx = struct('type', '.', 'subs', paths{i}{1}(2:end));
+            datastack{i} = subsasgn(jdict(datastack{i}), idx, datastack{i + 1}.v());
+        end
+        obj = datastack{1}.v();
     end
 end
 
@@ -118,7 +140,7 @@ elseif (~isempty(regexp(pathname, '^\[[-0-9\*:]+\]$', 'once')) || iscell(input))
     else
         obj = input(arrayrange.start:arrayrange.end);
     end
-elseif (isstruct(input) || isa(input, 'containers.Map') || isa(input, 'table'))
+elseif (isstruct(input) || isa(input, 'containers.Map') || isa(input, 'table') || isa(input, 'jdict'))
     pathname = regexprep(pathname, '^\[(.*)\]$', '$1');
     stpath = encodevarname(pathname);
     if (isstruct(input))

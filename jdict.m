@@ -206,7 +206,7 @@ classdef jdict < handle
                         tempobj.attr = obj.attr;
                         tempobj.currentpath = trackpath;
                         val = fhandle(tempobj, idxkey(i + 1).subs{:});
-                        if (i == oplen - 1 && strcmp(idx.subs, 'isKey'))
+                        if (i == oplen - 1 && (strcmp(idx.subs, 'isKey') || strcmp(idx.subs, 'getattr')))
                             varargout{1} = val;
                             return
                         end
@@ -431,10 +431,7 @@ classdef jdict < handle
                         end
                         continue
                     end
-                    if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
-                        error('setting values based on JSONPath indices is not yet supported');
-                    end
-                    if (ischar(idx.subs))
+                    if (ischar(idx.subs) && ~(~isempty(idx.subs) && idx.subs(1) == char(36)))
                         if (((isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary')) && ~isKey(opcell{i}, idx.subs)))
                             idx.type = '()';
                             opcell{i}(idx.subs) = obj.newkey_();
@@ -448,7 +445,9 @@ classdef jdict < handle
                         end
                     end
                 end
-                if (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
+                    opcell{i + 1} = obj.call_('jsonpath', opcell{i}, idx.subs);
+                elseif (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
                     opcell{i + 1} = opcell{i}(idx.subs);
                 else
                     opcell{i + 1} = subsref(opcell{i}, idx);
@@ -459,10 +458,14 @@ classdef jdict < handle
                 opcell{i}(idx.subs) = otherobj;
                 opcell{end - 1} = opcell{i};
             else
-                if (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
-                    idx = struct('type', '()', 'subs', idx.subs);
+                if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
+                    opcell{end - 1} = obj.call_('jsonpath', opcell{i}, idx.subs, otherobj);
+                else
+                    if (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                        idx = struct('type', '()', 'subs', idx.subs);
+                    end
+                    opcell{end - 1} = subsasgn(opcell{i}, idx, otherobj);
                 end
-                opcell{end - 1} = subsasgn(opcell{i}, idx, otherobj);
             end
 
             for i = oplen - 1:-1:1
@@ -483,6 +486,8 @@ classdef jdict < handle
                         opcell{i} = opcell{i + 1};
                     end
                     i = i - 1;
+                elseif (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
+                    opcell{i} = obj.call_('jsonpath', opcell{i}, idx.subs, opcell{i + 1});
                 else
                     opcell{i} = subsasgn(opcell{i}, idx, opcell{i + 1});
                 end
@@ -494,7 +499,7 @@ classdef jdict < handle
         % export data to json
         function val = tojson(obj, varargin)
             % printing underlying data to compact-formed JSON string
-            val = obj.call_('savejson', '', obj.data, 'compact', 1, varargin{:});
+            val = obj.call_('savejson', '', obj, 'compact', 1, varargin{:});
         end
 
         % load data from over a dozen data formats, including json and binary json
@@ -611,15 +616,21 @@ classdef jdict < handle
                 return
             end
             if (nargin == 2)
-                attrname = jsonpath;
-                jsonpath = obj.currentpath;
+                if (~isempty(jsonpath) && jsonpath(1) ~= char(36))
+                    attrname = jsonpath;
+                    jsonpath = obj.currentpath;
+                else
+                    attrname = '';
+                end
             end
             if (~isKey(obj.attr, jsonpath))
                 val = [];
                 return
             end
             attrmap = obj.attr(jsonpath);
-            if (isKey(attrmap, attrname))
+            if (isempty(attrname))
+                val = attrmap;
+            elseif (isKey(attrmap, attrname))
                 val = attrmap(attrname);
             else
                 val = [];

@@ -345,6 +345,10 @@ if (isfield(data, N_('_ArrayType_')) && (isfield(data, N_('_ArrayData_')) || (is
     if (len == 1)
         newdata = newdata{1};
     end
+    if (isfield(data, N_('_ArrayLabel_')))
+        newdata = jdict(newdata);
+        newdata{'dims'} = data(j).(N_('_ArrayLabel_'));
+    end
 end
 
 %% handle table data

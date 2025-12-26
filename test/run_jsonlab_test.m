@@ -3,7 +3,7 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test
 %   or
 % run_jsonlab_test(tests)
-% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','jdict','bugs'})
+% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -21,6 +21,9 @@ function run_jsonlab_test(tests)
 %         'jpath': test jsonpath
 %         'jdict': test jdict
 %         'bugs': test specific bug fixes
+%         'yaml': test yaml reader/writer
+%         'yamlopt': test yaml handling options
+%         'xarray': test jdict data attribute operations
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -461,6 +464,19 @@ if (ismember('jdict', tests))
     jd.('key1').('subkey3').v(3).('subsubkey2') = 'new';
     test_jsonlab('jd.(''key1'').(''subkey3'')', @savejson, jd.('key1').('subkey3'), '[8,"mod",{"subsubkey1":1,"subsubkey2":"new"}]', 'compact', 1);
     test_jsonlab('jd.(''key1'').(''subkey2'')', @savejson, jd.('key1').('subkey2'), '[2,10,11]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').(''subkey2'').len()', @savejson, jd.('key1').('subkey2').len(), '[3]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').(''subkey2'').size()', @savejson, jd.('key1').('subkey2').size(), '[1,3]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').keys()', @savejson, jd.('key1').keys(), '[["subkey1"],["subkey2"],["subkey3"]]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').isKey(''subkey3'')', @savejson, jd.('key1').isKey('subkey3'), '[true]', 'compact', 1);
+    test_jsonlab('jd.(''key1'').isKey(''subkey4'')', @savejson, jd.('key1').isKey('subkey4'), '[false]', 'compact', 1);
+
+    jd.('$.key1.subkey1') = [1, 2, 3];
+    test_jsonlab('jd.(''$.key1.subkey1'')', @savejson, jd.('key1').('subkey1'), '[1,2,3]', 'compact', 1);
+    jd.key1.('$.subkey1') = 'newsubkey1';
+    test_jsonlab('jd.key1.(''$.subkey1'')', @savejson, jd.('key1').('subkey1'), '"newsubkey1"', 'compact', 1);
+    jd.('$.key1').subkey1 = struct('newkey', 1);
+    test_jsonlab('jd.(''$.key1'').subkey1', @savejson, jd.('key1').('subkey1'), '{"newkey":1}', 'compact', 1);
+    test_jsonlab('jd.(''$.key1.subkey1'').newkey', @savejson, jd.('key1').('subkey1').newkey, '[1]', 'compact', 1);
 
     clear testdata jd;
 end
@@ -702,13 +718,13 @@ if (ismember('xarray', tests))
         jd7.('data'){'dims'} = {'x', 'y'};
         jd7.('data'){'sampling_rate'} = 1000;
     end
-    r11a = jd7.('data'){'dims'};
-    r11b = jd7.('data'){'sampling_rate'};
-    if (iscell(r11a) && r11b == 1000)
-        fprintf(1, 'Testing attr persistence: ok\n');
-    else
-        warning('Test attr persistence: failed');
-    end
+    test_jsonlab('dims attribute in level 1', @savejson, jd7.('data'){'dims'}, '["x","y"]', 'compact', 1);
+    test_jsonlab('other attribute in level 1', @savejson, jd7.('data'){'sampling_rate'}, '[1000]', 'compact', 1);
+    test_jsonlab('getattr list top attr key', @savejson, jd7.getattr(), '["$.data"]', 'compact', 1);
+    test_jsonlab('getattr return all attributes', @savejson, jd7.getattr('$.data').v(), '{"dims":["x","y"],"sampling_rate":1000}', 'compact', 1);
+    test_jsonlab('getattr get one attr', @savejson, jd7.getattr('$.data', 'dims').v(), '["x","y"]', 'compact', 1);
+    test_jsonlab('savejson with _ArrayLabel_', @savejson, jd7, '{"data":{"_ArrayType_":"double","_ArraySize_":[3,4],"_ArrayData_":[1,1,1,1,1,1,1,1,1,1,1,1],"_ArrayLabel_":["x","y"],"sampling_rate":1000}}', 'compact', 1);
+    test_jsonlab('loadjson with _ArrayLabel_', @savejson, loadjson(jd7.tojson()).data.getattr('$', 'dims'), '["x","y"]', 'compact', 1);
 
     % Test 12: Multiple attributes different types
     jd8 = jdict(rand(10, 20));
