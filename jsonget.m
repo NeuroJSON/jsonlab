@@ -1,6 +1,8 @@
 function json = jsonget(fname, mmap, varargin)
 %
-% json=jsonget(fname,mmap,'$.jsonpath1','$.jsonpath2',...)
+% json=jsonget(data,'$.jsonpath1','$.jsonpath2',...)
+%   or
+% json=jsonget(filename,mmap,'$.jsonpath1','$.jsonpath2',...)
 %
 % Fast reading of JSON data records using memory-map (mmap) returned by
 % loadjson and JSONPath-like keys
@@ -9,7 +11,8 @@ function json = jsonget(fname, mmap, varargin)
 % initially created on 2022/02/02
 %
 % input:
-%      fname: a JSON/BJData/UBJSON string or stream, or a file name
+%      data: a struct, cell, or any other matlab variable
+%      filename: a JSON/BJData/UBJSON string or stream, or a file name
 %      mmap: memory-map returned by loadjson/loadbj of the same data
 %            important: mmap must be produced from the same file/string,
 %            otherwise calling this function may cause data corruption
@@ -46,24 +49,29 @@ if (ischar(fname) || isa(fname, 'string'))
     end
 end
 
-mmap = [mmap{:}];
-keylist = mmap(1:2:end);
+if (iscell(mmap))
+    mmap = [mmap{:}];
+    keylist = mmap(1:2:end);
 
-loc = 1:length(keylist);
-if (length(varargin) >= 1)
-    [tf, loc] = ismember(varargin, keylist);
-    if (any(tf))
-        keylist = keylist(loc);
-    else
-        keylist = {};
+    loc = 1:length(keylist);
+    if (length(varargin) >= 1)
+        [tf, loc] = ismember(varargin, keylist);
+        if (any(tf))
+            keylist = keylist(loc);
+        else
+            keylist = {};
+        end
     end
+else
+    keylist = [{mmap}, varargin{:}];
 end
 
-json = {};
+json = cell(1, length(keylist));
 
-if (isstruct(fname) || iscell(fname) || isa(fname, 'table') || isa(fname, 'containers.Map'))
+if (isstruct(fname) || iscell(fname) || isa(fname, 'table') || isa(fname, 'containers.Map') || ...
+    isa(fname, 'containers.Map') || isa(input, 'jdict'))
     for i = 1:length(keylist)
-        json{end + 1} = jsonpath(fname, keylist{i});
+        json{i} = jsonpath(fname, keylist{i});
     end
     if (length(json) == 1)
         json = json{1};
@@ -75,14 +83,14 @@ for i = 1:length(keylist)
     bmap = mmap{loc(i) * 2};
     rec = {'uint8', [1, bmap(2)],  'x'};
     if (exist('inputstr', 'var'))
-        json{end + 1} = {keylist{i}, inputstr(bmap(1):bmap(1) + bmap(2) - 1)};
+        json{i} = {keylist{i}, inputstr(bmap(1):bmap(1) + bmap(2) - 1)};
     else
         if (exist('fid', 'var') && fid >= 0)
             fseek(fid, bmap(1), -1);
-            json{end + 1} = {keylist{i}, fread(fid, bmap(1), 'uint8=>char')};
+            json{i} = {keylist{i}, fread(fid, bmap(1), 'uint8=>char')};
         else
             fmap = memmapfile(fname, 'writable', false, 'offset', bmap(1), 'format', rec);
-            json{end + 1} = {keylist{i}, char(fmap.Data(1).x)};
+            json{i} = {keylist{i}, char(fmap.Data(1).x)};
         end
     end
 end

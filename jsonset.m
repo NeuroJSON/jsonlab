@@ -1,5 +1,7 @@
 function json = jsonset(fname, mmap, varargin)
 %
+% newdata=jsonset(data,'$.jsonpath1',newval1,'$.jsonpath2','newval2',...)
+%   or
 % json=jsonset(fname,mmap,'$.jsonpath1',newval1,'$.jsonpath2','newval2',...)
 %
 % Fast writing of JSON data records to stream or disk using memory-map
@@ -9,6 +11,7 @@ function json = jsonset(fname, mmap, varargin)
 % initially created on 2022/02/02
 %
 % input:
+%      data: a struct, cell, or any other matlab variable
 %      fname: a JSON/BJData/UBJSON string or stream, or a file name
 %      mmap: memory-map returned by loadjson/loadbj of the same data
 %            important: mmap must be produced from the same file/string,
@@ -43,12 +46,21 @@ function json = jsonset(fname, mmap, varargin)
 % -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
 %
 
-if (regexp(fname, '^\s*(?:\[.*\])|(?:\{.*\})\s*$', 'once'))
-    inputstr = fname;
-else
-    if (~exist('memmapfile', 'file'))
-        fid = fopen(fname, 'r+b');
+if (ischar(fname) || isa(fname, 'string'))
+    if (regexp(fname, '^\s*(?:\[.*\])|(?:\{.*\})\s*$', 'once'))
+        inputstr = fname;
+    else
+        if (~exist('memmapfile', 'file'))
+            fid = fopen(fname, 'r+b');
+        end
     end
+else
+    keylist = [{mmap}, varargin{:}];
+    for i = 1:2:length(keylist)
+        fname = jsonpath(fname, keylist{i}, keylist{i + 1});
+    end
+    json = fname;
+    return
 end
 
 mmap = [mmap{:}];
@@ -61,7 +73,8 @@ for i = 1:2:length(varargin)
     end
 end
 
-json = {};
+json = cell(1, floor(length(varargin) / 2));
+
 for i = 1:2:length(varargin)
     if (regexp(varargin{i}, '^\$'))
         [tf, loc] = ismember(varargin{i}, keylist);
@@ -85,7 +98,7 @@ for i = 1:2:length(varargin)
                         fseek(fid, bmap(1) - 1, 'bof');
                         fwrite(fid, val);
                     end
-                    json{end + 1} = {varargin{i}, val};
+                    json{(i + 1) / 2} = {varargin{i}, val};
                 end
             end
         end
