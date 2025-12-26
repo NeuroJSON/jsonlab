@@ -213,7 +213,7 @@ if (~isempty(dozip))
                 matlab.net.base64decode('test');
             end
         catch
-            error('java-based compression is not supported');
+            warning('java-based compression is not supported');
         end
     end
     opt.Compression = dozip;
