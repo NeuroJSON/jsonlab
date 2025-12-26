@@ -201,11 +201,15 @@ classdef jdict < handle
                             val = val.data;
                         end
                     else
-                        fhandle = str2func(idx.subs);
                         tempobj = jdict(val);
                         tempobj.attr = obj.attr;
                         tempobj.currentpath = trackpath;
-                        val = fhandle(tempobj, idxkey(i + 1).subs{:});
+                        if (exist('OCTAVE_VERSION', 'builtin') ~= 0 && regexp(OCTAVE_VERSION, '^5\.'))
+                            val = membercall_(tempobj, idx.subs, idxkey(i + 1).subs{:});
+                        else
+                            fhandle = str2func(idx.subs);
+                            val = fhandle(tempobj, idxkey(i + 1).subs{:});
+                        end
                         if (i == oplen - 1 && (strcmp(idx.subs, 'isKey') || strcmp(idx.subs, 'getattr')))
                             varargout{1} = val;
                             return
@@ -562,6 +566,29 @@ classdef jdict < handle
                 val = containers.Map;
             else
                 val = struct;
+            end
+        end
+
+        function val = membercall_(obj, method, varargin)
+            switch method
+                case 'tojson'
+                    val = tojson(obj);
+                case 'fromjson'
+                    val = fromjson(obj, varargin{:});
+                case 'v'
+                    val = v(obj);
+                case 'isKey'
+                    val = isKey(obj, varargin{:});
+                case 'keys'
+                    val = keys(obj);
+                case 'len'
+                    val = len(obj);
+                case 'size'
+                    val = size(obj);
+                case 'setattr'
+                    val = setattr(obj, varargin{:});
+                case 'getattr'
+                    val = getattr(obj, varargin{:});
             end
         end
 
