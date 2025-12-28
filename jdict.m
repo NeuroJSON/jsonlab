@@ -208,7 +208,11 @@ classdef jdict < handle
 
         % overloaded numel to prevent subsref from outputting many outputs
         function n = numel(obj, varargin)
-            n = max(1, (nargin > 1) + numel(obj.data) * (nargin == 1));
+            if (exist('OCTAVE_VERSION', 'builtin') ~= 0 && regexp(OCTAVE_VERSION, '^5\.'))
+                n = 1;
+            else
+                n = max(1, (nargin > 1) + numel(obj.data) * (nargin == 1));
+            end
         end
 
         % overloaded indexing operator: handling assignments at arbitrary depths
