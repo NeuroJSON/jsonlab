@@ -17,7 +17,7 @@ print_help()
 print_group()
 {
    for fun in $@
-   do 
+   do
       print_help $fun.m
    done
    echo ''
@@ -30,7 +30,9 @@ func_ubjson="loadubjson saveubjson"
 func_msgpack="loadmsgpack savemsgpack"
 func_space="jsave jload"
 func_interface="loadjd savejd"
-func_mmap="jsonget jsonset getfromjsonpath filterjsonmmap"
+func_jdict="jdict"
+func_schema="jsonschema"
+func_mmap="jsonget jsonset jsonpath filterjsonmmap"
 func_zip="zlibencode zlibdecode gzipencode gzipdecode lzmaencode lzmadecode
           lzipencode lzipdecode lz4encode lz4decode lz4hcencode lz4hcdecode
 	  base64encode base64decode encodevarname decodevarname"
@@ -57,6 +59,12 @@ print_group $func_space
 
 echo %%=== "#" Interface ===
 print_group $func_interface
+
+echo %%=== "#" JDict ===
+print_group $func_jdict
+
+echo %%=== "#" JSON Schema ===
+print_group $func_schema
 
 echo %%=== "#" Memory-map ===
 print_group $func_mmap

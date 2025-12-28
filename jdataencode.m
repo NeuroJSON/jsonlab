@@ -135,7 +135,7 @@ if (isa(item, 'jdict'))  % apply attribute
     newitem = jdict(newitem);
 
     for i = 1:length(attrpath)
-        attr = item.getattr(attrpath{i}).v();
+        attr = item.getattr(attrpath{i});
         attrname = keys(attr);
         for j = 1:length(attrname)
             if (strcmp(attrname{j}, 'dims'))

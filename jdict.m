@@ -31,6 +31,9 @@
 %        jd{'attrname'} gets/sets attributes using curly bracket indexing; jd{'attrname'}=val only works in MATLAB; use setattr() in octave
 %        jd.setattr(jsonpath, attrname, value) sets attribute at any path
 %        jd.getattr(jsonpath, attrname) gets attribute from any path
+%        jd.setschema(schema) sets a JSON Schema for validation (struct, JSON string, URL, or file path)
+%        jd.getschema() returns the current schema; jd.getschema('json') returns as JSON string
+%        jd.validate() validates data against schema; [valid, errors] = jd.validate() returns error details
 %
 %        if using matlab, the .v(...) method can be replaced by bare
 %        brackets .(...), but in octave, one must use .v(...)
@@ -45,6 +48,37 @@
 %        jd.('$.key1.subkey1[0]') using a JSONPath can also read array-based subkey element
 %        jd.('$.key1.subkey1[0].subsubkey1') JSONPath can also apply further indexing over objects of diverse types
 %        jd.('$.key1..subkey') JSONPath can use '..' deep-search operator to find and retrieve subkey appearing at any level below
+%
+%    attributes:
+%        jd.key1.getattr() lists all attributes of the current key
+%        jd.key1.getattr('attrname') returns the attribute's value
+%        jd.key1.setattr('attrname', val) sets the attribute for the current key
+%        jd.key1{'attrname'} does the same as .getattr('attrname')
+%        jd.key1{'attrname'}=val does the same as .setattr('attrname', val)
+%        jd.key1{'dims'}={'x','y','z'} sets xarray-like dimension labels
+%               if jd.key1 is an ND array (length must match)
+%        jd.key1.x(1).y(2), after setting dims attribute, one can retrieve
+%               ND array slices using the defined label names
+%
+%    JSON-schema and validation:
+%        jd.setschema('/path/to/schema.json') defines the schema of the data
+%        jd.validate() test the data with the schema and report disagreements
+%        jd.key1{':type'}='integer' defines schema-attributes: all
+%               schema-attribute names has the following format
+%                             ':'+json_schema_keyword
+%               supported json_schema_keyword include:
+%                'type', 'enum', 'const', 'default', 'minimum', 'maximum',
+%                'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+%                'minLength', 'maxLength', 'pattern', 'format', 'items',
+%                'minItems', 'maxItems', 'uniqueItems', 'contains',
+%                'prefixItems', 'properties', 'required',
+%                'additionalProperties', 'minProperties', 'maxProperties',
+%                'patternProperties', 'propertyNames', 'dependentRequired',
+%                'dependentSchemas', 'allOf', 'anyOf', 'oneOf', 'not',
+%                'if', 'then', 'else', 'title', 'description', 'examples',
+%                '$comment', '$ref', '$defs', 'definitions'
+%        schema = jd.attr2schema('title', 'Nested Example') exports the
+%               schema-attributes as a JSON schema object
 %
 %    examples:
 %
@@ -85,7 +119,25 @@
 %        jd.vol{'dims'}                         % print dimension names
 %        jd.vol{'units'} = 'mm';                % set any custom attributes
 %        jd.vol.getattr('units')                % retrieve attributes
-%        jd.vol.getattr()                       % list all attribute paths
+%        jd.vol.getattr()                       % list all attributes of vol
+%
+%        % schema and schema-attributes
+%        jd.subkey2.setattr(':type', 'string')
+%        jd.subkey2.setattr(':minLength', 2)
+%        jd.subkey2.setattr(':default', 'NA')
+%        schema = jd.attr2schema()
+%        jd.setschema(schema)
+%        err = jd.validate()
+%
+%        % JSON Schema validation
+%        jd = jdict(struct('name','John','age',30));
+%        schema = struct('type','object',...
+%            'properties',struct('name',struct('type','string'),...
+%                                'age',struct('type','integer','minimum',0)),...
+%            'required',{{'name','age'}});
+%        jd.setschema(schema);
+%        err = jd.validate();        % validate data against schema
+%        jd.getschema('json')                   % get schema as JSON string
 %
 %        % loading complex data from REST-API
 %        jd = jdict('https://neurojson.io:7777/cotilab/NeuroCaptain_2025');
@@ -109,6 +161,7 @@ classdef jdict < handle
     properties
         data    % underlying data: any matlab data (array, struct, cell, containers.Map, dictionary etc), retrieve via .v()
         attr    % data attributes, stored via a containers.Map with JSONPath-based keys, retrieve via .getattr() or {}
+        schema  % JSON Schema for validation (struct), set via .setschema(), retrieve via .getschema()
     end
     properties (Access = private)
         flags          % additional options, will be passed to jsonlab utility functions such as savejson/loadjson
@@ -120,6 +173,7 @@ classdef jdict < handle
         function obj = jdict(val, varargin)
             obj.flags = struct('builtinjson', 0);
             obj.attr = containers.Map();
+            obj.schema = [];
             obj.currentpath = char(36);
             if (nargin >= 1)
                 if (~isempty(varargin))
@@ -127,6 +181,9 @@ classdef jdict < handle
                     obj.flags = struct(allflags{:});
                     if (isfield(obj.flags, 'attr'))
                         obj.attr = obj.flags.attr;
+                    end
+                    if (isfield(obj.flags, 'schema'))
+                        obj.schema = obj.flags.schema;
                     end
                 end
                 if (ischar(val) && ~isempty(regexpi(val, '^https*://', 'once')))
@@ -140,6 +197,7 @@ classdef jdict < handle
                 if (isa(val, 'jdict'))
                     obj.data = val.data;
                     obj.attr = val.attr;
+                    obj.schema = val.schema;
                     obj.currentpath = val.currentpath;
                     obj.flags = val.flags;
                 else
@@ -148,12 +206,17 @@ classdef jdict < handle
             end
         end
 
+        % overloaded numel to prevent subsref from outputting many outputs
+        function n = numel(obj, varargin)
+            n = max(1, (nargin > 1) + numel(obj.data) * (nargin == 1));
+        end
+
         % overloaded indexing operator: handling assignments at arbitrary depths
         function varargout = subsref(obj, idxkey)
             % overloading the getter function jd.('key').('subkey')
 
             oplen = length(idxkey);
-            varargout = cell(1, nargout);
+            varargout = cell(1, max(1, nargout));
 
             % handle {} indexing for attributes
             if (oplen == 1 && strcmp(idxkey(1).type, '{}'))
@@ -187,7 +250,7 @@ classdef jdict < handle
 
                 if (strcmp(idx.type, '.') && isnumeric(idx.subs))
                     val = val(idx.subs);
-                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'isKey', 'keys', 'len', 'size', 'setattr', 'getattr'}) && i < oplen)
+                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'isKey', 'keys', 'len', 'size', 'setattr', 'getattr', 'setschema', 'getschema', 'validate', 'attr2schema'}) && i < oplen)
                     if (strcmp(idx.subs, 'v'))
                         if (iscell(val) && strcmp(idxkey(i + 1).type, '()'))
                             idxkey(i + 1).type = '{}';
@@ -195,6 +258,7 @@ classdef jdict < handle
                         if (~isempty(idxkey(i + 1).subs))
                             tempobj = jdict(val);
                             tempobj.attr = obj.attr;
+                            tempobj.schema = obj.schema;
                             tempobj.currentpath = trackpath;
                             val = v(tempobj, idxkey(i + 1));
                         elseif (isa(val, 'jdict'))
@@ -203,6 +267,7 @@ classdef jdict < handle
                     else
                         tempobj = jdict(val);
                         tempobj.attr = obj.attr;
+                        tempobj.schema = obj.schema;
                         tempobj.currentpath = trackpath;
                         if (exist('OCTAVE_VERSION', 'builtin') ~= 0 && regexp(OCTAVE_VERSION, '^5\.'))
                             val = membercall_(tempobj, idx.subs, idxkey(i + 1).subs{:});
@@ -210,7 +275,10 @@ classdef jdict < handle
                             fhandle = str2func(idx.subs);
                             val = fhandle(tempobj, idxkey(i + 1).subs{:});
                         end
-                        if (i == oplen - 1 && (strcmp(idx.subs, 'isKey') || strcmp(idx.subs, 'getattr')))
+                        if (i == oplen - 1 && ismember(idx.subs, {'isKey', 'tojson', 'getattr', 'getschema', 'setschema', 'validate', 'attr2schema'}))
+                            if (strcmp(idx.subs, 'setschema'))
+                                obj.schema = tempobj.schema;
+                            end
                             varargout{1} = val;
                             return
                         end
@@ -219,6 +287,7 @@ classdef jdict < handle
                     if (i < oplen)
                         tempobj = jdict(val);
                         tempobj.attr = obj.attr;
+                        tempobj.schema = obj.schema;
                         tempobj.currentpath = trackpath;
                         val = tempobj;
                     end
@@ -249,6 +318,7 @@ classdef jdict < handle
                             val = subsref(val, subsargs);
                             newobj = jdict(val);
                             newobj.attr = obj.attr;
+                            newobj.schema = obj.schema;
                             newobj.currentpath = trackpath;
                             val = newobj;
                             i = i + 2;
@@ -309,6 +379,7 @@ classdef jdict < handle
                         newobj.attr(strrep(attrkeys{i}, trackpath, char(36))) = obj.attr(attrkeys{i});
                     end
                 end
+                newobj.schema = obj.schema;
                 newobj.currentpath = char(36);
                 val = newobj;
             end
@@ -443,7 +514,12 @@ classdef jdict < handle
                             try
                                 opcell{i}.(idx.subs) = obj.newkey_();
                             catch
-                                opcell{i} = containers.Map(fieldnames(opcell{i}), struct2cell(opcell{i}));
+                                fnames = fieldnames(opcell{i});
+                                if (~isempty(fnames))
+                                    opcell{i} = containers.Map(fnames, struct2cell(opcell{i}), 'UniformValues', 0);
+                                else
+                                    opcell{i} = containers.Map;
+                                end
                                 opcell{i}(idx.subs) = obj.newkey_();
                             end
                         end
@@ -589,6 +665,14 @@ classdef jdict < handle
                     val = setattr(obj, varargin{:});
                 case 'getattr'
                     val = getattr(obj, varargin{:});
+                case 'setschema'
+                    val = setschema(obj, varargin{:});
+                case 'getschema'
+                    val = getschema(obj, varargin{:});
+                case 'validate'
+                    val = validate(obj, varargin{:});
+                case 'attr2schema'
+                    val = attr2schema(obj, varargin{:});
             end
         end
 
@@ -634,8 +718,13 @@ classdef jdict < handle
 
         % return specified data attributes, if not specified, list all attributes
         function val = getattr(obj, jsonpath, attrname)
+            val = [];
             if (nargin == 1)
-                val = keys(obj.attr);
+                if (~isKey(obj.attr, obj.currentpath) && strcmp(obj.currentpath, char(36)))
+                    val = keys(obj.attr);    % list root-level attr keys
+                elseif (isKey(obj.attr, obj.currentpath))
+                    val = keys(obj.attr(obj.currentpath));
+                end
                 return
             end
             if (nargin == 2)
@@ -647,7 +736,6 @@ classdef jdict < handle
                 end
             end
             if (~isKey(obj.attr, jsonpath))
-                val = [];
                 return
             end
             attrmap = obj.attr(jsonpath);
@@ -655,8 +743,172 @@ classdef jdict < handle
                 val = attrmap;
             elseif (isKey(attrmap, attrname))
                 val = attrmap(attrname);
+            end
+        end
+
+        % set JSON Schema for data validation
+        function obj = setschema(obj, schemadata)
+
+            if (nargin < 2 || isempty(schemadata))
+                obj.schema = [];
+                return
+            end
+
+            if (isa(schemadata, 'containers.Map'))
+                obj.schema = schemadata;
+            elseif (ischar(schemadata) || isstring(schemadata) || isstruct(schemadata))
+                if (isstruct(schemadata))
+                    schemadata = savejson('', schemadata);
+                end
+                % load as containers.Map to preserve special keys like $ref
+                obj.schema = obj.call_('loadjson', char(schemadata), 'usemap', 1);
             else
-                val = [];
+                error('Schema must be a containers.Map, JSON string, URL, or file path');
+            end
+        end
+
+        % get the current JSON Schema
+        function schemaOut = getschema(obj, format)
+            if (isempty(obj.schema))
+                schemaOut = [];
+                return
+            end
+
+            if (nargin >= 2 && (strcmpi(format, 'json') || strcmpi(format, 'string')))
+                schemaOut = obj.call_('savejson', '', obj.schema, 'compact', 1);
+            else
+                schemaOut = obj.schema;
+            end
+        end
+
+        % validate data against JSON Schema
+        function errors = validate(obj, schemadata)
+            % determine which schema to use
+            if (nargin >= 2 && ~isempty(schemadata))
+                useschema = schemadata;
+            else
+                useschema = obj.schema;
+            end
+
+            if (isempty(useschema))
+                error('No schema available. Use setschema() first or provide schema as argument.');
+            end
+
+            % use standalone jsonschema function
+            [valid, errors] = jsonschema(obj.data, useschema);
+        end
+
+        % convert attributes to JSON Schema
+        function schema = attr2schema(obj, varargin)
+            opt = varargin2struct(varargin{:});
+            schematitle = jsonopt('title', '', opt);
+            schemadesc = jsonopt('description', '', opt);
+
+            schemaKeywords = {'type', 'enum', 'const', 'default', ...
+                              'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', ...
+                              'minLength', 'maxLength', 'pattern', 'format', ...
+                              'items', 'minItems', 'maxItems', 'uniqueItems', 'contains', 'prefixItems', ...
+                              'properties', 'required', 'additionalProperties', 'minProperties', 'maxProperties', ...
+                              'patternProperties', 'propertyNames', 'dependentRequired', 'dependentSchemas', ...
+                              'allOf', 'anyOf', 'oneOf', 'not', 'if', 'then', 'else', ...
+                              'title', 'description', 'examples', '$comment', '$ref', '$defs', 'definitions'};
+
+            schema = struct;
+
+            % Add title/description at root
+            if strcmp(obj.currentpath, char(36))
+                if ~isempty(schematitle)
+                    schema.('title') = schematitle;
+                end
+                if ~isempty(schemadesc)
+                    schema.('description') = schemadesc;
+                end
+            end
+
+            % Get all attribute paths
+            allpaths = keys(obj.attr);
+            basepath = obj.currentpath;
+            baselen = length(basepath);
+
+            % Extract schema attributes at current path
+            pathAttrs = obj.getattr(basepath);
+            if ~isempty(pathAttrs) && isa(pathAttrs, 'containers.Map')
+                attrkeys = keys(pathAttrs);
+                for i = 1:length(attrkeys)
+                    aname = attrkeys{i};
+                    if length(aname) > 1 && aname(1) == ':'
+                        keyword = aname(2:end);
+                        for j = 1:length(schemaKeywords)
+                            if strcmp(keyword, schemaKeywords{j})
+                                schema.(keyword) = pathAttrs(aname);
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+
+            % Find direct children paths
+            childpaths = {};
+            for i = 1:length(allpaths)
+                p = allpaths{i};
+                if length(p) > baselen && strncmp(p, basepath, baselen)
+                    if strcmp(basepath, char(36))
+                        if length(p) > 2 && p(2) == '.'
+                            remainder = p(3:end);
+                        else
+                            continue
+                        end
+                    else
+                        if length(p) > baselen + 1 && p(baselen + 1) == '.'
+                            remainder = p((baselen + 2):end);
+                        else
+                            continue
+                        end
+                    end
+                    % Check if direct child (no unescaped dots)
+                    unescaped = strrep(remainder, '\.', '');
+                    if isempty(strfind(unescaped, '.'))
+                        childpaths{end + 1} = p;
+                    end
+                end
+            end
+
+            % Build properties from child paths
+            if ~isempty(childpaths)
+                if ~isfield(schema, 'type')
+                    schema.('type') = 'object';
+                end
+
+                objproperties = struct;
+                for i = 1:length(childpaths)
+                    childpath = childpaths{i};
+
+                    % Extract property name from path
+                    if strcmp(basepath, char(36))
+                        propname = childpath(3:end);
+                    else
+                        propname = childpath((baselen + 2):end);
+                    end
+                    % Unescape dots in property name
+                    propname = strrep(propname, '\.', '.');
+
+                    % Recursively build child schema
+                    tempobj = jdict();
+                    tempobj.attr = obj.attr;
+                    tempobj.currentpath = childpath;
+                    objproperties.(propname) = attr2schema(tempobj);
+                end
+                schema.('properties') = objproperties;
+            end
+
+            % Only set default type to 'object' at root level if there are properties
+            if ~isfield(schema, 'type')
+                if ~isempty(childpaths)
+                    schema.('type') = 'object';
+                elseif strcmp(obj.currentpath, char(36))
+                    schema.('type') = 'object';
+                end
             end
         end
 

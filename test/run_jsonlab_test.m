@@ -3,7 +3,7 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test
 %   or
 % run_jsonlab_test(tests)
-% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray'})
+% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray','schema','jdictadv'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -24,6 +24,8 @@ function run_jsonlab_test(tests)
 %         'yaml': test yaml reader/writer
 %         'yamlopt': test yaml handling options
 %         'xarray': test jdict data attribute operations
+%         'schema': schema-attribute and jsonschema tests
+%         'jdictadv': jdict corner cases
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -32,7 +34,8 @@ function run_jsonlab_test(tests)
 %
 
 if (nargin == 0)
-    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', 'jdict', 'bugs', 'yaml', 'yamlopt', 'xarray'};
+    tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', ...
+             'jdict', 'bugs', 'yaml', 'yamlopt', 'xarray', 'schema', 'jdictadv'};
 end
 
 %%
@@ -584,12 +587,7 @@ if (ismember('xarray', tests))
     else
         jd1{'dims'} = {'time', 'channels', 'trials'};
     end
-    r1 = jd1{'dims'};
-    if (iscell(r1) && length(r1) == 3 && strcmp(r1{1}, 'time'))
-        fprintf(1, 'Testing root level dims: ok\n');
-    else
-        warning('Test root level dims: failed');
-    end
+    test_jsonlab('test root level dims', @savejson, jd1{'dims'}, '["time","channels","trials"]', 'compact', 1);
 
     % Test 2: Root level units attribute
     if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
@@ -597,12 +595,7 @@ if (ismember('xarray', tests))
     else
         jd1{'units'} = 'uV';
     end
-    r2 = jd1{'units'};
-    if (strcmp(r2, 'uV'))
-        fprintf(1, 'Testing root level units: ok\n');
-    else
-        warning('Test root level units: failed');
-    end
+    test_jsonlab('test root level attributes', @savejson, jd1{'units'}, '"uV"', 'compact', 1);
 
     % Test 3: Multiple attributes on same object
     if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
@@ -610,12 +603,7 @@ if (ismember('xarray', tests))
     else
         jd1{'description'} = 'test data';
     end
-    r3 = jd1{'description'};
-    if (strcmp(r3, 'test data'))
-        fprintf(1, 'Testing multiple attrs on same object: ok\n');
-    else
-        warning('Test multiple attrs: failed');
-    end
+    test_jsonlab('test multiple attrs on same object', @savejson, jd1{'description'}, '"test data"', 'compact', 1);
 
     % Test 4: Second level on key a
     jd2 = jdict(struct('a', rand(5, 10), 'b', rand(8, 12)));
@@ -624,12 +612,7 @@ if (ismember('xarray', tests))
     else
         jd2.('a'){'dims'} = {'x', 'y'};
     end
-    r4 = jd2.('a'){'dims'};
-    if (iscell(r4) && length(r4) == 2 && strcmp(r4{1}, 'x'))
-        fprintf(1, 'Testing 2nd level key a: ok\n');
-    else
-        warning('Test 2nd level key a: failed');
-    end
+    test_jsonlab('test attribute for second level on key a', @savejson, jd2.('a'){'dims'}, '["x","y"]', 'compact', 1);
 
     % Test 5: Second level on key b
     if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
@@ -637,21 +620,10 @@ if (ismember('xarray', tests))
     else
         jd2.('b'){'dims'} = {'rows', 'cols'};
     end
-    r5 = jd2.('b'){'dims'};
-    if (iscell(r5) && strcmp(r5{1}, 'rows'))
-        fprintf(1, 'Testing 2nd level key b: ok\n');
-    else
-        warning('Test 2nd level key b: failed');
-    end
+    test_jsonlab('test attribute for second level on key b', @savejson, jd2.('b'){'dims'}, '["rows","cols"]', 'compact', 1);
 
     % Test 6: Verify independence of attributes
-    ra = jd2.('a'){'dims'};
-    rb = jd2.('b'){'dims'};
-    if (strcmp(ra{1}, 'x') && strcmp(rb{1}, 'rows'))
-        fprintf(1, 'Testing attribute independence: ok\n');
-    else
-        warning('Test attribute independence: failed');
-    end
+    test_jsonlab('test attribute independence', @savejson, {jd2.('a'){'dims'}, jd2.('b'){'dims'}}, '[["x","y"],["rows","cols"]]', 'compact', 1);
 
     % Test 7: Third level nested
     jd3 = jdict(struct('level1', struct('level2', struct('data', rand(4, 5, 6)))));
@@ -660,12 +632,7 @@ if (ismember('xarray', tests))
     else
         jd3.('level1').('level2').('data'){'dims'} = {'i', 'j', 'k'};
     end
-    r7 = jd3.('level1').('level2').('data'){'dims'};
-    if (iscell(r7) && length(r7) == 3 && strcmp(r7{1}, 'i'))
-        fprintf(1, 'Testing 3rd level nested: ok\n');
-    else
-        warning('Test 3rd level nested: failed');
-    end
+    test_jsonlab('test third level nested attribute', @savejson, jd3.('level1').('level2').('data'){'dims'}, '["i","j","k"]', 'compact', 1);
 
     % Test 8: Attribute overwrite
     jd4 = jdict(rand(5, 5));
@@ -676,21 +643,11 @@ if (ismember('xarray', tests))
         jd4{'dims'} = {'old1', 'old2'};
         jd4{'dims'} = {'new1', 'new2'};
     end
-    r8 = jd4{'dims'};
-    if (iscell(r8) && strcmp(r8{1}, 'new1'))
-        fprintf(1, 'Testing attribute overwrite: ok\n');
-    else
-        warning('Test attribute overwrite: failed');
-    end
+    test_jsonlab('test attribute overwrite', @savejson, jd4{'dims'}, '["new1","new2"]', 'compact', 1);
 
     % Test 9: Non-existent attribute returns empty
     jd5 = jdict(rand(3, 3));
-    r9 = jd5{'nonexistent'};
-    if (isempty(r9))
-        fprintf(1, 'Testing non-existent attr returns empty: ok\n');
-    else
-        warning('Test non-existent attr: failed');
-    end
+    test_jsonlab('test non-existent attribute returns empty', @savejson, jd5{'nonexistent'}, '[]', 'compact', 1);
 
     % Test 10: Nested struct with sibling attributes
     jd6 = jdict(struct('exp1', struct('trial1', rand(10, 5), 'trial2', rand(10, 5))));
@@ -701,13 +658,7 @@ if (ismember('xarray', tests))
         jd6.('exp1').('trial1'){'dims'} = {'time', 'channels'};
         jd6.('exp1').('trial2'){'dims'} = {'samples', 'sensors'};
     end
-    r10a = jd6.('exp1').('trial1'){'dims'};
-    r10b = jd6.('exp1').('trial2'){'dims'};
-    if (strcmp(r10a{1}, 'time') && strcmp(r10b{1}, 'samples'))
-        fprintf(1, 'Testing sibling key independence: ok\n');
-    else
-        warning('Test sibling key independence: failed');
-    end
+    test_jsonlab('test nested struct with sibling attributes', @savejson, {jd6.('exp1').('trial1'){'dims'}, jd6.('exp1').('trial2'){'dims'}}, '[["time","channels"],["samples","sensors"]]', 'compact', 1);
 
     % Test 11: Attribute persistence across navigation
     jd7 = jdict(struct('data', ones(3, 4)));
@@ -720,9 +671,9 @@ if (ismember('xarray', tests))
     end
     test_jsonlab('dims attribute in level 1', @savejson, jd7.('data'){'dims'}, '["x","y"]', 'compact', 1);
     test_jsonlab('other attribute in level 1', @savejson, jd7.('data'){'sampling_rate'}, '[1000]', 'compact', 1);
-    test_jsonlab('getattr list top attr key', @savejson, jd7.data.getattr(), '["$.data"]', 'compact', 1);
-    test_jsonlab('getattr return all attributes', @savejson, jd7.data.getattr('$.data').v(), '{"dims":["x","y"],"sampling_rate":1000}', 'compact', 1);
-    test_jsonlab('getattr get one attr', @savejson, jd7.getattr('$.data', 'dims').v(), '["x","y"]', 'compact', 1);
+    test_jsonlab('getattr list top attr key', @savejson, jd7.getattr(), '["$.data"]', 'compact', 1);
+    test_jsonlab('getattr return all attributes', @savejson, jd7.getattr('$.data'), '{"dims":["x","y"],"sampling_rate":1000}', 'compact', 1);
+    test_jsonlab('getattr get one attr', @savejson, jd7.getattr('$.data', 'dims'), '["x","y"]', 'compact', 1);
     test_jsonlab('savejson with _ArrayLabel_', @savejson, jd7, '{"data":{"_ArrayType_":"double","_ArraySize_":[3,4],"_ArrayData_":[1,1,1,1,1,1,1,1,1,1,1,1],"_ArrayLabel_":["x","y"],"sampling_rate":1000}}', 'compact', 1);
     test_jsonlab('loadjson with _ArrayLabel_', @savejson, loadjson(jd7.tojson()).data.getattr('$', 'dims'), '["x","y"]', 'compact', 1);
 
@@ -739,13 +690,605 @@ if (ismember('xarray', tests))
         jd8{'count'} = 42;
         jd8{'flag'} = true;
     end
-    r12a = jd8{'dims'};
-    r12b = jd8{'units'};
-    r12c = jd8{'count'};
-    r12d = jd8{'flag'};
-    if (iscell(r12a) && strcmp(r12b, 'meters') && r12c == 42 && r12d == true)
-        fprintf(1, 'Testing multiple attr types: ok\n');
-    else
-        warning('Test multiple attr types: failed');
+    test_jsonlab('test multiple attributes different types', @savejson, {jd8{'dims'}, jd8{'units'}, jd8{'count'}, jd8{'flag'}}, '[["time","space"],"meters",42,true]', 'compact', 1);
+end
+
+%%
+if (ismember('schema', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test jdict JSON Schema validation\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % =======================================================================
+    % setschema/getschema tests
+    % =======================================================================
+    jd = jdict(struct('name', 'John', 'age', 30));
+    jd.setschema(struct('type', 'object'));
+    test_jsonlab('setschema from struct', @savejson, ~isempty(jd.getschema()), '[true]', 'compact', 1);
+    test_jsonlab('getschema as json', @savejson, ~isempty(strfind(jd.getschema('json'), 'object')), '[true]', 'compact', 1);
+
+    jd.setschema('{"type":"object","properties":{"x":{"type":"integer"}}}');
+    test_jsonlab('setschema from json string', @savejson, ~isempty(jd.getschema()), '[true]', 'compact', 1);
+
+    jd.setschema([]);
+    test_jsonlab('clear schema / getschema empty', @savejson, isempty(jd.getschema()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % Type validation tests
+    % =======================================================================
+    types = {'string', 'hello', 123; 'integer', 42, 3.14; 'number', 3.14, 'x'; ...
+             'boolean', true, 1; 'null', [], 0; 'array', {{1, 2}}, 'x'; 'object', struct('a', 1), 5};
+    for i = 1:size(types, 1)
+        jd = jdict(types{i, 2});
+        jd.setschema(struct('type', types{i, 1}));
+        test_jsonlab(['validate ' types{i, 1} ' pass'], @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+        jd = jdict(types{i, 3});
+        jd.setschema(struct('type', types{i, 1}));
+        test_jsonlab(['validate ' types{i, 1} ' fail'], @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
     end
+
+    % =======================================================================
+    % Numeric constraints
+    % =======================================================================
+    jd = jdict(10);
+    jd.setschema(struct('type', 'integer', 'minimum', 5));
+    test_jsonlab('validate minimum pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(3);
+    jd.setschema(struct('type', 'integer', 'minimum', 5));
+    test_jsonlab('validate minimum fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(5);
+    jd.setschema(struct('type', 'integer', 'maximum', 10));
+    test_jsonlab('validate maximum pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(15);
+    jd.setschema(struct('type', 'integer', 'maximum', 10));
+    test_jsonlab('validate maximum fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(6);
+    jd.setschema(struct('type', 'integer', 'exclusiveMinimum', 5));
+    test_jsonlab('validate exclusiveMinimum pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(5);
+    jd.setschema(struct('type', 'integer', 'exclusiveMinimum', 5));
+    test_jsonlab('validate exclusiveMinimum fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(4);
+    jd.setschema(struct('type', 'integer', 'exclusiveMaximum', 5));
+    test_jsonlab('validate exclusiveMaximum pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(5);
+    jd.setschema(struct('type', 'integer', 'exclusiveMaximum', 5));
+    test_jsonlab('validate exclusiveMaximum fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(15);
+    jd.setschema(struct('type', 'integer', 'multipleOf', 5));
+    test_jsonlab('validate multipleOf pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(17);
+    jd.setschema(struct('type', 'integer', 'multipleOf', 5));
+    test_jsonlab('validate multipleOf fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % String constraints
+    % =======================================================================
+    strtests = {'minLength', 'hello', 'hi', 3; 'maxLength', 'hi', 'hello world', 5; ...
+                'pattern', 'abc123', '123abc', '^[a-z]+[0-9]+$'; ...
+                'format', 'user@example.com', 'notanemail', 'email'};
+    for i = 1:size(strtests, 1)
+        s = struct('type', 'string', strtests{i, 1}, strtests{i, 4});
+        jd = jdict(strtests{i, 2});
+        jd.setschema(s);
+        test_jsonlab(['validate ' strtests{i, 1} ' pass'], @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+        jd = jdict(strtests{i, 3});
+        jd.setschema(s);
+        test_jsonlab(['validate ' strtests{i, 1} ' fail'], @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Enum and const
+    % =======================================================================
+    jd = jdict('red');
+    jd.setschema(struct('enum', {{'red', 'green', 'blue'}}));
+    test_jsonlab('validate enum pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict('yellow');
+    jd.setschema(struct('enum', {{'red', 'green', 'blue'}}));
+    test_jsonlab('validate enum fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict('fixed');
+    jd.setschema(struct('const', 'fixed'));
+    test_jsonlab('validate const pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict('other');
+    jd.setschema(struct('const', 'fixed'));
+    test_jsonlab('validate const fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % Array constraints
+    % =======================================================================
+    jd = jdict({1, 2, 3});
+    jd.setschema(struct('type', 'array', 'minItems', 2));
+    test_jsonlab('validate minItems pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict({1});
+    jd.setschema(struct('type', 'array', 'minItems', 2));
+    test_jsonlab('validate minItems fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict({1, 2});
+    jd.setschema(struct('type', 'array', 'maxItems', 3));
+    test_jsonlab('validate maxItems pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict({1, 2, 3, 4});
+    jd.setschema(struct('type', 'array', 'maxItems', 3));
+    test_jsonlab('validate maxItems fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict({1, 2, 3});
+    jd.setschema(struct('type', 'array', 'uniqueItems', true));
+    test_jsonlab('validate uniqueItems pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict({1, 2, 2});
+    jd.setschema(struct('type', 'array', 'uniqueItems', true));
+    test_jsonlab('validate uniqueItems fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict({1, 2, 3});
+    jd.setschema(struct('type', 'array', 'items', struct('type', 'integer')));
+    test_jsonlab('validate items pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict({1, 'two', 3});
+    jd.setschema(struct('type', 'array', 'items', struct('type', 'integer')));
+    test_jsonlab('validate items fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict({1, 'hello', 3});
+    jd.setschema(struct('type', 'array', 'contains', struct('type', 'string')));
+    test_jsonlab('validate contains pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict({1, 2, 3});
+    jd.setschema(struct('type', 'array', 'contains', struct('type', 'string')));
+    test_jsonlab('validate contains fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % Object constraints
+    % =======================================================================
+    s = struct('type', 'object', 'required', {{'name', 'age'}});
+    jd = jdict(struct('name', 'John', 'age', 30));
+    jd.setschema(s);
+    test_jsonlab('validate required pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(struct('name', 'John'));
+    jd.setschema(s);
+    test_jsonlab('validate required fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    s = struct('type', 'object', 'properties', struct('name', struct('type', 'string'), 'age', struct('type', 'integer')));
+    jd = jdict(struct('name', 'John', 'age', 30));
+    jd.setschema(s);
+    test_jsonlab('validate properties pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(struct('name', 123, 'age', 30));
+    jd.setschema(s);
+    test_jsonlab('validate properties fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    objtests = {'minProperties', struct('a', 1, 'b', 2), struct('a', 1), 2; ...
+                'maxProperties', struct('a', 1, 'b', 2), struct('a', 1, 'b', 2, 'c', 3, 'd', 4), 3};
+    for i = 1:size(objtests, 1)
+        s = struct('type', 'object', objtests{i, 1}, objtests{i, 4});
+        jd = jdict(objtests{i, 2});
+        jd.setschema(s);
+        test_jsonlab(['validate ' objtests{i, 1} ' pass'], @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+        jd = jdict(objtests{i, 3});
+        jd.setschema(s);
+        test_jsonlab(['validate ' objtests{i, 1} ' fail'], @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+    end
+
+    s = struct('type', 'object', 'properties', struct('name', struct('type', 'string')), 'additionalProperties', false);
+    jd = jdict(struct('name', 'John'));
+    jd.setschema(s);
+    test_jsonlab('validate additionalProperties pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(struct('name', 'John', 'extra', 'field'));
+    jd.setschema(s);
+    test_jsonlab('validate additionalProperties fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % Composition (allOf, anyOf, oneOf, not)
+    % =======================================================================
+    jd = jdict(10);
+    jd.setschema(struct('allOf', {{struct('type', 'integer'), struct('minimum', 5)}}));
+    test_jsonlab('validate allOf pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(3);
+    jd.setschema(struct('allOf', {{struct('type', 'integer'), struct('minimum', 5)}}));
+    test_jsonlab('validate allOf fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict('hello');
+    jd.setschema(struct('anyOf', {{struct('type', 'integer'), struct('type', 'string')}}));
+    test_jsonlab('validate anyOf pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(true);
+    jd.setschema(struct('anyOf', {{struct('type', 'integer'), struct('type', 'string')}}));
+    test_jsonlab('validate anyOf fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(5);
+    jd.setschema(struct('oneOf', {{struct('type', 'integer'), struct('type', 'string')}}));
+    test_jsonlab('validate oneOf pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(true);
+    jd.setschema(struct('oneOf', {{struct('type', 'integer'), struct('type', 'string')}}));
+    test_jsonlab('validate oneOf fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict('hello');
+    jd.setschema(struct('not', struct('type', 'integer')));
+    test_jsonlab('validate not pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(42);
+    jd.setschema(struct('not', struct('type', 'integer')));
+    test_jsonlab('validate not fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % Nested objects and schema argument
+    % =======================================================================
+    s = struct('type', 'object', 'properties', struct('person', ...
+                                                      struct('type', 'object', 'properties', struct('name', struct('type', 'string'), 'age', struct('type', 'integer')))));
+    jd = jdict(struct('person', struct('name', 'John', 'age', 30)));
+    jd.setschema(s);
+    test_jsonlab('validate nested object pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+    jd = jdict(struct('person', struct('name', 'John', 'age', 'thirty')));
+    jd.setschema(s);
+    test_jsonlab('validate nested object fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(struct('x', 10));
+    s = struct('type', 'object', 'properties', struct('x', struct('type', 'integer')));
+    test_jsonlab('validate with schema arg', @savejson, isempty(jd.validate(s)), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % attr2schema tests
+    % =======================================================================
+    jd = jdict(struct('age', 25));
+    jd.('age').setattr(':type', 'integer');
+    jd.('age').setattr(':minimum', 0);
+    jd.('age').setattr(':maximum', 150);
+    schema = jd.attr2schema('title', 'Test Schema');
+    test_jsonlab('attr2schema with constraints', @savejson, ...
+                 isfield(schema, 'properties') && isfield(schema.properties.age, 'minimum'), '[true]', 'compact', 1);
+    test_jsonlab('attr2schema with title', @savejson, strcmp(schema.title, 'Test Schema'), '[true]', 'compact', 1);
+
+    jd.setschema(schema);
+    test_jsonlab('attr2schema roundtrip validate', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % Edge cases
+    % =======================================================================
+    jd = jdict(struct());
+    jd.setschema(struct('type', 'object'));
+    test_jsonlab('empty object validates', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict({});
+    jd.setschema(struct('type', 'array'));
+    test_jsonlab('empty array validates', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict('test');
+    jd.setschema(loadjson('{"type":["string","integer"]}', 'usemap', 1));
+    test_jsonlab('multiple type validation', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict([1, 2, 3, 4, 5]);
+    jd.setschema(struct('type', 'array', 'minItems', 3));
+    test_jsonlab('numeric array validation', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(struct('count', 5));
+    s = '{"$defs":{"posInt":{"type":"integer","minimum":1}},"properties":{"count":{"$ref":"#/$defs/posInt"}}}';
+    jd.setschema(loadjson(s, 'usemap', 1));
+    test_jsonlab('$ref validation', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(struct('type', 'premium', 'discount', 20));
+    s = '{"if":{"properties":{"type":{"const":"premium"}}},"then":{"properties":{"discount":{"minimum":10}}}}';
+    jd.setschema(loadjson(s, 'usemap', 1));
+    test_jsonlab('if/then validation', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % attr2schema advanced tests
+    % =======================================================================
+    jd = jdict(struct('name', 'test', 'count', 5));
+    jd.('name').setattr(':type', 'string');
+    jd.('name').setattr(':minLength', 1);
+    jd.('count').setattr(':type', 'integer');
+    jd.('count').setattr(':minimum', 0);
+    jd.('count').setattr(':maximum', 100);
+    schema = jd.attr2schema();
+    test_jsonlab('attr2schema multi-field', @savejson, ...
+                 isfield(schema.properties, 'name') && isfield(schema.properties, 'count'), '[true]', 'compact', 1);
+    test_jsonlab('attr2schema string constraint', @savejson, schema.properties.name.minLength, '[1]', 'compact', 1);
+    test_jsonlab('attr2schema integer constraints', @savejson, ...
+                 [schema.properties.count.minimum, schema.properties.count.maximum], '[0,100]', 'compact', 1);
+
+    jd = jdict(struct('status', 'active'));
+    jd.('status').setattr(':type', 'string');
+    jd.('status').setattr(':enum', {'active', 'inactive', 'pending'});
+    schema = jd.attr2schema();
+    test_jsonlab('attr2schema with enum', @savejson, length(schema.properties.status.enum), '[3]', 'compact', 1);
+
+    % =======================================================================
+    % jsonschema() generation tests
+    % =======================================================================
+    test_jsonlab('generate null', @savejson, jsonschema(struct('type', 'null')), '[]', 'compact', 1);
+    test_jsonlab('generate boolean', @savejson, jsonschema(struct('type', 'boolean')), '[false]', 'compact', 1);
+    test_jsonlab('generate integer', @savejson, jsonschema(struct('type', 'integer')), '[0]', 'compact', 1);
+    test_jsonlab('generate number', @savejson, jsonschema(struct('type', 'number')), '[0]', 'compact', 1);
+    test_jsonlab('generate string', @savejson, jsonschema(struct('type', 'string')), '""', 'compact', 1);
+
+    test_jsonlab('generate with default', @savejson, ...
+                 jsonschema(struct('type', 'string', 'default', 'hello')), '"hello"', 'compact', 1);
+    test_jsonlab('generate with const', @savejson, jsonschema(struct('const', 'fixed')), '"fixed"', 'compact', 1);
+    test_jsonlab('generate with enum', @savejson, ...
+                 jsonschema(struct('enum', {{'red', 'green', 'blue'}})), '"red"', 'compact', 1);
+
+    test_jsonlab('generate int with minimum', @savejson, ...
+                 jsonschema(struct('type', 'integer', 'minimum', 10)), '[10]', 'compact', 1);
+    test_jsonlab('generate int with exclusiveMin', @savejson, ...
+                 jsonschema(struct('type', 'integer', 'exclusiveMinimum', 10)), '[11]', 'compact', 1);
+
+    s = struct('type', 'integer', 'minimum', 7, 'multipleOf', 5);
+    test_jsonlab('generate int with multipleOf', @savejson, jsonschema(s), '[10]', 'compact', 1);
+
+    test_jsonlab('generate string minLength', @savejson, ...
+                 length(jsonschema(struct('type', 'string', 'minLength', 5))), '[5]', 'compact', 1);
+
+    test_jsonlab('generate email format', @savejson, ...
+                 ~isempty(strfind(jsonschema(struct('type', 'string', 'format', 'email')), '@')), '[true]', 'compact', 1);
+    test_jsonlab('generate uri format', @savejson, ...
+                 strncmp(jsonschema(struct('type', 'string', 'format', 'uri')), 'http', 4), '[true]', 'compact', 1);
+    test_jsonlab('generate date format', @savejson, ...
+                 jsonschema(struct('type', 'string', 'format', 'date')), '"2000-01-01"', 'compact', 1);
+
+    test_jsonlab('generate empty array', @savejson, jsonschema(struct('type', 'array')), '[]', 'compact', 1);
+
+    s = struct('type', 'array', 'minItems', 3, 'items', struct('type', 'integer'));
+    result = jsonschema(s);
+    test_jsonlab('generate array minItems', @savejson, length(result), '[3]', 'compact', 1);
+
+    test_jsonlab('generate empty object', @savejson, jsonschema(struct('type', 'object')), '{}', 'compact', 1);
+
+    s = struct('type', 'object', 'required', {{'name', 'age'}}, ...
+               'properties', struct('name', struct('type', 'string', 'default', 'John'), ...
+                                    'age', struct('type', 'integer'), ...
+                                    'optional', struct('type', 'string')));
+    result = jsonschema(s);
+    test_jsonlab('generate obj required fields', @savejson, ...
+                 isfield(result, 'name') && isfield(result, 'age'), '[true]', 'compact', 1);
+    test_jsonlab('generate obj uses default', @savejson, strcmp(result.name, 'John'), '[true]', 'compact', 1);
+    test_jsonlab('generate obj skips optional', @savejson, ~isfield(result, 'optional'), '[true]', 'compact', 1);
+
+    result = jsonschema(s, [], 'generate', 'all');
+    test_jsonlab('generate all fields', @savejson, isfield(result, 'optional'), '[true]', 'compact', 1);
+
+    s2 = struct('type', 'object', 'required', {{'id'}}, ...
+                'properties', struct('id', struct('type', 'integer'), ...
+                                     'extra', struct('type', 'string', 'default', 'test')));
+    result = jsonschema(s2, [], 'generate', 'required');
+    test_jsonlab('generate required only', @savejson, ...
+                 isfield(result, 'id') && ~isfield(result, 'extra'), '[true]', 'compact', 1);
+
+    s = struct('type', 'object', 'required', {{'person'}}, ...
+               'properties', struct('person', struct('type', 'object', 'required', {{'name'}}, ...
+                                                     'properties', struct('name', struct('type', 'string', 'default', 'Anonymous')))));
+    result = jsonschema(s);
+    test_jsonlab('generate nested object', @savejson, ...
+                 isfield(result, 'person') && isfield(result.person, 'name'), '[true]', 'compact', 1);
+    test_jsonlab('generate nested default', @savejson, strcmp(result.person.name, 'Anonymous'), '[true]', 'compact', 1);
+
+    s = loadjson('{"$defs":{"name":{"type":"string","default":"RefName"}},"type":"object","required":["title"],"properties":{"title":{"$ref":"#/$defs/name"}}}', 'usemap', 1);
+    result = jsonschema(s);
+    test_jsonlab('generate with $ref', @savejson, strcmp(result.title, 'RefName'), '[true]', 'compact', 1);
+
+    s = struct('type', 'object', 'allOf', {{struct('properties', struct('a', struct('type', 'integer', 'default', 1))), ...
+                                            struct('properties', struct('b', struct('type', 'string', 'default', 'x')))}});
+    result = jsonschema(s);
+    test_jsonlab('generate with allOf', @savejson, ...
+                 isstruct(result) && isfield(result, 'a') && isfield(result, 'b'), '[true]', 'compact', 1);
+
+    s = struct('type', 'object', 'required', {{'id', 'name'}}, ...
+               'properties', struct('id', struct('type', 'integer', 'minimum', 1, 'default', 1), ...
+                                    'name', struct('type', 'string', 'minLength', 1, 'default', 'test')));
+    result = jsonschema(s);
+    [valid, ~] = jsonschema(result, s);
+    test_jsonlab('generated data validates', @savejson, valid, '[true]', 'compact', 1);
+
+    clear jd s s2 schema result valid types strtests objtests;
+end
+
+%%
+if (ismember('jdictadv', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test jdict advanced member functions\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % =======================================================================
+    % numel tests
+    % =======================================================================
+    jd = jdict(struct('a', 1, 'b', 2));
+    test_jsonlab('numel without indexing', @savejson, numel(jd), '[1]', 'compact', 1);
+    test_jsonlab('numel with indexing', @savejson, numel(jd, 'a'), '[1]', 'compact', 1);
+
+    jd = jdict([1, 2, 3, 4, 5]);
+    test_jsonlab('numel array data', @savejson, numel(jd), '[5]', 'compact', 1);
+
+    % =======================================================================
+    % tojson with options
+    % =======================================================================
+    jd = jdict(struct('name', 'test', 'value', 123));
+    test_jsonlab('tojson compact', @savejson, ~isempty(strfind(jd.tojson(), '"name"')), '[true]', 'compact', 1);
+    test_jsonlab('tojson no space', @savejson, isempty(strfind(jd.tojson(), ': ')), '[true]', 'compact', 1);
+
+    jd = jdict(struct('arr', [1, 2, 3]));
+    json = jd.tojson('nestarray', 1);
+    test_jsonlab('tojson with nestarray', @savejson, ~isempty(strfind(json, '[1,2,3]')), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % keys, len, size, isKey tests
+    % =======================================================================
+    jd = jdict(struct('a', 1, 'b', 2, 'c', 3));
+    test_jsonlab('keys on struct', @savejson, length(jd.keys()), '[3]', 'compact', 1);
+    test_jsonlab('len on struct', @savejson, jd.len(), '[3]', 'compact', 1);
+    test_jsonlab('isKey exists', @savejson, jd.isKey('a'), '[true]', 'compact', 1);
+    test_jsonlab('isKey not exists', @savejson, jd.isKey('x'), '[false]', 'compact', 1);
+
+    jd = jdict([1, 2, 3, 4, 5]);
+    test_jsonlab('keys on array', @savejson, jd.keys(), '[1,2,3,4,5]', 'compact', 1);
+    test_jsonlab('len on array', @savejson, jd.len(), '[5]', 'compact', 1);
+    test_jsonlab('size on row vector', @savejson, jd.size(), '[1,5]', 'compact', 1);
+    test_jsonlab('isKey in range', @savejson, jd.isKey(3), '[true]', 'compact', 1);
+    test_jsonlab('isKey out of range', @savejson, jd.isKey(10), '[false]', 'compact', 1);
+
+    jd = jdict(reshape(1:12, 3, 4));
+    test_jsonlab('size on 2D array', @savejson, jd.size(), '[3,4]', 'compact', 1);
+    test_jsonlab('len on 2D array', @savejson, jd.len(), '[4]', 'compact', 1);
+
+    jd = jdict({'a', 'b', 'c'});
+    test_jsonlab('keys on cell', @savejson, jd.keys(), '[1,2,3]', 'compact', 1);
+    test_jsonlab('len on cell', @savejson, jd.len(), '[3]', 'compact', 1);
+
+    if exist('containers.Map')
+        jd = jdict(containers.Map({'x', 'y', 'z'}, {1, 2, 3}));
+        k = jd.keys();
+        test_jsonlab('keys on Map', @savejson, length(k), '[3]', 'compact', 1);
+        test_jsonlab('len on Map', @savejson, jd.len(), '[3]', 'compact', 1);
+        test_jsonlab('isKey on Map exists', @savejson, jd.isKey('x'), '[true]', 'compact', 1);
+        test_jsonlab('isKey on Map not exists', @savejson, jd.isKey('w'), '[false]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % v() method tests
+    % =======================================================================
+    jd = jdict([10, 20, 30, 40]);
+    test_jsonlab('v() returns data', @savejson, jd.v(), '[10,20,30,40]', 'compact', 1);
+    test_jsonlab('v(idx) single', @savejson, jd.v(2), '[20]', 'compact', 1);
+    test_jsonlab('v(range)', @savejson, jd.v(2:3), '[20,30]', 'compact', 1);
+
+    jd = jdict({'a', 'b', 'c'});
+    test_jsonlab('v() on cell', @savejson, jd.v(), '["a","b","c"]', 'compact', 1);
+    test_jsonlab('v(idx) on cell', @savejson, jd.v(2), '"b"', 'compact', 1);
+
+    jd = jdict(struct('arr', {{1, 2, 3}}));
+    test_jsonlab('nested v() access', @savejson, jd.('arr').v(2).v(), '[2]', 'compact', 1);
+
+    % =======================================================================
+    % Dimension-based indexing
+    % =======================================================================
+    jd = jdict(struct('data', zeros(4, 5, 6)));
+    jd.('data').setattr('dims', {'x', 'y', 'z'});
+    test_jsonlab('dims attribute set', @savejson, jd.('data').getattr('dims'), '["x","y","z"]', 'compact', 1);
+
+    result = jd.('data').x(2);
+    test_jsonlab('dim slice x size', @savejson, size(result.v()), '[1,5,6]', 'compact', 1);
+
+    result = jd.('data').y(3);
+    test_jsonlab('dim slice y size', @savejson, size(result.v()), '[4,1,6]', 'compact', 1);
+
+    result = jd.('data').z(4);
+    test_jsonlab('dim slice z size', @savejson, size(result.v()), '[4,5]', 'compact', 1);
+
+    result = jd.('data').x(1:2);
+    test_jsonlab('dim range slice size', @savejson, size(result.v()), '[2,5,6]', 'compact', 1);
+
+    % =======================================================================
+    % containers.Map as underlying data
+    % =======================================================================
+    if exist('containers.Map')
+        m = containers.Map();
+        m('key1') = struct('nested', 'value1');
+        m('key2') = [1, 2, 3];
+        jd = jdict(m);
+
+        test_jsonlab('Map access key1', @savejson, jd.('key1').('nested'), '"value1"', 'compact', 1);
+        test_jsonlab('Map access key2', @savejson, jd.('key2'), '[1,2,3]', 'compact', 1);
+
+        jd.('key3') = 'newvalue';
+        test_jsonlab('Map add new key', @savejson, jd.('key3'), '"newvalue"', 'compact', 1);
+
+        jd.('key1').('nested') = 'modified';
+        test_jsonlab('Map modify nested', @savejson, jd.('key1').('nested'), '"modified"', 'compact', 1);
+    end
+
+    % =======================================================================
+    % JSONPath tests
+    % =======================================================================
+    jd = jdict(struct('level1', struct('level2', struct('level3', struct('value', 42)))));
+    test_jsonlab('jsonpath deep access', @savejson, jd.('$.level1.level2.level3.value'), '[42]', 'compact', 1);
+    test_jsonlab('jsonpath deep scan', @savejson, jd.('$..value'), '[42]', 'compact', 1);
+
+    jd.('$.level1.level2.level3.value') = 100;
+    test_jsonlab('jsonpath assignment', @savejson, jd.('$.level1.level2.level3.value'), '[100]', 'compact', 1);
+
+    jd = jdict(struct('items', {{struct('id', 1), struct('id', 2), struct('id', 3)}}));
+    test_jsonlab('jsonpath array index', @savejson, jd.('$.items[1].id'), '[2]', 'compact', 1);
+
+    % =======================================================================
+    % Struct array field access
+    % =======================================================================
+    sa = struct('name', {'Alice', 'Bob', 'Charlie'}, 'age', {25, 30, 35});
+    jd = jdict(sa);
+    result = jd.('name');
+    test_jsonlab('struct array field names', @savejson, result(), '["Alice","Bob","Charlie"]', 'compact', 1);
+    result = jd.('age');
+    ages = result();
+    test_jsonlab('struct array field ages', @savejson, ages(:)', '[25,30,35]', 'compact', 1);
+    names = jd.('name')();
+    test_jsonlab('struct array field indexed', @savejson, names{2}, '"Bob"', 'compact', 1);
+
+    % =======================================================================
+    % Constructor tests
+    % =======================================================================
+    jd = jdict();
+    test_jsonlab('empty constructor', @savejson, isempty(jd.v()), '[true]', 'compact', 1);
+    jd.('newkey') = 'newvalue';
+    test_jsonlab('add to empty jdict', @savejson, jd.('newkey'), '"newvalue"', 'compact', 1);
+
+    jd1 = jdict(struct('a', 1, 'b', 2));
+    jd1.setattr('$.a', 'myattr', 'attrvalue');
+    jd2 = jdict(jd1);
+    test_jsonlab('jdict copy data', @savejson, jd2.('a')(), '[1]', 'compact', 1);
+    test_jsonlab('jdict copy attr', @savejson, jd2.getattr('$.a', 'myattr'), '"attrvalue"', 'compact', 1);
+
+    % =======================================================================
+    % Attribute operations
+    % =======================================================================
+    jd = jdict(struct('x', 1, 'y', 2));
+    jd.setattr('$.x', 'attr1', 'val1');
+    jd.setattr('$.x', 'attr2', 100);
+    jd.setattr('$.y', 'attr1', 'val2');
+
+    test_jsonlab('getattr single', @savejson, jd.getattr('$.x', 'attr1'), '"val1"', 'compact', 1);
+    test_jsonlab('getattr numeric', @savejson, jd.getattr('$.x', 'attr2'), '[100]', 'compact', 1);
+
+    xattrs = jd.getattr('$.x');
+    test_jsonlab('getattr all for path', @savejson, ...
+                 isa(xattrs, 'containers.Map') && length(keys(xattrs)) == 2, '[true]', 'compact', 1);
+
+    allpaths = jd.getattr();
+    test_jsonlab('getattr list paths', @savejson, length(allpaths), '[2]', 'compact', 1);
+
+    if (exist('OCTAVE_VERSION', 'builtin') == 0)
+        jd.('x'){'newattr'} = 'curlyval';
+        test_jsonlab('curly bracket setattr', @savejson, jd.('x'){'newattr'}, '"curlyval"', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Special key names
+    % =======================================================================
+    jd = jdict();
+    jd.('_DataInfo_') = struct('version', '1.0');
+    test_jsonlab('special key _DataInfo_', @savejson, jd.('_DataInfo_').('version'), '"1.0"', 'compact', 1);
+
+    if exist('containers.Map')
+        jd = jdict(struct());
+        jd.data = containers.Map();
+        jd.('data').('key.with" dots') = 'dotvalue';
+        test_jsonlab('key with dots', @savejson, jd.('data').('key.with" dots'), '"dotvalue"', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Mixed nested structures
+    % =======================================================================
+    if exist('containers.Map')
+        jd = jdict();
+        m = containers.Map('KeyType', 'char', 'ValueType', 'any');
+        m('opt1') = 'val1';
+        m('opt2') = 'val2';
+        jd.('config') = struct('settings', m);
+        jd.('config').('settings').('opt3') = 'new';
+        test_jsonlab('mixed struct/map nested', @savejson, jd.('config').('settings').('opt3')(), '"new"', 'compact', 1);
+
+        jd.('config').('list') = {1, 'two', struct('three', 3)};
+        test_jsonlab('mixed with cell', @savejson, jd.('config').('list').v(3).('three')(), '[3]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Error handling
+    % =======================================================================
+    jd = jdict(struct('a', 1));
+    test_jsonlab('nonexistent attr empty', @savejson, isempty(jd.getattr('$', 'nonexistent')), '[true]', 'compact', 1);
+    test_jsonlab('nested nonexistent attr', @savejson, isempty(jd.('a').getattr('noattr')), '[true]', 'compact', 1);
+
+    clear jd jd1 jd2 m k sa result json xattrs allpaths;
 end
