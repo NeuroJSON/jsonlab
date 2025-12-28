@@ -33,7 +33,7 @@ opt = varargin2struct(varargin{:});
 % Generation mode: jsonschema(schema) or jsonschema(schema, [])
 if nargin == 1 || (nargin >= 2 && isempty(schema))
     schemaarg = data;
-    if ischar(schemaarg) || isstring(schemaarg) || isstruct(schemaarg)
+    if ischar(schemaarg) || isa(schemaarg, 'string') || isstruct(schemaarg)
         if (isstruct(schemaarg))
             schemaarg = savejson('', schemaarg);
         end
@@ -45,7 +45,7 @@ if nargin == 1 || (nargin >= 2 && isempty(schema))
     return
 end
 
-if ischar(schema) || isstring(schema) || isstruct(schema)
+if ischar(schema) || isa(schema, 'string') || isstruct(schema)
     if (isstruct(schema))
         schema = savejson('', schema);
     end
@@ -112,14 +112,14 @@ end
 if isKey(schema, 'enum')
     enumvalues = schema('enum');
     match = false;
-    data_is_empty_str = (ischar(data) && isempty(data)) || (isstring(data) && strlength(data) == 0);
+    data_is_empty_str = (ischar(data) && isempty(data)) || (isa(data, 'string') && strlength(data) == 0);
     for i = 1:length(enumvalues)
         enumval = enumvalues{i};
-        enum_is_empty_str = isempty(enumval) || (isstring(enumval) && strlength(enumval) == 0);
+        enum_is_empty_str = isempty(enumval) || (isa(enumval, 'string') && strlength(enumval) == 0);
         if data_is_empty_str && enum_is_empty_str
             match = true;
             break
-        elseif (ischar(data) || isstring(data)) && (ischar(enumval) || isstring(enumval))
+        elseif (ischar(data) || isa(data, 'string')) && (ischar(enumval) || isa(enumval, 'string'))
             if strcmp(char(data), char(enumval))
                 match = true;
                 break
@@ -151,7 +151,7 @@ if isnumeric(data) && isscalar(data)
 end
 
 % string
-if ischar(data) || isstring(data)
+if ischar(data) || isa(data, 'string')
     [isvalid, errmsg] = validatestring(char(data), schema, path);
     if ~isvalid
         valid = false;
@@ -263,7 +263,7 @@ switch schematype
     case 'number'
         ok = isnumeric(data) && isscalar(data);
     case 'string'
-        ok = ischar(data) || isstring(data);
+        ok = ischar(data) || isa(data, 'string');
     case 'array'
         ok = iscell(data) || (isnumeric(data) && ~isscalar(data)) || (islogical(data) && ~isscalar(data));
     case 'object'
@@ -275,7 +275,7 @@ end
 %% -------------------------------------------------------------------------
 function typestr = gettype(data)
 
-if ischar(data) || isstring(data)
+if ischar(data) || isa(data, 'string')
     typestr = 'string';
 elseif isnumeric(data) && isempty(data)
     typestr = 'null';

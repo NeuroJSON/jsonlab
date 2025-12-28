@@ -675,7 +675,8 @@ if (ismember('xarray', tests))
     test_jsonlab('getattr return all attributes', @savejson, jd7.getattr('$.data'), '{"dims":["x","y"],"sampling_rate":1000}', 'compact', 1);
     test_jsonlab('getattr get one attr', @savejson, jd7.getattr('$.data', 'dims'), '["x","y"]', 'compact', 1);
     test_jsonlab('savejson with _ArrayLabel_', @savejson, jd7, '{"data":{"_ArrayType_":"double","_ArraySize_":[3,4],"_ArrayData_":[1,1,1,1,1,1,1,1,1,1,1,1],"_ArrayLabel_":["x","y"],"sampling_rate":1000}}', 'compact', 1);
-    test_jsonlab('loadjson with _ArrayLabel_', @savejson, loadjson(jd7.tojson()).data.getattr('$', 'dims'), '["x","y"]', 'compact', 1);
+    jd7 = loadjson(jd7.tojson());
+    test_jsonlab('loadjson with _ArrayLabel_', @savejson, jd7.data.getattr('$', 'dims'), '["x","y"]', 'compact', 1);
 
     % Test 12: Multiple attributes different types
     jd8 = jdict(rand(10, 20));

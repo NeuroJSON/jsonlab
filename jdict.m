@@ -548,7 +548,12 @@ classdef jdict < handle
                     if (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
                         idx = struct('type', '()', 'subs', idx.subs);
                     end
-                    opcell{end - 1} = subsasgn(opcell{i}, idx, otherobj);
+                    try
+                        opcell{end - 1} = subsasgn(opcell{i}, idx, otherobj);
+                    catch
+                        opcell{i}.(idx.subs) = otherobj;
+                        opcell{end - 1} = opcell{i};
+                    end
                 end
             end
 
@@ -573,7 +578,11 @@ classdef jdict < handle
                 elseif (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
                     opcell{i} = obj.call_('jsonpath', opcell{i}, idx.subs, opcell{i + 1});
                 else
-                    opcell{i} = subsasgn(opcell{i}, idx, opcell{i + 1});
+                    try
+                        opcell{i} = subsasgn(opcell{i}, idx, opcell{i + 1});
+                    catch
+                        opcell{i}.(idx.subs) = opcell{i + 1};
+                    end
                 end
             end
 
@@ -760,7 +769,7 @@ classdef jdict < handle
 
             if (isa(schemadata, 'containers.Map'))
                 obj.schema = schemadata;
-            elseif (ischar(schemadata) || isstring(schemadata) || isstruct(schemadata))
+            elseif (ischar(schemadata) || isa(schemadata, 'string') || isstruct(schemadata))
                 if (isstruct(schemadata))
                     schemadata = savejson('', schemadata);
                 end
