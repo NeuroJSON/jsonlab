@@ -40,14 +40,11 @@ nozmat = getvarfrom({'caller', 'base'}, 'NO_ZMAT');
 if ((exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3) && (isempty(nozmat) || nozmat == 0))
     [varargout{1:nargout}] = zmat(varargin{1}, 1, 'gzip');
     return
-elseif (isoctavemesh)
-    [varargout{1:nargout}] = octavezmat(varargin{1}, 1, 'gzip');
-    return
 end
 
-error(javachk('jvm'));
-
 input = varargin{1}(:)';
+inputinfo = struct('type', class(varargin{1}), 'size', size(varargin{1}), 'method', 'gzip', 'status', 0);
+
 if (ischar(input))
     input = uint8(input);
 elseif (isa(input, 'string'))
@@ -56,15 +53,30 @@ else
     input = typecast(input, 'uint8');
 end
 
-input = typecast(input, 'uint8');
+if (~usejava('jvm'))
+    [varargout{1:nargout}] = octavezmat(varargin{1}, 1, 'gzip');
+    return
+end
 
-buffer = java.io.ByteArrayOutputStream();
-gzip = java.util.zip.GZIPOutputStream(buffer);
-gzip.write(input, 0, numel(input));
-gzip.close();
-
-varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
+if (isoctavemesh)
+    % Octave with Java: write bytes one at a time
+    baos = javaObject('java.io.ByteArrayOutputStream');
+    gzos = javaObject('java.util.zip.GZIPOutputStream', baos);
+    for i = 1:numel(input)
+        gzos.write(int32(input(i)));
+    end
+    gzos.finish();
+    gzos.close();
+    varargout{1} = typecast(baos.toByteArray(), 'uint8')';
+else
+    % MATLAB with Java: direct array write
+    buffer = java.io.ByteArrayOutputStream();
+    gzip = java.util.zip.GZIPOutputStream(buffer);
+    gzip.write(input, 0, numel(input));
+    gzip.close();
+    varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
+end
 
 if (nargout > 1)
-    varargout{2} = struct('type', class(varargin{1}), 'size', size(varargin{1}), 'method', 'gzip', 'status', 0);
+    varargout{2} = inputinfo;
 end
