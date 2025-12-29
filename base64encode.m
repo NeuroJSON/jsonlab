@@ -45,6 +45,7 @@ input = typecast(varargin{1}(:)', 'uint8');
 
 if (isoctavemesh)
     varargout{1} = base64_encode(uint8(input));
+    varargout{1}  = regexprep(varargout{1}, '[\r\n]', '');
     return
 end
 
