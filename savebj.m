@@ -195,18 +195,6 @@ if (~isempty(dozip))
     if (~ismember(dozip, {'zlib', 'gzip', 'lzma', 'lzip', 'lz4', 'lz4hc'}) && isempty(regexp(dozip, '^blosc2', 'once')))
         error('compression method "%s" is not supported', dozip);
     end
-    if (exist('zmat', 'file') ~= 2 && exist('zmat', 'file') ~= 3)
-        try
-            error(javachk('jvm'));
-            try
-                base64decode('test');
-            catch
-                matlab.net.base64decode('test');
-            end
-        catch
-            error('java-based compression is not supported');
-        end
-    end
 end
 
 if (~opt.messagepack)

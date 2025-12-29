@@ -33,7 +33,7 @@ if (nargin == 0)
 end
 
 if (exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3)
-    [varargout{1:nargout}] = zmat(varargin{1}, 1, 'base64', varargin{2:end});
+    [varargout{1:nargout}] = zmat(varargin{1}, 2, 'base64', varargin{2:end});
     return
 end
 
@@ -45,7 +45,6 @@ input = typecast(varargin{1}(:)', 'uint8');
 
 if (isoctavemesh)
     varargout{1} = base64_encode(uint8(input));
-    varargout{1}  = regexprep(varargout{1}, '[\r\n]', '');
     return
 end
 
