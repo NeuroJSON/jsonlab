@@ -155,7 +155,7 @@ end
 
 opt.isoctave = isoctavemesh;
 
-opt.compression = jsonopt('Compression', '', opt);
+opt.compression = jsonopt('Compression', 'zlib', opt);
 opt.nestarray = jsonopt('NestArray', 0, opt);
 opt.compact = jsonopt('Compact', 0, opt);
 opt.singletcell = jsonopt('SingletCell', 1, opt);
