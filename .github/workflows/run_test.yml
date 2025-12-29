@@ -31,6 +31,8 @@ jobs:
             echo "$PWD/octave/octave-7.3.0-w64-64/mingw64/bin" >> $GITHUB_PATH
           fi
       - name: Run octave test
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_11_X64 }}
         run: |
           octave-cli --version
           octave-cli --eval "addpath(pwd);cd test;run_jsonlab_test"
