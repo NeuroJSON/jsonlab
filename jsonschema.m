@@ -25,7 +25,7 @@ function [valid, errors] = jsonschema(data, schema, varargin)
 %
 % License: BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt
 %
-% -- this function is part of JSONLab toolbox (http://iso2mesh.sf.net/cgi-bin/index.cgi?jsonlab)
+% -- this function is part of JSONLab toolbox (http://neurojson.org/jsonlab)
 %
 
 opt = varargin2struct(varargin{:});

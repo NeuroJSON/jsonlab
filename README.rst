@@ -6,7 +6,7 @@
 
 * Copyright (c) 2011-2024  Qianqian Fang <q.fang at neu.edu>
 * License: BSD or GNU General Public License version 3 (GPL v3), see License*.txt
-* Version: 2.9.8 (Micronus Prime - Beta)
+* Version: 2.9.9 (Micronus Prime - RC1)
 * URL: https://neurojson.org/jsonlab
 * Download: https://neurojson.org/wiki/index.cgi?keywords=registration&tool=jsonlab&ref=github
 * User forum: https://github.com/orgs/NeuroJSON/discussions/categories/neurojson-json-format-specifications-and-parsers
