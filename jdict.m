@@ -164,26 +164,26 @@ classdef jdict < handle
         schema  % JSON Schema for validation (struct), set via .setschema(), retrieve via .getschema()
     end
     properties (Access = private)
-        flags          % additional options, will be passed to jsonlab utility functions such as savejson/loadjson
-        currentpath    % internal variable tracking the current path when lookup embedded data at current depth
+        flags__          % additional options, will be passed to jsonlab utility functions such as savejson/loadjson
+        currentpath__    % internal variable tracking the current path when lookup embedded data at current depth
     end
     methods
 
         % constructor: initialize a jdict object
         function obj = jdict(val, varargin)
-            obj.flags = struct('builtinjson', 0);
+            obj.flags__ = struct('builtinjson', 0);
             obj.attr = containers.Map();
             obj.schema = [];
-            obj.currentpath = char(36);
+            obj.currentpath__ = char(36);
             if (nargin >= 1)
                 if (~isempty(varargin))
                     allflags = [varargin(1:2:end); varargin(2:2:end)];
-                    obj.flags = struct(allflags{:});
-                    if (isfield(obj.flags, 'attr'))
-                        obj.attr = obj.flags.attr;
+                    obj.flags__ = struct(allflags{:});
+                    if (isfield(obj.flags__, 'attr'))
+                        obj.attr = obj.flags__.attr;
                     end
-                    if (isfield(obj.flags, 'schema'))
-                        obj.schema = obj.flags.schema;
+                    if (isfield(obj.flags__, 'schema'))
+                        obj.schema = obj.flags__.schema;
                     end
                 end
                 if (ischar(val) && ~isempty(regexpi(val, '^https*://', 'once')))
@@ -198,8 +198,8 @@ classdef jdict < handle
                     obj.data = val.data;
                     obj.attr = val.attr;
                     obj.schema = val.schema;
-                    obj.currentpath = val.currentpath;
-                    obj.flags = val.flags;
+                    obj.currentpath__ = val.currentpath__;
+                    obj.flags__ = val.flags__;
                 else
                     obj.data = val;
                 end
@@ -225,13 +225,13 @@ classdef jdict < handle
             % handle {} indexing for attributes
             if (oplen == 1 && strcmp(idxkey(1).type, '{}'))
                 if (iscell(idxkey(1).subs) && length(idxkey(1).subs) == 1 && ischar(idxkey(1).subs{1}))
-                    varargout{1} = obj.getattr(obj.currentpath, idxkey(1).subs{1});
+                    varargout{1} = obj.getattr(obj.currentpath__, idxkey(1).subs{1});
                     return
                 end
             end
 
             val = obj.data;
-            trackpath = obj.currentpath;
+            trackpath = obj.currentpath__;
 
             if (oplen == 1 && strcmp(idxkey(1).type, '()') && isempty(idxkey(1).subs))
                 varargout{1} = val;
@@ -254,7 +254,7 @@ classdef jdict < handle
 
                 if (strcmp(idx.type, '.') && isnumeric(idx.subs))
                     val = val(idx.subs);
-                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'isKey', 'keys', 'len', 'size', 'setattr', 'getattr', 'setschema', 'getschema', 'validate', 'attr2schema'}) && i < oplen)
+                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'isKey', 'keys', 'len', 'size', 'setattr', 'getattr', 'setschema', 'getschema', 'validate', 'attr2schema'}) && i < oplen && strcmp(idxkey(i + 1).type, '()'))
                     if (strcmp(idx.subs, 'v'))
                         if (iscell(val) && strcmp(idxkey(i + 1).type, '()'))
                             idxkey(i + 1).type = '{}';
@@ -263,7 +263,7 @@ classdef jdict < handle
                             tempobj = jdict(val);
                             tempobj.attr = obj.attr;
                             tempobj.schema = obj.schema;
-                            tempobj.currentpath = trackpath;
+                            tempobj.currentpath__ = trackpath;
                             val = v(tempobj, idxkey(i + 1));
                         elseif (isa(val, 'jdict'))
                             val = val.data;
@@ -272,7 +272,7 @@ classdef jdict < handle
                         tempobj = jdict(val);
                         tempobj.attr = obj.attr;
                         tempobj.schema = obj.schema;
-                        tempobj.currentpath = trackpath;
+                        tempobj.currentpath__ = trackpath;
                         if (exist('OCTAVE_VERSION', 'builtin') ~= 0 && regexp(OCTAVE_VERSION, '^5\.'))
                             val = membercall_(tempobj, idx.subs, idxkey(i + 1).subs{:});
                         else
@@ -292,12 +292,9 @@ classdef jdict < handle
                         tempobj = jdict(val);
                         tempobj.attr = obj.attr;
                         tempobj.schema = obj.schema;
-                        tempobj.currentpath = trackpath;
+                        tempobj.currentpath__ = trackpath;
                         val = tempobj;
                     end
-                elseif (strcmp(idx.type, '.') && ischar(idx.subs) && strcmp(idx.subs, 'v') && oplen == 1)
-                    i = i + 1;
-                    continue
                 elseif ((strcmp(idx.type, '.') && ischar(idx.subs)) || (iscell(idx.subs) && ~isempty(idx.subs{1})))
                     onekey = idx.subs;
                     if (iscell(onekey))
@@ -323,7 +320,7 @@ classdef jdict < handle
                             newobj = jdict(val);
                             newobj.attr = obj.attr;
                             newobj.schema = obj.schema;
-                            newobj.currentpath = trackpath;
+                            newobj.currentpath__ = trackpath;
                             val = newobj;
                             i = i + 2;
                             continue
@@ -384,7 +381,7 @@ classdef jdict < handle
                     end
                 end
                 newobj.schema = obj.schema;
-                newobj.currentpath = char(36);
+                newobj.currentpath__ = char(36);
                 val = newobj;
             end
             varargout{1} = val;
@@ -401,7 +398,7 @@ classdef jdict < handle
                 if (iscell(idxkey(1).subs) && ~isempty(idxkey(1).subs))
                     attrn = idxkey(1).subs{1};
                     if (ischar(attrn))
-                        obj.setattr(obj.currentpath, attrn, otherobj);
+                        obj.setattr(obj.currentpath__, attrn, otherobj);
                         return
                     end
                 end
@@ -413,7 +410,7 @@ classdef jdict < handle
                     attrn = idxkey(oplen).subs{1};
                     if (ischar(attrn))
                         % Build the path by navigating through keys
-                        temppath = obj.currentpath;
+                        temppath = obj.currentpath__;
                         for i = 1:oplen - 1
                             idx = idxkey(i);
                             if (strcmp(idx.type, '.') || strcmp(idx.type, '()'))
@@ -445,7 +442,7 @@ classdef jdict < handle
                 if (strcmp(idxkey(oplen - 1).type, '.') && ischar(idxkey(oplen - 1).subs))
                     dimname = idxkey(oplen - 1).subs;
                     % build path to the data
-                    temppath = obj.currentpath;
+                    temppath = obj.currentpath__;
                     for i = 1:oplen - 2
                         idx = idxkey(i);
                         if (strcmp(idx.type, '.') || strcmp(idx.type, '()'))
@@ -503,7 +500,7 @@ classdef jdict < handle
             for i = 1:oplen
                 idx = idxkey(i);
                 if (strcmp(idx.type, '.'))
-                    if (ischar(idx.subs) && strcmp(idx.subs, 'v'))
+                    if (ischar(idx.subs) && strcmp(idx.subs, 'v') && i < oplen && strcmp(idxkey(i + 1).type, '()'))
                         opcell{i + 1} = opcell{i};
                         if (i < oplen && iscell(opcell{i}))
                             idxkey(i + 1).type = '{}';
@@ -563,7 +560,7 @@ classdef jdict < handle
                     idx.type = '()';
                 end
 
-                if (ischar(idx.subs) && strcmp(idx.subs, 'v'))
+                if (ischar(idx.subs) && strcmp(idx.subs, 'v') && i < oplen && ismember(idxkey(i + 1).type, {'()', '{}'}))
                     opcell{i} = opcell{i + 1};
                     continue
                 end
@@ -692,7 +689,7 @@ classdef jdict < handle
         % internal: call member functions or external functions
         function varargout = call_(obj, func, varargin)
             % interface to external functions and dependencies
-            if (~obj.flags.builtinjson)
+            if (~obj.flags__.builtinjson)
                 if (~exist('loadjson', 'file'))
                     error('you must first install jsonlab (https://github.com/NeuroJSON/jsonlab) or set "BuildinJSON" flag to 1');
                 end
@@ -718,7 +715,7 @@ classdef jdict < handle
             if (nargin == 3)
                 attrvalue = attrname;
                 attrname = jsonpath;
-                jsonpath = obj.currentpath;
+                jsonpath = obj.currentpath__;
             end
             if (~isKey(obj.attr, jsonpath))
                 obj.attr(jsonpath) = containers.Map();
@@ -733,17 +730,17 @@ classdef jdict < handle
         function val = getattr(obj, jsonpath, attrname)
             val = [];
             if (nargin == 1)
-                if (~isKey(obj.attr, obj.currentpath) && strcmp(obj.currentpath, char(36)))
+                if (~isKey(obj.attr, obj.currentpath__) && strcmp(obj.currentpath__, char(36)))
                     val = keys(obj.attr);    % list root-level attr keys
-                elseif (isKey(obj.attr, obj.currentpath))
-                    val = keys(obj.attr(obj.currentpath));
+                elseif (isKey(obj.attr, obj.currentpath__))
+                    val = keys(obj.attr(obj.currentpath__));
                 end
                 return
             end
             if (nargin == 2)
                 if (~isempty(jsonpath) && jsonpath(1) ~= char(36))
                     attrname = jsonpath;
-                    jsonpath = obj.currentpath;
+                    jsonpath = obj.currentpath__;
                 else
                     attrname = '';
                 end
@@ -829,7 +826,7 @@ classdef jdict < handle
             schema = struct;
 
             % Add title/description at root
-            if strcmp(obj.currentpath, char(36))
+            if strcmp(obj.currentpath__, char(36))
                 if ~isempty(schematitle)
                     schema.('title') = schematitle;
                 end
@@ -840,7 +837,7 @@ classdef jdict < handle
 
             % Get all attribute paths
             allpaths = keys(obj.attr);
-            basepath = obj.currentpath;
+            basepath = obj.currentpath__;
             baselen = length(basepath);
 
             % Extract schema attributes at current path
@@ -909,7 +906,7 @@ classdef jdict < handle
                     % Recursively build child schema
                     tempobj = jdict();
                     tempobj.attr = obj.attr;
-                    tempobj.currentpath = childpath;
+                    tempobj.currentpath__ = childpath;
                     objproperties.(propname) = attr2schema(tempobj);
                 end
                 schema.('properties') = objproperties;
@@ -919,7 +916,7 @@ classdef jdict < handle
             if ~isfield(schema, 'type')
                 if ~isempty(childpaths)
                     schema.('type') = 'object';
-                elseif strcmp(obj.currentpath, char(36))
+                elseif strcmp(obj.currentpath__, char(36))
                     schema.('type') = 'object';
                 end
             end

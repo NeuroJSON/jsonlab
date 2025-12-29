@@ -1273,6 +1273,19 @@ if (ismember('jdictadv', tests))
     end
 
     % =======================================================================
+    % Built-in key names
+    % =======================================================================
+    jd = jdict();
+    jd.v = struct('k', 1);
+    jd.attr = [1, 2, 3];
+    jd.flags__ = 'flags__value';
+    jd.tojson = 'tojson_value';
+    test_jsonlab('key with dots', @savejson, {jd.v, jd.v.v(), jd.v.k, jd.attr.v(2), jd.flags__, jd.tojson.tojson()}, '[{"k":1},{"k":1},1,2,"flags__value","\"tojson_value\""]', 'compact', 1);
+    jd.v.k = 10;
+    jd.v.k{'dims'} = {'count'};
+    test_jsonlab('key with dots', @savejson, jd.v.k{'dims'}, '["count"]', 'compact', 1);
+
+    % =======================================================================
     % Mixed nested structures
     % =======================================================================
     if exist('containers.Map')
