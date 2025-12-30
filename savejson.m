@@ -593,7 +593,7 @@ for i = 1:dim(1)
     if (isempty(names{i}))
         outcell{idx} = obj2json('x0x0_', val{i}, level + 1, opt);
     else
-        outcell{idx} = obj2json(names{i}, val{i}, level + 1, opt);
+        outcell{idx} = obj2json(char(names{i}), val{i}, level + 1, opt);
     end
     idx = idx + 1;
     if (i < length(names))
