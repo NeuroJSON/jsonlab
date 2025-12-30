@@ -439,7 +439,7 @@ if (ismember('jpath', tests))
 end
 
 %%
-if (ismember('jdict', tests))
+if (ismember('jdict', tests) && exist('containers.Map'))
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test jdict\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
@@ -797,7 +797,7 @@ if (ismember('yamledge', tests))
 end
 
 %%
-if (ismember('xarray', tests))
+if (ismember('xarray', tests) && exist('containers.Map'))
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test jdict xarray-like attributes\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
@@ -917,7 +917,7 @@ if (ismember('xarray', tests))
 end
 
 %%
-if (ismember('schema', tests))
+if (ismember('schema', tests) && exist('containers.Map'))
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test jdict JSON Schema validation\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
@@ -1301,7 +1301,7 @@ if (ismember('schema', tests))
 end
 
 %%
-if (ismember('jdictadv', tests))
+if (ismember('jdictadv', tests) && exist('containers.Map'))
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test jdict advanced member functions\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
