@@ -606,16 +606,26 @@ if (ismember('yaml', tests))
     test_jsonlab('load empty single quoted', @saveyaml, loadyaml('name: '''''), 'name: ""');
 
     %% Escape sequences - loadyaml
-    test_jsonlab('escape tab', @savejson, loadyaml('s: "hello\tworld"').s, sprintf('"hello\\tworld"'));
-    test_jsonlab('escape newline', @savejson, loadyaml('s: "line1\nline2"').s, sprintf('"line1\\nline2"'));
-    test_jsonlab('escape carriage return', @savejson, loadyaml('s: "col1\rcol2"').s, sprintf('"col1\\rcol2"'));
-    test_jsonlab('escape quote', @savejson, loadyaml('s: "say \"hi\""').s, '"say \"hi\""');
-    test_jsonlab('escape backslash', @savejson, loadyaml('s: "back\\slash"').s, '"back\\slash"');
-    test_jsonlab('escape bell code', @saveyaml, double(loadyaml('s: "\a"').s), '7');
-    test_jsonlab('escape vtab code', @saveyaml, double(loadyaml('s: "\v"').s), '11');
-    test_jsonlab('escape null code', @saveyaml, double(loadyaml('s: "\0"').s), '0');
-    test_jsonlab('escape hex', @savejson, loadyaml('s: "\x41\x42\x43"').s, '"ABC"');
-    test_jsonlab('escape unicode', @savejson, loadyaml('s: "\u0048\u0069"').s, '"Hi"');
+    tmp = loadyaml('s: "hello\tworld"');
+    test_jsonlab('escape tab', @savejson, tmp.s, sprintf('"hello\\tworld"'));
+    tmp = loadyaml('s: "line1\nline2"');
+    test_jsonlab('escape newline', @savejson, tmp.s, sprintf('"line1\\nline2"'));
+    tmp = loadyaml('s: "col1\rcol2"');
+    test_jsonlab('escape carriage return', @savejson, tmp.s, sprintf('"col1\\rcol2"'));
+    tmp = loadyaml('s: "say \"hi\""');
+    test_jsonlab('escape quote', @savejson, tmp.s, '"say \"hi\""');
+    tmp = loadyaml('s: "back\\slash"');
+    test_jsonlab('escape backslash', @savejson, tmp.s, '"back\\slash"');
+    tmp = loadyaml('s: "\a"');
+    test_jsonlab('escape bell code', @saveyaml, double(tmp.s), '7');
+    tmp = loadyaml('s: "\v"');
+    test_jsonlab('escape vtab code', @saveyaml, double(tmp.s), '11');
+    tmp = loadyaml('s: "\0"');
+    test_jsonlab('escape null code', @saveyaml, double(tmp.s), '0');
+    tmp = loadyaml('s: "\x41\x42\x43"');
+    test_jsonlab('escape hex', @savejson, tmp.s, '"ABC"');
+    tmp = loadyaml('s: "\u0048\u0069"');
+    test_jsonlab('escape unicode', @savejson, tmp.s, '"Hi"');
 
     %% Block sequences - loadyaml
     test_jsonlab('load simple list', @saveyaml, loadyaml(sprintf('- a\n- b\n- c')), sprintf('- a\n- b\n- c'));
@@ -714,7 +724,8 @@ if (ismember('yamlopt', tests))
 
     %% loadyaml options
     test_jsonlab('simplify cell option', @saveyaml, loadyaml(sprintf('- 1\n- 2\n- 3'), 'SimplifyCell', 1), '[1, 2, 3]');
-    test_jsonlab('simplify cell off', @savejson, iscell(loadyaml(sprintf('- 1\n- 2\n- 3'), 'SimplifyCell', 0)), '[true]');
+    tmp = loadyaml(sprintf('- 1\n- 2\n- 3'), 'SimplifyCell', 0);
+    test_jsonlab('simplify cell off', @savejson, iscell(tmp), '[true]');
 
     %% FastArrayParser option
     yaml_arr = 'coords: [[1, 2], [3, 4], [5, 6]]';
@@ -730,9 +741,12 @@ if (ismember('yamledge', tests))
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
 
     %% Edge cases - whitespace handling
-    test_jsonlab('extra spaces after colon', @saveyaml, loadyaml('value:   5').value, '5');
-    test_jsonlab('trailing spaces', @saveyaml, loadyaml('value: 5  ').value, '5');
-    test_jsonlab('leading spaces', @saveyaml, loadyaml(sprintf('  value: 5')).value, '5');
+    tmp = loadyaml('value:   5');
+    test_jsonlab('extra spaces after colon', @saveyaml, tmp.value, '5');
+    tmp = loadyaml('value: 5  ');
+    test_jsonlab('trailing spaces', @saveyaml, tmp.value, '5');
+    tmp = loadyaml(sprintf('  value: 5'));
+    test_jsonlab('leading spaces', @saveyaml, tmp.value, '5');
 
     %% Edge cases - special key names
     result = loadyaml('"quoted key": value');
@@ -748,7 +762,8 @@ if (ismember('yamledge', tests))
     test_jsonlab('deep array elem size', @saveyaml, size(result.arr{1}), '[2, 2]');
 
     %% Edge cases - empty structures
-    test_jsonlab('empty array field', @saveyaml, isempty(loadyaml('arr: []').arr), 'true');
+    tmp = loadyaml('arr: []');
+    test_jsonlab('empty array field', @saveyaml, isempty(tmp.arr), 'true');
     result_empty_obj = loadyaml('obj: {}');
     test_jsonlab('empty object is struct', @saveyaml, isstruct(result_empty_obj.obj), 'true');
     test_jsonlab('empty object no fields', @saveyaml, isempty(fieldnames(result_empty_obj.obj)), 'true');
@@ -758,19 +773,25 @@ if (ismember('yamledge', tests))
     test_jsonlab('unicode char code', @saveyaml, double(result.emoji), '9786');
 
     %% Edge cases - colons in values
-    test_jsonlab('time string', @saveyaml, loadyaml('time: "12:30:00"').time, '"12:30:00"');
-    test_jsonlab('url string', @saveyaml, loadyaml('url: "http://example.com"').url, '"http://example.com"');
+    tmp = loadyaml('time: "12:30:00"');
+    test_jsonlab('time string', @saveyaml, tmp.time, '"12:30:00"');
+    tmp = loadyaml('url: "http://example.com"');
+    test_jsonlab('url string', @saveyaml, tmp.url, '"http://example.com"');
 
     %% Edge cases - array with single element
-    test_jsonlab('single element array', @saveyaml, loadyaml('arr: [42]').arr, '42');
+    tmp = loadyaml('arr: [42]');
+    test_jsonlab('single element array', @saveyaml, tmp.arr, '42');
 
     %% Edge cases - tabs as indentation
     yaml_tabs = sprintf('parent:\n\tchild: value');
-    test_jsonlab('tab indentation', @saveyaml, loadyaml(yaml_tabs).parent.child, 'value');
+    tmp = loadyaml(yaml_tabs);
+    test_jsonlab('tab indentation', @saveyaml, tmp.parent.child, 'value');
 
     %% Edge cases - numbers in various formats
-    test_jsonlab('plain number', @saveyaml, loadyaml('val: 0777').val, '777');
-    test_jsonlab('hex number', @saveyaml, loadyaml('val: 0x1F').val, '31');
+    tmp = loadyaml('val: 0777');
+    test_jsonlab('plain number', @saveyaml, tmp.val, '777');
+    tmp = loadyaml('val: 0x1F');
+    test_jsonlab('hex number', @saveyaml, tmp.val, '31');
 end
 
 %%
@@ -874,8 +895,8 @@ if (ismember('xarray', tests))
     test_jsonlab('getattr return all attributes', @savejson, jd7.getattr('$.data'), '{"dims":["x","y"],"sampling_rate":1000}', 'compact', 1);
     test_jsonlab('getattr get one attr', @savejson, jd7.getattr('$.data', 'dims'), '["x","y"]', 'compact', 1);
     test_jsonlab('savejson with _ArrayLabel_', @savejson, jd7, '{"data":{"_ArrayType_":"double","_ArraySize_":[3,4],"_ArrayData_":[1,1,1,1,1,1,1,1,1,1,1,1],"_ArrayLabel_":["x","y"],"sampling_rate":1000}}', 'compact', 1);
-    jd7 = loadjson(jd7.tojson());
-    test_jsonlab('loadjson with _ArrayLabel_', @savejson, jd7.data.getattr('$', 'dims'), '["x","y"]', 'compact', 1);
+    temp = loadjson(jd7.tojson());
+    test_jsonlab('loadjson with _ArrayLabel_', @savejson, temp.data.getattr('$', 'dims'), '["x","y"]', 'compact', 1);
 
     % Test 12: Multiple attributes different types
     jd8 = jdict(rand(10, 20));

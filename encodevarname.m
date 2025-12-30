@@ -37,11 +37,25 @@ function str = encodevarname(str, varargin)
 %    License: GPLv3 or 3-clause BSD license, see https://github.com/NeuroJSON/easyh5 for details
 %
 
-% Fast path: check first character directly instead of calling isvarname
+% Check first character - use isvarname for the first char check to maintain
+% Octave compatibility (Octave allows underscore as first character)
 c1 = str(1);
-if ~((c1 >= 'a' && c1 <= 'z') || (c1 >= 'A' && c1 <= 'Z'))
-    % First char is not a letter - need to encode it
-    if (exist('unicode2native', 'builtin'))
+firstcharvalid = (c1 >= 'a' && c1 <= 'z') || (c1 >= 'A' && c1 <= 'Z');
+
+% In Octave, underscore is valid as first character; check this case
+if ~firstcharvalid && c1 == '_'
+    persistent isaliasaliased
+    if isempty(isaliasaliased)
+        isaliasaliased = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+    end
+    if isaliasaliased
+        firstcharvalid = true;
+    end
+end
+
+if ~firstcharvalid
+    % First char is not valid - need to encode it
+    if exist('unicode2native', 'builtin')
         str = sprintf('x0x%s_%s', sprintf('%X', unicode2native(c1)), str(2:end));
     else
         str = sprintf('x0x%X_%s', c1 + 0, str(2:end));
@@ -66,11 +80,11 @@ if len <= 63
 end
 
 % Slow path: has invalid characters, need full encoding
-if (exist('unicode2native', 'builtin'))
+if exist('unicode2native', 'builtin')
     str = regexprep(str, '([^0-9A-Za-z_])', '_0x${sprintf(''%X'',unicode2native($1))}_');
 else
     cpos = find(~ismember(str, ['0':'9', 'A':'Z', 'a':'z', '_']));
-    if (isempty(cpos))
+    if isempty(cpos)
         return
     end
     str0 = str;
@@ -79,7 +93,7 @@ else
     for i = 1:length(cpos)
         str = [str str0(pos0(i) + 1:cpos(i) - 1) sprintf('_0x%X_', str0(cpos(i)) + 0)];
     end
-    if (cpos(end) ~= length(str))
+    if cpos(end) ~= length(str)
         str = [str str0(pos0(end - 1) + 1:pos0(end))];
     end
 end

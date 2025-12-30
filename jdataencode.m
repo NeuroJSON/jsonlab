@@ -99,6 +99,7 @@ opt.annotatearray = jsonopt('AnnotateArray', 0, opt);
 opt.N_ArrayType = [opt.prefix '_ArrayType_'];
 opt.N_ArraySize = [opt.prefix '_ArraySize_'];
 opt.N_ArrayData = [opt.prefix '_ArrayData_'];
+opt.N_ArrayLabel = [opt.prefix '_ArrayLabel_'];
 opt.N_ArrayZipSize = [opt.prefix '_ArrayZipSize_'];
 opt.N_ArrayZipType = [opt.prefix '_ArrayZipType_'];
 opt.N_ArrayZipData = [opt.prefix '_ArrayZipData_'];
@@ -159,7 +160,7 @@ if (isa(item, 'jdict'))  % apply attribute
         attrname = keys(attr);
         for j = 1:length(attrname)
             if (strcmp(attrname{j}, 'dims'))
-                newitem.(attrpath{i}).(encodevarname('_ArrayLabel_')) = attr(attrname{j});
+                newitem.(attrpath{i}).(opt.N_ArrayLabel) = attr(attrname{j});
             else
                 newitem.(attrpath{i}).(attrname{j}) = attr(attrname{j});
             end

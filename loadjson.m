@@ -215,7 +215,12 @@ nonws_idx = find(~ws);
 if ~isempty(nonws_idx)
     marker = repmat(inputlen + 1, 1, inputlen);
     marker(nonws_idx) = nonws_idx;
-    opt.next_nonws_ = fliplr(cummin(fliplr(marker)));
+    if (exist('cummin', 'builtin'))
+        cummin_ = @cummin;
+    else
+        cummin_ = @(x) arrayfun(@(i) min(x(1:i)), 1:length(x));
+    end
+    opt.next_nonws_ = fliplr(cummin_(fliplr(marker)));
 else
     opt.next_nonws_ = repmat(inputlen + 1, 1, inputlen);
 end

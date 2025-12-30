@@ -249,7 +249,7 @@ json = obj2json(rootname, obj, rootlevel, opt);
 if (rootisarray)
     json = [json, nl];
 else
-    json = ['{', nl, json, nl, '}', newline];
+    json = ['{', nl, json, nl, '}', sprintf('\n')];
 end
 
 jsonp = jsonopt('JSONP', '', opt);

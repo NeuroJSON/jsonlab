@@ -53,6 +53,13 @@ opt.singletarray = jsonopt('SingletArray', 0, opt);
 opt.unpackhex = jsonopt('UnpackHex', 1, opt);
 opt.indent_base = repmat(' ', 1, opt.indent);
 
+% Define strjoin_ for compatibility with older MATLAB/Octave
+if exist('strjoin', 'builtin') || exist('strjoin', 'file')
+    opt.strjoin_ = @strjoin;
+else
+    opt.strjoin_ = @(c, d) sprintf([repmat(['%s' d], 1, length(c) - 1) '%s'], c{:});
+end
+
 rootisarray = 0;
 rootlevel = 0;
 forceroot = jsonopt('ForceRootName', 0, opt);
@@ -80,7 +87,7 @@ if (opt.multidocument && iscell(obj))
     for i = 1:numel(obj)
         yamldocs{i} = obj2yaml('', obj{i}, rootlevel, opt);
     end
-    yaml = ['---', sprintf('\n'), strjoin(yamldocs, [sprintf('\n'), '---', sprintf('\n')])];
+    yaml = ['---', sprintf('\n'), opt.strjoin_(yamldocs, [sprintf('\n'), '---', sprintf('\n')])];
 else
     yaml = obj2yaml(rootname, obj, rootlevel, opt);
 end
@@ -180,7 +187,7 @@ for i = 1:len
     end
 end
 
-txt = strjoin(lines, nl);
+txt = opt.strjoin_(lines, nl);
 
 %% -------------------------------------------------------------------------
 function txt = struct2yaml(name, item, level, opt)
@@ -253,7 +260,7 @@ if (len > 1)
             end
         end
     end
-    txt = strjoin(lines, nl);
+    txt = opt.strjoin_(lines, nl);
 else
     % Single struct
     names = fieldnames(item);
@@ -264,13 +271,13 @@ else
         for e = 1:numfields
             lines{e + 1} = obj2yaml(names{e}, item.(names{e}), level + 1, opt);
         end
-        txt = strjoin(lines, nl);
+        txt = opt.strjoin_(lines, nl);
     else
         lines = cell(1, numfields);
         for e = 1:numfields
             lines{e} = obj2yaml(names{e}, item.(names{e}), level, opt);
         end
-        txt = strjoin(lines, nl);
+        txt = opt.strjoin_(lines, nl);
     end
 end
 
@@ -357,7 +364,7 @@ if isvector(val)
     for i = 1:numel(val)
         vals{i} = sprintf(fmtstr, val(i));
     end
-    valstr = ['[', strjoin(vals, ', '), ']'];
+    valstr = ['[', opt.strjoin_(vals, ', '), ']'];
 else
     % Matrix - format as nested arrays
     rows = cell(1, size(val, 1));
@@ -366,9 +373,9 @@ else
         for j = 1:size(val, 2)
             rowvals{j} = sprintf(fmtstr, val(i, j));
         end
-        rows{i} = ['[', strjoin(rowvals, ', '), ']'];
+        rows{i} = ['[', opt.strjoin_(rowvals, ', '), ']'];
     end
-    valstr = ['[', strjoin(rows, ', '), ']'];
+    valstr = ['[', opt.strjoin_(rows, ', '), ']'];
 end
 
 %% -------------------------------------------------------------------------
@@ -454,7 +461,7 @@ if (~isempty(name))
             lines{i + 1} = obj2yaml(num2str(names{i}), val{i}, level + 1, opt);
         end
     end
-    txt = strjoin(lines, nl);
+    txt = opt.strjoin_(lines, nl);
 else
     lines = cell(1, numkeys);
     for i = 1:numkeys
@@ -464,7 +471,7 @@ else
             lines{i} = obj2yaml(num2str(names{i}), val{i}, level, opt);
         end
     end
-    txt = strjoin(lines, nl);
+    txt = opt.strjoin_(lines, nl);
 end
 
 %% -------------------------------------------------------------------------
@@ -485,14 +492,14 @@ if (nrows > 1)
         for i = 1:nrows
             lines{i + 1} = [indent2, strtrim(item(i, :))];
         end
-        txt = strjoin(lines, nl);
+        txt = opt.strjoin_(lines, nl);
     else
         lines = cell(1, nrows + 1);
         lines{1} = [indent_str, '|'];
         for i = 1:nrows
             lines{i + 1} = [indent2, strtrim(item(i, :))];
         end
-        txt = strjoin(lines, nl);
+        txt = opt.strjoin_(lines, nl);
     end
 else
     item = strtrim(item);
@@ -676,7 +683,7 @@ if (isvector(item))
                 lines{i} = [nextpad, '- [', sprintf(fmtstr, item(i)), ']'];
             end
         end
-        txt = strjoin(lines, nl);
+        txt = opt.strjoin_(lines, nl);
     end
 else
     nrows = size(item, 1);
@@ -707,7 +714,7 @@ else
             lines{i} = [nextpad, '- ', rowstr];
         end
     end
-    txt = strjoin(lines, nl);
+    txt = opt.strjoin_(lines, nl);
 end
 
 %% -------------------------------------------------------------------------
