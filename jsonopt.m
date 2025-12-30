@@ -21,16 +21,23 @@ function val = jsonopt(key, default, varargin)
 % -- this function is part of JSONLab toolbox (http://neurojson.org/jsonlab)
 %
 
-val = default;
-if (nargin <= 2)
+if nargin <= 2
+    val = default;
     return
 end
-key0 = lower(key);
+
 opt = varargin{1};
-if (isstruct(opt))
-    if (isfield(opt, key0))
-        val = opt.(key0);
-    elseif (isfield(opt, key))
-        val = opt.(key);
-    end
+if ~isstruct(opt)
+    val = default;
+    return
+end
+
+% Try lowercase key first (most common case)
+key0 = lower(key);
+if isfield(opt, key0)
+    val = opt.(key0);
+elseif ~strcmp(key, key0) && isfield(opt, key)
+    val = opt.(key);
+else
+    val = default;
 end

@@ -18,23 +18,9 @@ function output = saveyaml(rootname, obj, varargin)
 %      obj: a MATLAB object (array, cell, cell array, struct, struct array).
 %      filename: a string for the file name to save the output YAML data.
 %      opt: a struct for additional options, ignore to use default values.
-%           Most options from savejson are supported (see savejson help)
-%
-%           MultiDocument [0|1]: if set to 1 and obj is a cell array,
-%                         save each cell element as a separate YAML document
-%                         separated by '---'
-%           Indent [2|integer]: number of spaces for indentation
-%           FlowStyle [0|1]: if 1, use flow style for arrays/objects
-%           FloatFormat ['%.10g'|string]: format for floating point numbers
-%           EmptyArrayAsNull [0|1]: if 1, output empty arrays as null
 %
 % output:
 %      yaml: a string in YAML format
-%
-% examples:
-%      data=struct('name','test','values',[1 2 3]);
-%      saveyaml('',data)
-%      saveyaml('data',data,'output.yaml')
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -65,6 +51,7 @@ opt.intformat = jsonopt('IntFormat', '%.0f', opt);
 opt.parselogical = jsonopt('ParseLogical', 1, opt);
 opt.singletarray = jsonopt('SingletArray', 0, opt);
 opt.unpackhex = jsonopt('UnpackHex', 1, opt);
+opt.indent_base = repmat(' ', 1, opt.indent);
 
 rootisarray = 0;
 rootlevel = 0;
@@ -93,7 +80,7 @@ if (opt.multidocument && iscell(obj))
     for i = 1:numel(obj)
         yamldocs{i} = obj2yaml('', obj{i}, rootlevel, opt);
     end
-    yaml = ['---' sprintf('\n') joinlines(yamldocs, [sprintf('\n') '---' sprintf('\n')])];
+    yaml = ['---', sprintf('\n'), strjoin(yamldocs, [sprintf('\n'), '---', sprintf('\n')])];
 else
     yaml = obj2yaml(rootname, obj, rootlevel, opt);
 end
@@ -103,7 +90,6 @@ filename = jsonopt('FileName', '', opt);
 if (~isempty(filename))
     encoding = jsonopt('Encoding', '', opt);
     endian = jsonopt('Endian', 'n', opt);
-
     if (isempty(encoding))
         fid = fopen(filename, 'wt', endian);
     else
@@ -118,143 +104,303 @@ if (nargout > 0 || isempty(filename))
 end
 
 %% -------------------------------------------------------------------------
-function txt = obj2yaml(name, item, level, varargin)
+function txt = obj2yaml(name, item, level, opt)
 
 if (iscell(item) || (isa(item, 'string') && numel(item) > 1))
-    txt = cell2yaml(name, item, level, varargin{:});
-elseif (isa(item, 'jdict'))
-    txt = obj2yaml(name, item, level, varargin{:});
+    txt = cell2yaml(name, item, level, opt);
 elseif (isstruct(item))
-    txt = struct2yaml(name, item, level, varargin{:});
+    txt = struct2yaml(name, item, level, opt);
 elseif (isnumeric(item) || islogical(item))
-    txt = mat2yaml(name, item, level, varargin{:});
+    txt = mat2yaml(name, item, level, opt);
 elseif (ischar(item))
-    txt = str2yaml(name, item, level, varargin{:});
+    txt = str2yaml(name, item, level, opt);
 elseif (isa(item, 'function_handle'))
-    txt = struct2yaml(name, functions(item), level, varargin{:});
+    txt = struct2yaml(name, functions(item), level, opt);
 elseif (isa(item, 'containers.Map') || isa(item, 'dictionary'))
-    txt = map2yaml(name, item, level, varargin{:});
+    txt = map2yaml(name, item, level, opt);
 elseif (isa(item, 'categorical'))
-    txt = cell2yaml(name, cellstr(item), level, varargin{:});
+    txt = cell2yaml(name, cellstr(item), level, opt);
 elseif (isobject(item))
-    txt = matlabobject2yaml(name, item, level, varargin{:});
+    txt = matlabobject2yaml(name, item, level, opt);
 else
-    txt = any2yaml(name, item, level, varargin{:});
+    txt = any2yaml(name, item, level, opt);
 end
 
 %% -------------------------------------------------------------------------
-function txt = cell2yaml(name, item, level, varargin)
+function txt = cell2yaml(name, item, level, opt)
 if (~iscell(item) && ~isa(item, 'string'))
     error('input is not a cell or string array');
 end
 
-dim = size(item);
 len = numel(item);
-opt = varargin{1};
 indent_str = repmat(' ', 1, level * opt.indent);
+nl = sprintf('\n');
 
 if (len == 0)
     if (~isempty(name))
-        txt = sprintf('%s%s: []', indent_str, name);
+        txt = [indent_str, decodevarname(name, opt.unpackhex), ': []'];
     else
-        txt = sprintf('%s[]', indent_str);
+        txt = [indent_str, '[]'];
     end
     return
 end
 
+listlevel = level;
 if (~isempty(name))
-    txt = sprintf('%s%s:', indent_str, name);
-    lines = cell(1, len);
-    for i = 1:len
-        lines{i} = obj2yaml('', item{i}, level + 1, varargin{:});
-        if (isempty(regexp(strtrim(lines{i}), '^-', 'once')))
-            lines{i} = sprintf('%s- %s', repmat(' ', 1, (level + 1) * opt.indent), strtrim(lines{i}));
-        end
-    end
-    txt = sprintf('%s\n%s', txt, joinlines(lines, sprintf('\n')));
-else
-    lines = cell(1, len);
-    for i = 1:len
-        lines{i} = obj2yaml('', item{i}, level, varargin{:});
-        if (isempty(regexp(strtrim(lines{i}), '^-', 'once')))
-            lines{i} = sprintf('%s- %s', repmat(' ', 1, level * opt.indent), strtrim(lines{i}));
-        end
-    end
-    txt = joinlines(lines, sprintf('\n'));
+    listlevel = level + 1;
+end
+listindent = repmat(' ', 1, listlevel * opt.indent);
+
+lines = {};
+if (~isempty(name))
+    lines{end + 1} = [indent_str, decodevarname(name, opt.unpackhex), ':'];
 end
 
+for i = 1:len
+    lineitem = obj2yaml('', item{i}, listlevel, opt);
+    itemlines = regexp(lineitem, '\r?\n', 'split');
+
+    firstline = strtrim(itemlines{1});
+    if isempty(firstline)
+        lines{end + 1} = [listindent, '-'];
+    else
+        lines{end + 1} = [listindent, '- ', firstline];
+    end
+
+    for j = 2:length(itemlines)
+        origline = itemlines{j};
+        if ~isempty(origline)
+            stripped = strtrim(origline);
+            if ~isempty(stripped)
+                origspaces = length(origline) - length(stripped);
+                newspaces = origspaces + 2;
+                lines{end + 1} = [repmat(' ', 1, newspaces), stripped];
+            end
+        end
+    end
+end
+
+txt = strjoin(lines, nl);
+
 %% -------------------------------------------------------------------------
-function txt = struct2yaml(name, item, level, varargin)
+function txt = struct2yaml(name, item, level, opt)
 if (~isstruct(item))
     error('input is not a struct');
 end
 
-dim = size(item);
 len = numel(item);
-opt = varargin{1};
 indent_str = repmat(' ', 1, level * opt.indent);
+nl = sprintf('\n');
 
 if (isempty(item))
     if (~isempty(name))
-        txt = sprintf('%s%s: {}', indent_str, name);
+        txt = [indent_str, decodevarname(name, opt.unpackhex), ': {}'];
     else
-        txt = sprintf('%s{}', indent_str);
+        txt = [indent_str, '{}'];
     end
     return
 end
 
 if (len > 1)
-    % Array of structs - represent as compact list
+    % Array of structs - represent as list
     if (~isempty(name))
-        txt = sprintf('%s%s:', indent_str, decodevarname(name, opt.unpackhex));
+        header = [indent_str, decodevarname(name, opt.unpackhex), ':'];
         listindent = (level + 1) * opt.indent;
     else
-        txt = '';
+        header = '';
         listindent = level * opt.indent;
     end
 
-    for i = 1:len
-        names = fieldnames(item(i));
+    listpad = repmat(' ', 1, listindent);
 
-        % Add list marker with first field on same line
-        if (i > 1 || ~isempty(name))
-            txt = sprintf('%s\n%s- %s: ', txt, repmat(' ', 1, listindent), names{1});
+    names = fieldnames(item(1));
+    numfields = length(names);
+
+    lines = {};
+    if ~isempty(header)
+        lines{end + 1} = header;
+    end
+
+    for i = 1:len
+        % First field with list marker
+        firstfieldname = names{1};
+        firstval = item(i).(firstfieldname);
+        firstlevel = (listindent / opt.indent) + 1;
+        [firstvalstr, iscomplex] = formatFieldValue(firstval, firstlevel, opt);
+
+        if iscomplex
+            % Complex value needs to go on next line
+            lines{end + 1} = [listpad, '- ', firstfieldname, ':'];
+            % Add the complex value lines with proper indentation
+            lines{end + 1} = firstvalstr;
         else
-            txt = sprintf('%s- %s: ', repmat(' ', 1, listindent), names{1});
+            lines{end + 1} = [listpad, '- ', firstfieldname, ': ', firstvalstr];
         end
 
-        % Format first field value inline
-        firstval = item(i).(names{1});
-        txt = sprintf('%s%s', txt, formatSimpleValue(firstval, opt));
+        % Remaining fields
+        fieldpad = repmat(' ', 1, listindent + opt.indent);
+        for e = 2:numfields
+            fieldname = names{e};
+            fieldval = item(i).(fieldname);
+            fieldlevel = (listindent / opt.indent) + 2;
+            [fieldvalstr, iscomplex] = formatFieldValue(fieldval, fieldlevel, opt);
 
-        % Add remaining fields with proper indentation
-        for e = 2:length(names)
-            fieldval = item(i).(names{e});
-            txt = sprintf('%s\n%s%s: %s', txt, repmat(' ', 1, listindent + opt.indent), ...
-                          names{e}, formatSimpleValue(fieldval, opt));
+            if iscomplex
+                lines{end + 1} = [fieldpad, fieldname, ':'];
+                lines{end + 1} = fieldvalstr;
+            else
+                lines{end + 1} = [fieldpad, fieldname, ': ', fieldvalstr];
+            end
         end
     end
+    txt = strjoin(lines, nl);
 else
     % Single struct
     names = fieldnames(item);
+    numfields = length(names);
     if (~isempty(name))
-        txt = sprintf('%s%s:', indent_str, decodevarname(name, opt.unpackhex));
-        lines = cell(1, length(names));
-        for e = 1:length(names)
-            lines{e} = obj2yaml(names{e}, item.(names{e}), level + 1, varargin{:});
+        lines = cell(1, numfields + 1);
+        lines{1} = [indent_str, decodevarname(name, opt.unpackhex), ':'];
+        for e = 1:numfields
+            lines{e + 1} = obj2yaml(names{e}, item.(names{e}), level + 1, opt);
         end
-        txt = sprintf('%s\n%s', txt, joinlines(lines, sprintf('\n')));
+        txt = strjoin(lines, nl);
     else
-        lines = cell(1, length(names));
-        for e = 1:length(names)
-            lines{e} = obj2yaml(names{e}, item.(names{e}), level, varargin{:});
+        lines = cell(1, numfields);
+        for e = 1:numfields
+            lines{e} = obj2yaml(names{e}, item.(names{e}), level, opt);
         end
-        txt = joinlines(lines, sprintf('\n'));
+        txt = strjoin(lines, nl);
     end
 end
 
 %% -------------------------------------------------------------------------
-function txt = map2yaml(name, item, level, varargin)
+function [valstr, iscomplex] = formatFieldValue(val, level, opt)
+% Format a field value, returning whether it's complex (needs own line)
+% level is the indentation level (not spaces, but level number)
+iscomplex = false;
+
+if isempty(val)
+    if iscell(val)
+        valstr = '[]';
+    elseif isstruct(val)
+        valstr = '{}';
+    else
+        valstr = 'null';
+    end
+elseif isstruct(val)
+    if numel(val) >= 1
+        % Struct or struct array - complex, needs its own lines
+        iscomplex = true;
+        valstr = obj2yaml('', val, level, opt);
+    else
+        valstr = '{}';
+    end
+elseif iscell(val)
+    if numel(val) == 0
+        valstr = '[]';
+    else
+        % Non-empty cell - complex
+        iscomplex = true;
+        valstr = obj2yaml('', val, level, opt);
+    end
+elseif isnumeric(val) || islogical(val)
+    if numel(val) == 0
+        valstr = 'null';
+    elseif numel(val) == 1
+        valstr = formatScalar(val, opt);
+    else
+        % Array - use flow style
+        valstr = formatFlowArray(val, opt);
+    end
+elseif ischar(val)
+    valstr = formatString(val);
+else
+    valstr = 'null';
+end
+
+%% -------------------------------------------------------------------------
+function valstr = formatScalar(val, opt)
+if islogical(val) && opt.parselogical
+    if val
+        valstr = 'true';
+    else
+        valstr = 'false';
+    end
+elseif isinf(val)
+    if val > 0
+        valstr = '.inf';
+    else
+        valstr = '-.inf';
+    end
+elseif isnan(val)
+    valstr = '.nan';
+elseif isinteger(val)
+    valstr = sprintf(opt.intformat, val);
+else
+    valstr = sprintf(opt.floatformat, val);
+end
+
+%% -------------------------------------------------------------------------
+function valstr = formatFlowArray(val, opt)
+% Format numeric array in flow style [a, b, c]
+if isinteger(val)
+    fmtstr = opt.intformat;
+else
+    fmtstr = opt.floatformat;
+end
+
+if isvector(val)
+    vals = cell(1, numel(val));
+    for i = 1:numel(val)
+        vals{i} = sprintf(fmtstr, val(i));
+    end
+    valstr = ['[', strjoin(vals, ', '), ']'];
+else
+    % Matrix - format as nested arrays
+    rows = cell(1, size(val, 1));
+    for i = 1:size(val, 1)
+        rowvals = cell(1, size(val, 2));
+        for j = 1:size(val, 2)
+            rowvals{j} = sprintf(fmtstr, val(i, j));
+        end
+        rows{i} = ['[', strjoin(rowvals, ', '), ']'];
+    end
+    valstr = ['[', strjoin(rows, ', '), ']'];
+end
+
+%% -------------------------------------------------------------------------
+function valstr = formatString(str)
+str = strtrim(str);
+need_quotes = false;
+
+if ~isempty(str)
+    c1 = str(1);
+    if c1 == '[' || c1 == '{' || c1 == '>' || c1 == '|' || c1 == '!' || ...
+       c1 == '&' || c1 == '*' || c1 == '''' || c1 == '"'
+        need_quotes = true;
+    elseif any(str == ' ' | str == ':' | str == '#' | str == '[' | str == ']' | ...
+               str == '{' | str == '}' | str == ',' | str == '"' | str == '''')
+        need_quotes = true;
+    else
+        strl = lower(str);
+        if strcmp(strl, 'true') || strcmp(strl, 'false') || strcmp(strl, 'null') || ...
+           strcmp(strl, 'yes') || strcmp(strl, 'no') || strcmp(strl, 'on') || strcmp(strl, 'off')
+            need_quotes = true;
+        elseif lookslikenumber(str)
+            need_quotes = true;
+        end
+    end
+end
+
+if need_quotes
+    valstr = ['"', escapeyamlstring(str), '"'];
+else
+    valstr = str;
+end
+
+%% -------------------------------------------------------------------------
+function txt = map2yaml(name, item, level, opt)
 itemtype = isa(item, 'containers.Map');
 if (isa(item, 'dictionary'))
     itemtype = 2;
@@ -273,105 +419,147 @@ if (~iscell(val))
     val = num2cell(val);
 end
 
-opt = varargin{1};
 indent_str = repmat(' ', 1, level * opt.indent);
+nl = sprintf('\n');
 
 if (isempty(item))
     if (~isempty(name))
-        txt = sprintf('%s%s: {}', indent_str, name);
+        txt = [indent_str, name, ': {}'];
     else
-        txt = sprintf('%s{}', indent_str);
+        txt = [indent_str, '{}'];
     end
     return
 end
 
+numkeys = length(names);
 if (~isempty(name))
-    txt = sprintf('%s%s:', indent_str, decodevarname(name, opt.unpackhex));
-    lines = cell(1, length(names));
-    for i = 1:length(names)
+    lines = cell(1, numkeys + 1);
+    lines{1} = [indent_str, decodevarname(name, opt.unpackhex), ':'];
+    for i = 1:numkeys
         if (ischar(names{i}))
-            lines{i} = obj2yaml(names{i}, val{i}, level + 1, varargin{:});
+            lines{i + 1} = obj2yaml(names{i}, val{i}, level + 1, opt);
         else
-            lines{i} = obj2yaml(num2str(names{i}), val{i}, level + 1, varargin{:});
+            lines{i + 1} = obj2yaml(num2str(names{i}), val{i}, level + 1, opt);
         end
     end
-    txt = sprintf('%s\n%s', txt, joinlines(lines, sprintf('\n')));
+    txt = strjoin(lines, nl);
 else
-    lines = cell(1, length(names));
-    for i = 1:length(names)
+    lines = cell(1, numkeys);
+    for i = 1:numkeys
         if (ischar(names{i}))
-            lines{i} = obj2yaml(names{i}, val{i}, level, varargin{:});
+            lines{i} = obj2yaml(names{i}, val{i}, level, opt);
         else
-            lines{i} = obj2yaml(num2str(names{i}), val{i}, level, varargin{:});
+            lines{i} = obj2yaml(num2str(names{i}), val{i}, level, opt);
         end
     end
-    txt = joinlines(lines, sprintf('\n'));
+    txt = strjoin(lines, nl);
 end
 
 %% -------------------------------------------------------------------------
-function txt = str2yaml(name, item, level, varargin)
+function txt = str2yaml(name, item, level, opt)
 if (~ischar(item))
     error('input is not a string');
 end
 
-opt = varargin{1};
 indent_str = repmat(' ', 1, level * opt.indent);
+nl = sprintf('\n');
 
-% Handle multiline strings (char arrays with multiple rows)
-if (size(item, 1) > 1)
+nrows = size(item, 1);
+if (nrows > 1)
+    indent2 = [indent_str, '  '];
     if (~isempty(name))
-        txt = sprintf('%s%s: |', indent_str, decodevarname(name, opt.unpackhex));
-        for i = 1:size(item, 1)
-            txt = sprintf('%s\n%s  %s', txt, indent_str, strtrim(item(i, :)));
+        lines = cell(1, nrows + 1);
+        lines{1} = [indent_str, decodevarname(name, opt.unpackhex), ': |'];
+        for i = 1:nrows
+            lines{i + 1} = [indent2, strtrim(item(i, :))];
         end
+        txt = strjoin(lines, nl);
     else
-        txt = sprintf('%s|', indent_str);
-        for i = 1:size(item, 1)
-            txt = sprintf('%s\n%s  %s', txt, indent_str, strtrim(item(i, :)));
+        lines = cell(1, nrows + 1);
+        lines{1} = [indent_str, '|'];
+        for i = 1:nrows
+            lines{i + 1} = [indent2, strtrim(item(i, :))];
         end
+        txt = strjoin(lines, nl);
     end
 else
-    % Single line string
     item = strtrim(item);
-
-    % Determine if quotes are needed
     need_quotes = false;
     if ~isempty(item)
-        % Check for special YAML characters that require quoting
-        if ~isempty(regexp(item, '[\[\]{}:,#@&*!|>''"%]', 'once'))
+        c1 = item(1);
+        if c1 == '[' || c1 == '{' || c1 == '>' || c1 == '|' || c1 == '!' || c1 == '&' || c1 == '*'
             need_quotes = true;
-            % Check for reserved words
-        elseif strcmpi(item, 'true') || strcmpi(item, 'false') || strcmpi(item, 'null')
+        elseif any(item == ' ')
             need_quotes = true;
-            % Check if it could be parsed as a number
-        elseif ~isempty(str2num(item))
+        elseif any(item == ':' | item == '#' | item == '[' | item == ']' | ...
+                   item == '{' | item == '}' | item == ',' | item == '&' | ...
+                   item == '*' | item == '!' | item == '|' | item == '>' | ...
+                   item == '''' | item == '"' | item == '%' | item == '@' | ...
+                   item == 10 | item == 13 | item == 9)
             need_quotes = true;
-            % Check if string contains spaces
-        elseif ~isempty(strfind(item, ' '))
-            need_quotes = true;
+        else
+            iteml = lower(item);
+            if strcmp(iteml, 'true') || strcmp(iteml, 'false') || strcmp(iteml, 'null') || ...
+               strcmp(iteml, 'yes') || strcmp(iteml, 'no') || strcmp(iteml, 'on') || strcmp(iteml, 'off')
+                need_quotes = true;
+            elseif lookslikenumber(item)
+                need_quotes = true;
+            end
         end
     end
 
     if (need_quotes)
         item = escapeyamlstring(item);
-        item = ['"' item '"'];
+        item = ['"', item, '"'];
     end
 
     if (~isempty(name))
-        txt = sprintf('%s%s: %s', indent_str, decodevarname(name, opt.unpackhex), item);
+        txt = [indent_str, decodevarname(name, opt.unpackhex), ': ', item];
     else
-        txt = sprintf('%s%s', indent_str, item);
+        txt = [indent_str, item];
     end
 end
 
 %% -------------------------------------------------------------------------
-function txt = mat2yaml(name, item, level, varargin)
+function tf = lookslikenumber(s)
+if isempty(s)
+    tf = false;
+    return
+end
+
+c = s(1);
+if ~((c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.' || c == 'i' || c == 'I' || c == 'n' || c == 'N')
+    tf = false;
+    return
+end
+
+len = length(s);
+if len <= 4
+    sl = lower(s);
+    if strcmp(sl, '.inf') || strcmp(sl, '.nan') || strcmp(sl, 'inf') || strcmp(sl, 'nan')
+        tf = true;
+        return
+    end
+end
+if len <= 5
+    sl = lower(s);
+    if strcmp(sl, '-.inf') || strcmp(sl, '+.inf') || strcmp(sl, '-inf') || strcmp(sl, '+inf')
+        tf = true;
+        return
+    end
+end
+
+numpattern = '^[+-]?((\d+\.?\d*|\d*\.\d+)([eE][+-]?\d+)?|0[xX][0-9a-fA-F]+)$';
+tf = ~isempty(regexp(s, numpattern, 'once'));
+
+%% -------------------------------------------------------------------------
+function txt = mat2yaml(name, item, level, opt)
 if (~isnumeric(item) && ~islogical(item))
     error('input is not an array');
 end
 
-opt = varargin{1};
 indent_str = repmat(' ', 1, level * opt.indent);
+nl = sprintf('\n');
 
 if (isempty(item))
     emptyasnull = jsonopt('EmptyArrayAsNull', 0, opt);
@@ -382,14 +570,13 @@ if (isempty(item))
     end
 
     if (~isempty(name))
-        txt = sprintf('%s%s: %s', indent_str, decodevarname(name, opt.unpackhex), valstr);
+        txt = [indent_str, decodevarname(name, opt.unpackhex), ': ', valstr];
     else
-        txt = sprintf('%s%s', indent_str, valstr);
+        txt = [indent_str, valstr];
     end
     return
 end
 
-% Format numbers
 if (islogical(item) && opt.parselogical)
     if (numel(item) == 1)
         if (item)
@@ -398,22 +585,15 @@ if (islogical(item) && opt.parselogical)
             valstr = 'false';
         end
         if (~isempty(name))
-            txt = sprintf('%s%s: %s', indent_str, decodevarname(name, opt.unpackhex), valstr);
+            txt = [indent_str, decodevarname(name, opt.unpackhex), ': ', valstr];
         else
-            txt = sprintf('%s%s', indent_str, valstr);
+            txt = [indent_str, valstr];
         end
         return
     end
 end
 
-% Handle scalar
 if (numel(item) == 1)
-    if (isinteger(item))
-        valstr = sprintf(opt.intformat, item);
-    else
-        valstr = sprintf(opt.floatformat, item);
-    end
-
     if (isinf(item))
         if (item > 0)
             valstr = '.inf';
@@ -422,84 +602,94 @@ if (numel(item) == 1)
         end
     elseif (isnan(item))
         valstr = '.nan';
+    elseif (isinteger(item))
+        valstr = sprintf(opt.intformat, item);
+    else
+        valstr = sprintf(opt.floatformat, item);
     end
 
     if (~isempty(name))
-        txt = sprintf('%s%s: %s', indent_str, decodevarname(name, opt.unpackhex), valstr);
+        txt = [indent_str, decodevarname(name, opt.unpackhex), ': ', valstr];
     else
-        txt = sprintf('%s%s', indent_str, valstr);
+        txt = [indent_str, valstr];
     end
     return
 end
 
-% Handle vectors and matrices
+if (isinteger(item))
+    fmtstr = opt.intformat;
+else
+    fmtstr = opt.floatformat;
+end
+fmtstr_sep = [fmtstr, ', '];
+
 if (isvector(item))
-    % Check if row or column vector
     if (size(item, 1) == 1)
         % Row vector - use flow style
-        if (isinteger(item))
-            formatstr = opt.intformat;
+        if length(item) > 1
+            valstr = ['[', sprintf(fmtstr_sep, item(1:end - 1)), sprintf(fmtstr, item(end)), ']'];
         else
-            formatstr = opt.floatformat;
+            valstr = ['[', sprintf(fmtstr, item(1)), ']'];
         end
 
-        valstr = ['[' sprintf([formatstr ', '], item(1:end - 1)) sprintf(formatstr, item(end)) ']'];
-
         if (~isempty(name))
-            txt = sprintf('%s%s: %s', indent_str, decodevarname(name, opt.unpackhex), valstr);
+            txt = [indent_str, decodevarname(name, opt.unpackhex), ': ', valstr];
         else
-            txt = sprintf('%s%s', indent_str, valstr);
+            txt = [indent_str, valstr];
         end
     else
-        % Column vector - use list style with single-element arrays
+        % Column vector - use list style
+        n = length(item);
         if (~isempty(name))
-            txt = sprintf('%s%s:', indent_str, decodevarname(name, opt.unpackhex));
+            lines = cell(1, n + 1);
+            lines{1} = [indent_str, decodevarname(name, opt.unpackhex), ':'];
+            nextpad = repmat(' ', 1, (level + 1) * opt.indent);
+            for i = 1:n
+                lines{i + 1} = [nextpad, '- [', sprintf(fmtstr, item(i)), ']'];
+            end
         else
-            txt = '';
-        end
-
-        if (isinteger(item))
-            formatstr = opt.intformat;
-        else
-            formatstr = opt.floatformat;
-        end
-
-        for i = 1:length(item)
-            valstr = ['[' sprintf(formatstr, item(i)) ']'];
-            if (~isempty(name))
-                txt = sprintf('%s\n%s- %s', txt, repmat(' ', 1, (level + 1) * opt.indent), valstr);
-            else
-                txt = sprintf('%s\n%s- %s', txt, repmat(' ', 1, level * opt.indent), valstr);
+            lines = cell(1, n);
+            nextpad = repmat(' ', 1, level * opt.indent);
+            for i = 1:n
+                lines{i} = [nextpad, '- [', sprintf(fmtstr, item(i)), ']'];
             end
         end
+        txt = strjoin(lines, nl);
     end
 else
-    % 2D or higher - use nested lists
+    nrows = size(item, 1);
+    ncols = size(item, 2);
     if (~isempty(name))
-        txt = sprintf('%s%s:', indent_str, decodevarname(name, opt.unpackhex));
+        lines = cell(1, nrows + 1);
+        lines{1} = [indent_str, decodevarname(name, opt.unpackhex), ':'];
+        nextpad = repmat(' ', 1, (level + 1) * opt.indent);
+        for i = 1:nrows
+            row = item(i, :);
+            if ncols > 1
+                rowstr = ['[', sprintf(fmtstr_sep, row(1:end - 1)), sprintf(fmtstr, row(end)), ']'];
+            else
+                rowstr = ['[', sprintf(fmtstr, row(1)), ']'];
+            end
+            lines{i + 1} = [nextpad, '- ', rowstr];
+        end
     else
-        txt = '';
-    end
-
-    for i = 1:size(item, 1)
-        row = item(i, :);
-        if (isinteger(row))
-            formatstr = opt.intformat;
-        else
-            formatstr = opt.floatformat;
-        end
-        rowstr = ['[' sprintf([formatstr ', '], row(1:end - 1)) sprintf(formatstr, row(end)) ']'];
-
-        if (~isempty(name))
-            txt = sprintf('%s\n%s- %s', txt, repmat(' ', 1, (level + 1) * opt.indent), rowstr);
-        else
-            txt = sprintf('%s\n%s- %s', txt, repmat(' ', 1, level * opt.indent), rowstr);
+        lines = cell(1, nrows);
+        nextpad = repmat(' ', 1, level * opt.indent);
+        for i = 1:nrows
+            row = item(i, :);
+            if ncols > 1
+                rowstr = ['[', sprintf(fmtstr_sep, row(1:end - 1)), sprintf(fmtstr, row(end)), ']'];
+            else
+                rowstr = ['[', sprintf(fmtstr, row(1)), ']'];
+            end
+            lines{i} = [nextpad, '- ', rowstr];
         end
     end
+    txt = strjoin(lines, nl);
 end
 
 %% -------------------------------------------------------------------------
-function txt = matlabobject2yaml(name, item, level, varargin)
+function txt = matlabobject2yaml(name, item, level, opt)
 try
     if numel(item) == 0
         st = struct();
@@ -511,16 +701,15 @@ try
             end
         end
     end
-    txt = struct2yaml(name, st, level, varargin{:});
+    txt = struct2yaml(name, st, level, opt);
 catch
-    txt = any2yaml(name, item, level, varargin{:});
+    txt = any2yaml(name, item, level, opt);
 end
 
 %% -------------------------------------------------------------------------
-function txt = any2yaml(name, item, level, varargin)
-opt = varargin{1};
+function txt = any2yaml(name, item, level, opt)
 indent_str = repmat(' ', 1, level * opt.indent);
-txt = sprintf('%s%s: "unsupported type: %s"', indent_str, name, class(item));
+txt = [indent_str, name, ': "unsupported type: ', class(item), '"'];
 
 %% -------------------------------------------------------------------------
 function newstr = escapeyamlstring(str)
@@ -528,42 +717,14 @@ newstr = str;
 if (isempty(str))
     return
 end
-% Escape special characters for YAML double-quoted strings
+
+bytes = uint8(str);
+if ~any(bytes == 92 | bytes == 34 | bytes < 32)
+    return
+end
+
 newstr = strrep(newstr, '\', '\\');
 newstr = strrep(newstr, '"', '\"');
 newstr = strrep(newstr, sprintf('\n'), '\n');
 newstr = strrep(newstr, sprintf('\r'), '\r');
 newstr = strrep(newstr, sprintf('\t'), '\t');
-
-%% -------------------------------------------------------------------------
-function valstr = formatSimpleValue(val, opt)
-% Format simple scalar values (used in struct arrays)
-
-if (isnumeric(val) && isscalar(val))
-    if (isinteger(val))
-        valstr = sprintf(opt.intformat, val);
-    else
-        valstr = sprintf(opt.floatformat, val);
-    end
-elseif (ischar(val))
-    valstr = val;
-    % Check if quotes are needed
-    if (~isempty(strfind(valstr, ' ')) || ~isempty(regexp(valstr, '[\[\]{}:,#@&*!|>''"%]', 'once')) || ...
-        strcmpi(valstr, 'true') || strcmpi(valstr, 'false') || strcmpi(valstr, 'null') || ~isempty(str2num(valstr)))
-        valstr = ['"' strrep(valstr, '"', '\"') '"'];
-    end
-elseif (islogical(val) && opt.parselogical)
-    if (val)
-        valstr = 'true';
-    else
-        valstr = 'false';
-    end
-else
-    valstr = 'null';
-end
-
-%% -------------------------------------------------------------------------
-
-function str = joinlines(lines, sep)
-
-str = [sprintf(['%s' sep], lines{1:end - 1}) lines{end}];

@@ -99,32 +99,50 @@ opt = varargin2struct(varargin{:});
 
 if (length(fname) < 4096 && exist(fname, 'file'))
     fid = fopen(fname, 'rb');
-    string = fread(fid, jsonopt('MaxBuffer', inf, opt), 'uint8=>char')';
+    inputstr = fread(fid, jsonopt('MaxBuffer', inf, opt), 'uint8=>char')';
     fclose(fid);
 elseif (all(fname < 128) && ~isempty(regexpi(fname, '^\s*(http|https|ftp|file)://')))
     if (exist('webread'))
-        string = char(webread(fname, weboptions('ContentType', 'binary')))';
+        inputstr = char(webread(fname, weboptions('ContentType', 'binary')))';
     else
-        string = urlread(fname);
+        inputstr = urlread(fname);
     end
 elseif (~isempty(fname) && any(fname(1) == '[{SCBHiUIulmLMhdDTFZN'))
-    string = fname;
+    inputstr = fname;
 else
     error('input file does not exist or buffer is invalid');
 end
 
-pos = 1;
-inputlen = length(string);
-inputstr = string;
+inputlen = length(inputstr);
+opt.inputlen_ = inputlen;
+opt.inputstr_ = inputstr;
 
 opt.simplifycell = jsonopt('SimplifyCell', 1, opt);
 opt.simplifycellarray = jsonopt('SimplifyCellArray', 0, opt);
 opt.usemap = jsonopt('UseMap', 0, opt);
 opt.nameisstring = jsonopt('NameIsString', 0, opt);
-mmaponly = jsonopt('MmapOnly', 0, opt);
+opt.mmaponly = jsonopt('MmapOnly', 0, opt);
 
 [os, maxelem, systemendian] = computer;
 opt.flipendian_ = (systemendian ~= upper(jsonopt('Endian', 'L', opt)));
+
+% Precompute type lookup table for parse_number - major optimization
+% Maps ASCII codes to [type_index, byte_length]
+% Types: 'iUIulmLMhdD' -> indices 1-11
+opt.typemap_ = zeros(256, 2, 'uint8');
+typechars = 'iUIulmLMhdD';
+bytelen =   [1, 1, 2, 2, 4, 4, 8, 8, 2, 4, 8];
+for i = 1:11
+    opt.typemap_(uint8(typechars(i)), :) = [i, bytelen(i)];
+end
+
+% Precompute type strings
+if exist('half', 'builtin')
+    opt.typestr_ = {'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'single', 'double'};
+else
+    opt.typestr_ = {'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'uint16', 'single', 'double'};
+end
+opt.bytelen_ = bytelen;
 
 objid = jsonopt('ObjectID', 0, opt);
 maxobjid = max(objid);
@@ -133,50 +151,58 @@ if (maxobjid == 0)
 end
 
 opt.jsonpath_ = '$';
-if (nargout > 1 || mmaponly)
+needmmap = (nargout > 1 || opt.mmaponly);
+if needmmap
     mmap = {};
 end
+
+pos = 1;
 jsoncount = 1;
+
 while pos <= inputlen
-    [cc, pos] = next_char(inputstr, pos);
-    switch (cc)
+    cc = inputstr(pos);
+    while cc == 'N'
+        pos = pos + 1;
+        cc = inputstr(pos);
+    end
+    switch cc
         case '{'
-            if (nargout > 1 || mmaponly)
+            if needmmap
                 mmap{end + 1} = {opt.jsonpath_, pos};
-                [data{jsoncount}, pos, newmmap] = parse_object(inputstr, pos, opt);
+                [data{jsoncount}, pos, newmmap] = parse_object(pos, opt);
                 if (pos < 0)
                     opt.usemap = 1;
-                    [data{jsoncount}, pos, newmmap] = parse_object(inputstr, -pos, opt);
+                    [data{jsoncount}, pos, newmmap] = parse_object(-pos, opt);
                 end
                 mmap{end}{2} = [mmap{end}{2}, pos - mmap{end}{2}];
                 mmap = [mmap(:); newmmap(:)];
             else
-                [data{jsoncount}, pos] = parse_object(inputstr, pos, opt);
+                [data{jsoncount}, pos] = parse_object(pos, opt);
                 if (pos < 0)
                     opt.usemap = 1;
-                    [data{jsoncount}, pos] = parse_object(inputstr, -pos, opt);
+                    [data{jsoncount}, pos] = parse_object(-pos, opt);
                 end
             end
         case '['
-            if (nargout > 1 || mmaponly)
+            if needmmap
                 mmap{end + 1} = {opt.jsonpath_, pos};
-                [data{jsoncount}, pos, newmmap] = parse_array(inputstr, pos, opt);
+                [data{jsoncount}, pos, newmmap] = parse_array(pos, opt);
                 mmap{end}{2} = [mmap{end}{2}, pos - mmap{end}{2}];
                 mmap = [mmap(:); newmmap(:)];
             else
-                [data{jsoncount}, pos] = parse_array(inputstr, pos, opt);
+                [data{jsoncount}, pos] = parse_array(pos, opt);
             end
         case {'S', 'C', 'B', 'H', 'i', 'U', 'I', 'u', 'l', 'm', 'L', 'M', 'h', 'd', 'D', 'T', 'F', 'Z', 'N'}
-            [data{jsoncount}, pos] = parse_value(inputstr, pos, [], opt);
+            [data{jsoncount}, pos] = parse_value(pos, [], opt);
         otherwise
-            error_pos('Root level structure must start with a valid marker "{[SCBHiUIulmLMhdDTFZN"', inputstr, pos);
+            error_pos('Root level structure must start with a valid marker "{[SCBHiUIulmLMhdDTFZN"', opt, pos);
     end
-    if (jsoncount >= maxobjid)
+    if jsoncount >= maxobjid
         break
     end
     opt.jsonpath_ = sprintf('$%d', jsoncount);
     jsoncount = jsoncount + 1;
-end % while
+end
 
 if (length(objid) > 1 || min(objid) > 1)
     data = data(objid(objid <= length(data)));
@@ -186,7 +212,7 @@ jsoncount = length(data);
 if (jsoncount == 1 && iscell(data))
     data = data{1};
 end
-if (nargout > 1 || mmaponly)
+if needmmap
     mmap = mmap';
     mmap = filterjsonmmap(mmap, jsonopt('MMapExclude', {}, opt), 0);
     mmap = filterjsonmmap(mmap, jsonopt('MMapInclude', {}, opt), 1);
@@ -200,7 +226,7 @@ if (jsonopt('JDataDecode', 1, varargin{:}) == 1)
                 ME.identifier, ME.message, char(savejson('', ME.stack)));
     end
 end
-if (mmaponly)
+if opt.mmaponly
     data = mmap;
 end
 
@@ -208,78 +234,119 @@ end
 %% helper functions
 %% -------------------------------------------------------------------------
 
-function [data, adv] = parse_block(inputstr, pos, type, count, varargin)
-if (count >= 0 && ~isempty(type) && isempty(strfind('iUIulmLMdDh', type)))
-    adv = 0;
-    switch (type)
-        case {'S', 'H', '{', '['}
-            data = cell(1, count);
-            adv = pos;
-            for i = 1:count
-                [data{i}, pos] = parse_value(inputstr, pos, type, varargin{:});
-            end
-            adv = pos - adv;
-        case {'C', 'B'}
-            data = inputstr(pos:pos + count - 1);
-            adv = count;
-        case {'T', 'F', 'N'}
-            error_pos(sprintf('For security reasons, optimized type %c is disabled at position %%d', type), inputstr, pos);
-        otherwise
-            error_pos(sprintf('Unsupported optimized type %c at position %%d', type), inputstr, pos);
+function [data, adv] = parse_block(pos, type, count, opt)
+inputstr = opt.inputstr_;
+if (count >= 0 && ~isempty(type))
+    id = opt.typemap_(uint8(type), 1);
+    if id == 0 || type == 'S' || type == 'H' || type == '{' || type == '['
+        adv = 0;
+        switch type
+            case {'S', 'H', '{', '['}
+                data = cell(1, count);
+                adv = pos;
+                for i = 1:count
+                    [data{i}, pos] = parse_value(pos, type, opt);
+                end
+                adv = pos - adv;
+            case {'C', 'B'}
+                data = inputstr(pos:pos + count - 1);
+                adv = count;
+            case {'T', 'F', 'N'}
+                error_pos(sprintf('For security reasons, optimized type %c is disabled at position %%d', type), opt, pos);
+            otherwise
+                error_pos(sprintf('Unsupported optimized type %c at position %%d', type), opt, pos);
+        end
+        return
     end
-    return
 end
-[cid, len] = elem_info(inputstr, pos, type);
+cid = opt.typestr_{opt.typemap_(uint8(type), 1)};
+len = double(opt.typemap_(uint8(type), 2));
 datastr = inputstr(pos:pos + len * count - 1);
 newdata = uint8(datastr);
-if (varargin{1}.flipendian_)
+if opt.flipendian_
     newdata = swapbytes(typecast(newdata, cid));
 end
 data = typecast(newdata, cid);
 adv = double(len * count);
+
 %% -------------------------------------------------------------------------
 
-function [object, pos, mmap] = parse_array(inputstr,  pos, varargin) % JSON array is written in row-major order
-if (nargout > 2)
+function [object, pos, mmap] = parse_array(pos, opt)
+% JSON array is written in row-major order
+needmmap = (nargout > 2);
+if needmmap
     mmap = {};
-    origpath = varargin{1}.jsonpath_;
+    origpath = opt.jsonpath_;
 end
-pos = parse_char(inputstr, pos, '[');
+
+inputstr = opt.inputstr_;
+inputlen = opt.inputlen_;
+
+pos = pos + 1;  % skip '['
 object = cell(0, 1);
 dim = [];
 iscolumn = 0;
 type = '';
 count = -1;
-[cc, pos] = next_char(inputstr, pos);
-if (cc == '$')
+
+if pos > inputlen
+    return
+end
+
+cc = inputstr(pos);
+while cc == 'N'
+    pos = pos + 1;
+    cc = inputstr(pos);
+end
+
+if cc == '$'
     type = inputstr(pos + 1);
     pos = pos + 2;
-end
-[cc, pos] = next_char(inputstr, pos);
-if (cc == '#')
-    pos = pos + 1;
-    [cc, pos] = next_char(inputstr, pos);
-    if (cc == '[')
-        if (isfield(varargin{1}, 'noembedding_') && varargin{1}.noembedding_ == 1)
-            error_pos('ND array size specifier does not support embedding', inputstr, pos);
-        end
-        varargin{1}.noembedding_ = 1;
-        if (pos + 1 < length(inputstr) && inputstr(pos + 1) == '[')
-            iscolumn = 1;
-        end
-        [dim, pos] = parse_array(inputstr, pos, varargin{:});
-        count = prod(double(dim));
-        varargin{1}.noembedding_ = 0;
-    else
-        [val, pos] = parse_number(inputstr, pos, varargin{:});
-        count = double(val);
+    cc = inputstr(pos);
+    while cc == 'N'
+        pos = pos + 1;
+        cc = inputstr(pos);
     end
 end
-if (~isempty(type))
-    if (count >= 0)
-        [object, adv] = parse_block(inputstr, pos, type, count, varargin{:});
+
+if cc == '#'
+    pos = pos + 1;
+    if pos <= inputlen
+        cc = inputstr(pos);
+        while cc == 'N'
+            pos = pos + 1;
+            cc = inputstr(pos);
+        end
+    end
+    if cc == '['
+        if (isfield(opt, 'noembedding_') && opt.noembedding_ == 1)
+            error_pos('ND array size specifier does not support embedding', opt, pos);
+        end
+        opt.noembedding_ = 1;
+        if (pos + 1 < inputlen && inputstr(pos + 1) == '[')
+            iscolumn = 1;
+        end
+        [dim, pos] = parse_array(pos, opt);
+        count = prod(double(dim));
+        opt.noembedding_ = 0;
+    else
+        [val, pos] = parse_number(pos, opt);
+        count = double(val);
+    end
+    if pos <= inputlen
+        cc = inputstr(pos);
+        while cc == 'N'
+            pos = pos + 1;
+            cc = inputstr(pos);
+        end
+    end
+end
+
+if ~isempty(type)
+    if count >= 0
+        [object, adv] = parse_block(pos, type, count, opt);
         if (~isempty(dim) && length(dim) > 1)
-            if (iscolumn == 0)
+            if iscolumn == 0
                 object = permute(reshape(object, fliplr(dim(:)')), length(dim):-1:1);
             else
                 object = reshape(object, dim);
@@ -289,38 +356,45 @@ if (~isempty(type))
         return
     else
         endpos = match_bracket(inputstr, pos);
-        [cid, len] = elem_info(inputstr, pos, type);
+        len = double(opt.typemap_(uint8(type), 2));
         count = (endpos - pos) / len;
-        [object, adv] = parse_block(inputstr, pos, type, count, varargin{:});
+        [object, adv] = parse_block(pos, type, count, opt);
         pos = pos + adv;
-        pos = parse_char(inputstr, pos, ']');
+        pos = pos + 1;  % skip ']'
         return
     end
 end
-[cc, pos] = next_char(inputstr, pos);
+
 if cc ~= ']'
     while 1
-        if (nargout > 2)
-            varargin{1}.jsonpath_ = [origpath sprintf('[%d]', length(object))];
-            mmap{end + 1} = {varargin{1}.jsonpath_, pos};
-            [val, pos, newmmap] = parse_value(inputstr, pos, [], varargin{:});
+        if needmmap
+            opt.jsonpath_ = [origpath sprintf('[%d]', length(object))];
+            mmap{end + 1} = {opt.jsonpath_, pos};
+            [val, pos, newmmap] = parse_value(pos, [], opt);
             mmap{end}{2} = [mmap{end}{2}, pos - mmap{end}{2}];
             mmap = [mmap(:); newmmap(:)];
         else
-            [val, pos] = parse_value(inputstr, pos, [], varargin{:});
+            [val, pos] = parse_value(pos, [], opt);
         end
         object{end + 1} = val;
         if count > 0 && length(object) >= count
             break
-        else
-            [cc, pos] = next_char(inputstr, pos);
-            if cc == ']' || (count > 0 && length(object) >= count)
-                break
-            end
+        end
+        if pos > inputlen
+            break
+        end
+        cc = inputstr(pos);
+        while cc == 'N'
+            pos = pos + 1;
+            cc = inputstr(pos);
+        end
+        if cc == ']' || (count > 0 && length(object) >= count)
+            break
         end
     end
 end
-if (varargin{1}.simplifycell)
+
+if opt.simplifycell
     if (iscell(object) && ~isempty(object) && isnumeric(object{1}))
         if (all(cellfun(@(e) isequal(size(object{1}), size(e)), object(2:end))))
             try
@@ -333,7 +407,7 @@ if (varargin{1}.simplifycell)
                 else
                     object = cell2mat(object')';
                 end
-                if (iscell(oldobj) && isstruct(object) && numel(object) > 1 && varargin{1}.simplifycellarray == 0)
+                if (iscell(oldobj) && isstruct(object) && numel(object) > 1 && opt.simplifycellarray == 0)
                     object = oldobj;
                 end
             catch
@@ -344,229 +418,296 @@ if (varargin{1}.simplifycell)
         object = object';
     end
 end
-if (count == -1)
-    pos = parse_char(inputstr, pos, ']');
+
+if count == -1
+    pos = pos + 1;  % skip ']'
 end
 
 %% -------------------------------------------------------------------------
 
-function pos = parse_char(inputstr, pos, c)
-if pos > length(inputstr) || inputstr(pos) ~= c
-    error_pos(sprintf('Expected %c at position %%d', c), inputstr, pos);
+function [str, pos] = parse_name(pos, opt)
+inputstr = opt.inputstr_;
+typecode = inputstr(pos);
+
+% Fast path for uint8 length (most common case)
+if typecode == 'U'
+    bytelen = double(uint8(inputstr(pos + 1)));
+    pos = pos + 2;
 else
-    pos = pos + 1;
+    [val, pos] = parse_number(pos, opt);
+    bytelen = double(val);
 end
 
-%% -------------------------------------------------------------------------
-
-function [c, pos] = next_char(inputstr, pos)
-if pos > length(inputstr)
-    c = [];
+endpos = pos + bytelen - 1;
+if opt.inputlen_ >= endpos
+    str = inputstr(pos:endpos);
+    pos = endpos + 1;
 else
-    c = inputstr(pos);
-    while (c == 'N')
-        pos = pos + 1;
-        c = inputstr(pos);
-    end
-end
-
-%% -------------------------------------------------------------------------
-function [str, pos] = parse_name(inputstr, pos, varargin)
-[val, pos] = parse_number(inputstr, pos, varargin{:});
-bytelen = double(val);
-if (length(inputstr) >= pos + bytelen - 1)
-    str = inputstr(pos:pos + bytelen - 1);
-    pos = pos + bytelen;
-else
-    error_pos('End of file while expecting end of name', inputstr, pos);
+    error_pos('End of file while expecting end of name', opt, pos);
 end
 
 %% -------------------------------------------------------------------------
 
-function [str, pos] = parseStr(inputstr, pos, type, varargin)
-if (isempty(type))
+function [str, pos] = parseStr(pos, type, opt)
+inputstr = opt.inputstr_;
+if isempty(type)
     type = inputstr(pos);
     if type ~= 'S' && type ~= 'C' && type ~= 'B' && type ~= 'H'
-        error_pos('String starting with S expected at position %d', inputstr, pos);
+        error_pos('String starting with S expected at position %d', opt, pos);
     else
         pos = pos + 1;
     end
 end
 
-if (type == 'C' || type == 'B')
+if type == 'C' || type == 'B'
     str = inputstr(pos);
     pos = pos + 1;
     return
 end
-[val, pos] = parse_number(inputstr, pos, varargin{:});
-bytelen = double(val);
-if (length(inputstr) >= pos + bytelen - 1)
-    str = inputstr(pos:pos + bytelen - 1);
-    pos = pos + bytelen;
+
+% Fast path for uint8 length (most common case)
+typecode = inputstr(pos);
+if typecode == 'U'
+    bytelen = double(uint8(inputstr(pos + 1)));
+    pos = pos + 2;
 else
-    error_pos('End of file while expecting end of inputstr', inputstr, pos);
+    [val, pos] = parse_number(pos, opt);
+    bytelen = double(val);
+end
+
+endpos = pos + bytelen - 1;
+if opt.inputlen_ >= endpos
+    str = inputstr(pos:endpos);
+    pos = endpos + 1;
+else
+    error_pos('End of file while expecting end of inputstr', opt, pos);
 end
 
 %% -------------------------------------------------------------------------
 
-function [num, pos] = parse_number(inputstr, pos, varargin)
-id = strfind('iUIulmLMhdD', inputstr(pos));
-if (isempty(id))
-    error_pos('expecting a number at position %d', inputstr, pos);
+function [num, pos] = parse_number(pos, opt)
+inputstr = opt.inputstr_;
+typecode = inputstr(pos);
+pos = pos + 1;
+
+% Fast path for most common types (avoid table lookup and typecast overhead)
+if typecode == 'U'  % uint8 - most common for string lengths
+    num = uint8(inputstr(pos));
+    pos = pos + 1;
+    return
+elseif typecode == 'i'  % int8
+    num = typecast(uint8(inputstr(pos)), 'int8');
+    pos = pos + 1;
+    return
+elseif typecode == 'I'  % int16
+    newdata = uint8(inputstr(pos:pos + 1));
+    if opt.flipendian_
+        newdata = newdata(2:-1:1);
+    end
+    num = typecast(newdata, 'int16');
+    pos = pos + 2;
+    return
+elseif typecode == 'l'  % int32
+    newdata = uint8(inputstr(pos:pos + 3));
+    if opt.flipendian_
+        newdata = newdata(4:-1:1);
+    end
+    num = typecast(newdata, 'int32');
+    pos = pos + 4;
+    return
 end
-type = {'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'single', 'double'};
-bytelen = [1, 1, 2, 2, 4, 4, 8, 8, 2, 4, 8];
-if (~exist('half', 'builtin'))
-    type{9} = 'uint16';
+
+% General path for less common types
+typeinfo = opt.typemap_(uint8(typecode), :);
+if typeinfo(1) == 0
+    error_pos('expecting a number at position %d', opt, pos - 1);
 end
-datastr = inputstr(pos + 1:pos + bytelen(id));
-newdata = uint8(datastr);
-if (varargin{1}.flipendian_)
-    newdata = swapbytes(typecast(newdata, type{id}));
+len = double(typeinfo(2));
+cid = opt.typestr_{typeinfo(1)};
+newdata = uint8(inputstr(pos:pos + len - 1));
+if opt.flipendian_
+    newdata = swapbytes(typecast(newdata, cid));
 end
-num = typecast(newdata, type{id});
-pos = pos + bytelen(id) + 1;
+num = typecast(newdata, cid);
+pos = pos + len;
 
 %% -------------------------------------------------------------------------
 
-function varargout = parse_value(inputstr, pos, type, varargin)
-if (length(type) == 1)
+function [val, pos, mmap] = parse_value(pos, type, opt)
+needmmap = (nargout > 2);
+if needmmap
+    mmap = {};
+end
+
+inputstr = opt.inputstr_;
+
+if length(type) == 1
     cc = type;
-    varargout{2} = pos;
 else
-    [cc, varargout{2}] = next_char(inputstr, pos);
+    cc = inputstr(pos);
+    while cc == 'N'
+        pos = pos + 1;
+        cc = inputstr(pos);
+    end
 end
-if (nargout > 2)
-    varargout{3} = {};
-end
-switch (cc)
+
+switch cc
     case {'S', 'C', 'B', 'H'}
-        [varargout{1:2}] = parseStr(inputstr, varargout{2}, type, varargin{:});
-        return
+        [val, pos] = parseStr(pos, type, opt);
     case '['
-        [varargout{1:nargout}] = parse_array(inputstr, varargout{2}, varargin{:});
-        return
-    case '{'
-        [varargout{1:nargout}] = parse_object(inputstr, varargout{2}, varargin{:});
-        if (varargout{2} < 0)
-            varargin{1}.usemap = 1;
-            [varargout{1:nargout}] = parse_object(inputstr, -varargout{2}, varargin{:});
+        if needmmap
+            [val, pos, mmap] = parse_array(pos, opt);
+        else
+            [val, pos] = parse_array(pos, opt);
         end
-        return
+    case '{'
+        if needmmap
+            [val, pos, mmap] = parse_object(pos, opt);
+        else
+            [val, pos] = parse_object(pos, opt);
+        end
+        if pos < 0
+            opt.usemap = 1;
+            if needmmap
+                [val, pos, mmap] = parse_object(-pos, opt);
+            else
+                [val, pos] = parse_object(-pos, opt);
+            end
+        end
     case {'i', 'U', 'I', 'u', 'l', 'm', 'L', 'M', 'h', 'd', 'D'}
-        [varargout{1:2}] = parse_number(inputstr, varargout{2}, varargin{:});
-        return
+        [val, pos] = parse_number(pos, opt);
     case 'T'
-        varargout{1} = true;
-        varargout{2} = varargout{2} + 1;
-        return
+        val = true;
+        pos = pos + 1;
     case 'F'
-        varargout{1} = false;
-        varargout{2} = varargout{2} + 1;
-        return
+        val = false;
+        pos = pos + 1;
     case {'Z', 'N'}
-        varargout{1} = [];
-        varargout{2} = varargout{2} + 1;
-        return
+        val = [];
+        pos = pos + 1;
+    otherwise
+        error_pos('Value expected at position %d', opt, pos);
 end
-error_pos('Value expected at position %d', inputstr, varargout{2});
+
 %% -------------------------------------------------------------------------
 
-function pos = error_pos(msg, inputstr, pos)
+function pos = error_pos(msg, opt, pos)
+inputstr = opt.inputstr_;
 poShow = max(min([pos - 15 pos - 1 pos pos + 20], length(inputstr)), 1);
 if poShow(3) == poShow(2)
     poShow(3:4) = poShow(2) + [0 -1];  % display nothing after
 end
 msg = [sprintf(msg, pos) ': ' ...
-       inputstr(poShow(1):poShow(2)) '<error>' inputstr(poShow(3):poShow(4))];
+       inputstr(poShow(1):poShow(2)) '<e>' inputstr(poShow(3):poShow(4))];
 error('JSONLAB:BJData:InvalidFormat', msg);
 
 %% -------------------------------------------------------------------------
-function [object, pos, mmap] = parse_object(inputstr, pos, varargin)
+
+function [object, pos, mmap] = parse_object(pos, opt)
 oldpos = pos;
-if (nargout > 2)
+needmmap = (nargout > 2);
+if needmmap
     mmap = {};
-    origpath = varargin{1}.jsonpath_;
+    origpath = opt.jsonpath_;
 end
-pos = parse_char(inputstr, pos, '{');
-usemap = varargin{1}.usemap;
-if (usemap)
+
+inputstr = opt.inputstr_;
+inputlen = opt.inputlen_;
+
+pos = pos + 1;  % skip '{'
+usemap = opt.usemap;
+if usemap
     object = containers.Map();
 else
     object = [];
 end
 count = -1;
 type = [];
-[cc, pos] = next_char(inputstr, pos);
-if (cc == '$')
+
+if pos > inputlen
+    return
+end
+
+cc = inputstr(pos);
+while cc == 'N'
+    pos = pos + 1;
+    cc = inputstr(pos);
+end
+
+if cc == '$'
     type = inputstr(pos + 1);
     pos = pos + 2;
+    cc = inputstr(pos);
+    while cc == 'N'
+        pos = pos + 1;
+        cc = inputstr(pos);
+    end
 end
-[cc, pos] = next_char(inputstr, pos);
-if (cc == '#')
+
+if cc == '#'
     pos = pos + 1;
-    [val, pos] = parse_number(inputstr, pos, varargin{:});
+    [val, pos] = parse_number(pos, opt);
     count = double(val);
+    if pos <= inputlen
+        cc = inputstr(pos);
+        while cc == 'N'
+            pos = pos + 1;
+            cc = inputstr(pos);
+        end
+    end
 end
-[cc, pos] = next_char(inputstr, pos);
+
 if cc ~= '}'
     num = 0;
     while 1
-        if (varargin{1}.nameisstring)
-            [str, pos] = parseStr(inputstr, pos, [], varargin{:});
+        if opt.nameisstring
+            [str, pos] = parseStr(pos, [], opt);
         else
-            [str, pos] = parse_name(inputstr, pos, varargin{:});
+            [str, pos] = parse_name(pos, opt);
         end
-        if (length(str) > 63)
+        if length(str) > 63
             pos = -oldpos;
             object = [];
             return
         end
         if isempty(str)
-            str = 'x0x0_'; % empty name is valid in BJData/UBJSON, decodevarname('x0x0_') restores '\0'
+            str = 'x0x0_';  % empty name is valid in BJData/UBJSON, decodevarname('x0x0_') restores '\0'
         end
-        if (nargout > 2)
-            varargin{1}.jsonpath_ = [origpath, '.', str];
-            mmap{end + 1} = {varargin{1}.jsonpath_, pos};
-            [val, pos, newmmap] = parse_value(inputstr, pos, [], varargin{:});
+        if needmmap
+            opt.jsonpath_ = [origpath, '.', str];
+            mmap{end + 1} = {opt.jsonpath_, pos};
+            [val, pos, newmmap] = parse_value(pos, [], opt);
             mmap{end}{2} = [mmap{end}{2}, pos - mmap{end}{2}];
             mmap = [mmap(:); newmmap(:)];
         else
-            [val, pos] = parse_value(inputstr, pos, type, varargin{:});
+            [val, pos] = parse_value(pos, type, opt);
         end
         num = num + 1;
-        if (usemap)
+        if usemap
             object(str) = val;
         else
-            str = encodevarname(str, varargin{:});
-            if (length(str) > 63)
+            str = encodevarname(str, opt);
+            if length(str) > 63
                 pos = -oldpos;
                 object = [];
                 return
             end
             object.(str) = val;
         end
-        [cc, pos] = next_char(inputstr, pos);
-        if ((count >= 0 && num >= count) || (~isempty(cc) && cc == '}'))
+        if pos > inputlen
+            break
+        end
+        cc = inputstr(pos);
+        while cc == 'N'
+            pos = pos + 1;
+            cc = inputstr(pos);
+        end
+        if (count >= 0 && num >= count) || cc == '}'
             break
         end
     end
 end
-if (count == -1)
-    pos = parse_char(inputstr, pos, '}');
-end
 
-%% -------------------------------------------------------------------------
-function [cid, len] = elem_info(inputstr, pos, type)
-id = strfind('iUIulmLMhdD', type);
-type = {'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'single', 'double'};
-bytelen = [1, 1, 2, 2, 4, 4, 8, 8, 2, 4, 8];
-if (~exist('half', 'builtin'))
-    type{9} = 'uint16';
-end
-if (id > 0)
-    cid = type{id};
-    len = bytelen(id);
-else
-    error_pos('unsupported type at position %d', inputstr, pos);
+if count == -1
+    pos = pos + 1;  % skip '}'
 end

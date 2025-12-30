@@ -183,6 +183,9 @@ opt.ubjson = bitand(jsonopt('UBJSON', 0, opt), ~opt.messagepack);
 opt.keeptype = jsonopt('KeepType', 0, opt);
 opt.nosubstruct_ = 0;
 
+% Performance optimization: cache UnpackHex to avoid repeated jsonopt calls
+opt.unpackhex = jsonopt('UnpackHex', 1, opt);
+
 [os, maxelem, systemendian] = computer;
 opt.flipendian_ = (systemendian ~= upper(jsonopt('Endian', 'L', opt)));
 
@@ -288,47 +291,47 @@ if (nargout > 0 || isempty(filename))
 end
 
 %% -------------------------------------------------------------------------
-function txt = obj2ubjson(name, item, level, varargin)
+function txt = obj2ubjson(name, item, level, opt)
 
 if (iscell(item) || isa(item, 'string'))
-    txt = cell2ubjson(name, item, level, varargin{:});
+    txt = cell2ubjson(name, item, level, opt);
 elseif (isstruct(item))
-    txt = struct2ubjson(name, item, level, varargin{:});
+    txt = struct2ubjson(name, item, level, opt);
 elseif (isnumeric(item) || islogical(item))
-    txt = mat2ubjson(name, item, level, varargin{:});
+    txt = mat2ubjson(name, item, level, opt);
 elseif (ischar(item))
-    if (numel(item) >= varargin{1}.compressstringsize)
-        txt = mat2ubjson(name, item, level, varargin{:});
+    if (numel(item) >= opt.compressstringsize)
+        txt = mat2ubjson(name, item, level, opt);
     else
-        txt = str2ubjson(name, item, level, varargin{:});
+        txt = str2ubjson(name, item, level, opt);
     end
 elseif (isa(item, 'function_handle'))
-    txt = struct2ubjson(name, functions(item), level, varargin{:});
+    txt = struct2ubjson(name, functions(item), level, opt);
 elseif (isa(item, 'containers.Map') || isa(item, 'dictionary'))
-    txt = map2ubjson(name, item, level, varargin{:});
+    txt = map2ubjson(name, item, level, opt);
 elseif (isa(item, 'categorical'))
-    txt = cell2ubjson(name, cellstr(item), level, varargin{:});
+    txt = cell2ubjson(name, cellstr(item), level, opt);
 elseif (isa(item, 'table'))
-    txt = matlabtable2ubjson(name, item, level, varargin{:});
+    txt = matlabtable2ubjson(name, item, level, opt);
 elseif (isa(item, 'graph') || isa(item, 'digraph'))
-    txt = struct2ubjson(name, jdataencode(item), level, varargin{:});
+    txt = struct2ubjson(name, jdataencode(item), level, opt);
 elseif (isobject(item))
-    txt = matlabobject2ubjson(name, item, level, varargin{:});
+    txt = matlabobject2ubjson(name, item, level, opt);
 else
-    txt = any2ubjson(name, item, level, varargin{:});
+    txt = any2ubjson(name, item, level, opt);
 end
 
 %% -------------------------------------------------------------------------
-function txt = cell2ubjson(name, item, level, varargin)
+function txt = cell2ubjson(name, item, level, opt)
 txt = '';
 if (~iscell(item) && ~isa(item, 'string'))
     error('input is not a cell');
 end
-isnum2cell = varargin{1}.num2cell_;
+isnum2cell = opt.num2cell_;
 if (isnum2cell)
     item = squeeze(item);
 else
-    format = varargin{1}.formatversion;
+    format = opt.formatversion;
     if (format > 1.9 && ~isvector(item))
         item = permute(item, ndims(item):-1:1);
     end
@@ -339,52 +342,65 @@ if (ndims(squeeze(item)) > 2) % for 3D or higher dimensions, flatten to 2D for n
     item = reshape(item, dim(1), numel(item) / dim(1));
     dim = size(item);
 end
-bracketlevel = ~varargin{1}.singletcell;
-Zmarker = varargin{1}.ZM_;
-Imarker = varargin{1}.IM_;
-Amarker = varargin{1}.AM_;
+bracketlevel = ~opt.singletcell;
+Zmarker = opt.ZM_;
+Imarker = opt.IM_;
+Amarker = opt.AM_;
 
 if (~strcmp(Amarker{1}, '['))
-    am0 = Imsgpk_(dim(2), 220, 144, varargin{:});
+    am0 = Imsgpk_(dim(2), 220, 144, opt);
 else
     am0 = Amarker{1};
 end
 len = numel(item); % let's handle 1D cell first
+
+% Performance optimization: use cell array to accumulate parts
+parts = {};
+partIdx = 0;
+
 if (len > bracketlevel)
     if (~isempty(name))
-        txt = [N_(decodevarname(name, varargin{:}), varargin{:}) am0];
+        partIdx = partIdx + 1;
+        parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) am0];
         name = '';
     else
-        txt = am0;
+        partIdx = partIdx + 1;
+        parts{partIdx} = am0;
     end
 elseif (len == 0)
     if (~isempty(name))
-        txt = [N_(decodevarname(name, varargin{:}), varargin{:}) Zmarker];
-        name = '';
+        txt = [N_(decodevarname(name, opt.unpackhex), opt) Zmarker];
     else
         txt = Zmarker;
     end
+    return
 end
 if (~strcmp(Amarker{1}, '['))
-    am0 = Imsgpk_(dim(1), 220, 144, varargin{:});
+    am0 = Imsgpk_(dim(1), 220, 144, opt);
 end
 for j = 1:dim(2)
     if (dim(1) > 1)
-        txt = [txt am0];
+        partIdx = partIdx + 1;
+        parts{partIdx} = am0;
     end
     for i = 1:dim(1)
-        txt = [txt char(obj2ubjson(name, item{i, j}, level + (len > bracketlevel), varargin{:}))];
+        partIdx = partIdx + 1;
+        parts{partIdx} = char(obj2ubjson(name, item{i, j}, level + (len > bracketlevel), opt));
     end
     if (dim(1) > 1)
-        txt = [txt Amarker{2}];
+        partIdx = partIdx + 1;
+        parts{partIdx} = Amarker{2};
     end
 end
 if (len > bracketlevel)
-    txt = [txt Amarker{2}];
+    partIdx = partIdx + 1;
+    parts{partIdx} = Amarker{2};
 end
 
+txt = [parts{1:partIdx}];
+
 %% -------------------------------------------------------------------------
-function txt = struct2ubjson(name, item, level, varargin)
+function txt = struct2ubjson(name, item, level, opt)
 txt = '';
 if (~isstruct(item))
     error('input is not a struct');
@@ -395,67 +411,84 @@ if (ndims(squeeze(item)) > 2) % for 3D or higher dimensions, flatten to 2D for n
     dim = size(item);
 end
 len = numel(item);
-forcearray = (len > 1 || (varargin{1}.singletarray == 1 && level > 0));
-Imarker = varargin{1}.IM_;
-Amarker = varargin{1}.AM_;
-Omarker = varargin{1}.OM_;
+forcearray = (len > 1 || (opt.singletarray == 1 && level > 0));
+Imarker = opt.IM_;
+Amarker = opt.AM_;
+Omarker = opt.OM_;
 
-if (isfield(item, encodevarname('_ArrayType_', varargin{:})))
-    varargin{1}.nosubstruct_ = 1;
+if (isfield(item, encodevarname('_ArrayType_')))
+    opt.nosubstruct_ = 1;
 end
 
 if (~strcmp(Amarker{1}, '['))
-    am0 = Imsgpk_(dim(2), 220, 144, varargin{:});
+    am0 = Imsgpk_(dim(2), 220, 144, opt);
 else
     am0 = Amarker{1};
 end
 
+% Performance optimization: use cell array to accumulate parts
+parts = {};
+partIdx = 0;
+
 if (~isempty(name))
     if (forcearray)
-        txt = [N_(decodevarname(name, varargin{:}), varargin{:}) am0];
+        partIdx = partIdx + 1;
+        parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) am0];
     end
 else
     if (forcearray)
-        txt = am0;
+        partIdx = partIdx + 1;
+        parts{partIdx} = am0;
     end
 end
 if (~strcmp(Amarker{1}, '['))
-    am0 = Imsgpk_(dim(1), 220, 144, varargin{:});
+    am0 = Imsgpk_(dim(1), 220, 144, opt);
 end
 for j = 1:dim(2)
     if (dim(1) > 1)
-        txt = [txt am0];
+        partIdx = partIdx + 1;
+        parts{partIdx} = am0;
     end
     for i = 1:dim(1)
         names = fieldnames(item(i, j));
         if (~strcmp(Omarker{1}, '{'))
-            om0 = Imsgpk_(length(names), 222, 128, varargin{:});
+            om0 = Imsgpk_(length(names), 222, 128, opt);
         else
             om0 = Omarker{1};
         end
         if (~isempty(name) && len == 1 && ~forcearray)
-            txt = [txt N_(decodevarname(name, varargin{:}), varargin{:}) om0];
+            partIdx = partIdx + 1;
+            parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) om0];
         else
-            txt = [txt om0];
+            partIdx = partIdx + 1;
+            parts{partIdx} = om0;
         end
         if (~isempty(names))
+            % Performance optimization: cache struct to avoid repeated indexing
+            currentItem = item(i, j);
             for e = 1:length(names)
-                txt = [txt obj2ubjson(names{e}, item(i, j).(names{e}), ...
-                                      level + (dim(1) > 1) + 1 + forcearray, varargin{:})];
+                partIdx = partIdx + 1;
+                parts{partIdx} = obj2ubjson(names{e}, currentItem.(names{e}), ...
+                                            level + (dim(1) > 1) + 1 + forcearray, opt);
             end
         end
-        txt = [txt Omarker{2}];
+        partIdx = partIdx + 1;
+        parts{partIdx} = Omarker{2};
     end
     if (dim(1) > 1)
-        txt = [txt Amarker{2}];
+        partIdx = partIdx + 1;
+        parts{partIdx} = Amarker{2};
     end
 end
 if (forcearray)
-    txt = [txt Amarker{2}];
+    partIdx = partIdx + 1;
+    parts{partIdx} = Amarker{2};
 end
 
+txt = [parts{1:partIdx}];
+
 %% -------------------------------------------------------------------------
-function txt = map2ubjson(name, item, level, varargin)
+function txt = map2ubjson(name, item, level, opt)
 txt = '';
 itemtype = isa(item, 'containers.Map');
 dim = size(item);
@@ -479,116 +512,133 @@ if (~iscell(val))
     val = num2cell(val, ndims(val));
 end
 
-Omarker = varargin{1}.OM_;
+Omarker = opt.OM_;
 
 if (~strcmp(Omarker{1}, '{'))
-    om0 = Imsgpk_(length(names), 222, 128, varargin{:});
+    om0 = Imsgpk_(length(names), 222, 128, opt);
 else
     om0 = Omarker{1};
 end
 
+% Performance optimization: use cell array to accumulate parts
+parts = cell(1, dim(1) + 3);
+partIdx = 0;
+
 if (~isempty(name))
-    txt = [N_(decodevarname(name, varargin{:}), varargin{:}) om0];
+    partIdx = partIdx + 1;
+    parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) om0];
 else
-    txt = om0;
+    partIdx = partIdx + 1;
+    parts{partIdx} = om0;
 end
 for i = 1:dim(1)
     if (~isempty(names{i}))
-        txt = [txt obj2ubjson(names{i}, val{i}, ...
-                              level + (dim(1) > 1), varargin{:})];
+        partIdx = partIdx + 1;
+        parts{partIdx} = obj2ubjson(names{i}, val{i}, ...
+                                    level + (dim(1) > 1), opt);
     end
 end
-txt = [txt Omarker{2}];
+partIdx = partIdx + 1;
+parts{partIdx} = Omarker{2};
+
+txt = [parts{1:partIdx}];
+
 if (isa(txt, 'string') && length(txt) > 1)
     txt = sprintf('%s', txt);
 end
 
 %% -------------------------------------------------------------------------
-function txt = str2ubjson(name, item, level, varargin)
+function txt = str2ubjson(name, item, level, opt)
 txt = '';
 if (~ischar(item))
     error('input is not a string');
 end
 item = reshape(item, max(size(item), [1 0]));
 len = size(item, 1);
-Amarker = varargin{1}.AM_;
+Amarker = opt.AM_;
 
 if (~strcmp(Amarker{1}, '['))
-    am0 = Imsgpk_(len, 220, 144, varargin{:});
+    am0 = Imsgpk_(len, 220, 144, opt);
 else
     am0 = Amarker{1};
 end
-if (~isempty(name))
-    if (len > 1)
-        txt = [N_(decodevarname(name, varargin{:}), varargin{:}) am0];
-    end
-else
-    if (len > 1)
-        txt = am0;
-    end
-end
-for e = 1:len
-    val = item(e, :);
-    if (len == 1)
-        obj = [N_(decodevarname(name, varargin{:}), varargin{:}) '' '', S_(val, varargin{:}), ''];
-        if (isempty(name))
-            obj = ['', S_(val, varargin{:}), ''];
-        end
-        txt = [txt, '', obj];
+
+% Performance optimization: fast path for single string (most common case)
+if (len == 1)
+    val = item(1, :);
+    sval = S_(val, opt);
+    if (~isempty(name))
+        txt = [N_(decodevarname(name, opt.unpackhex), opt), sval];
     else
-        txt = [txt, '', ['', S_(val, varargin{:}), '']];
+        txt = sval;
     end
-end
-if (len > 1)
-    txt = [txt Amarker{2}];
+    return
 end
 
+% Multiple strings: use cell array to accumulate parts
+parts = cell(1, len + 3);
+partIdx = 0;
+
+if (~isempty(name))
+    partIdx = partIdx + 1;
+    parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) am0];
+else
+    partIdx = partIdx + 1;
+    parts{partIdx} = am0;
+end
+for e = 1:len
+    partIdx = partIdx + 1;
+    parts{partIdx} = S_(item(e, :), opt);
+end
+partIdx = partIdx + 1;
+parts{partIdx} = Amarker{2};
+
+txt = [parts{1:partIdx}];
+
 %% -------------------------------------------------------------------------
-function txt = mat2ubjson(name, item, level, varargin)
+function txt = mat2ubjson(name, item, level, opt)
 if (~isnumeric(item) && ~islogical(item) && ~ischar(item))
     error('input is not an array');
 end
 
-dozip = varargin{1}.compression;
-zipsize = varargin{1}.compressarraysize;
-format = varargin{1}.formatversion;
+dozip = opt.compression;
+zipsize = opt.compressarraysize;
+format = opt.formatversion;
 
-Zmarker = varargin{1}.ZM_;
-FTmarker = varargin{1}.FTM_;
-Imarker = varargin{1}.IM_;
-Omarker = varargin{1}.OM_;
-isnest = varargin{1}.nestarray;
-ismsgpack = varargin{1}.messagepack;
-
-opt = varargin{1};
+Zmarker = opt.ZM_;
+FTmarker = opt.FTM_;
+Imarker = opt.IM_;
+Omarker = opt.OM_;
+isnest = opt.nestarray;
+ismsgpack = opt.messagepack;
 
 if (ismsgpack)
     isnest = 1;
 end
-if (~varargin{1}.nosubstruct_ && ((length(size(item)) > 2 && isnest == 0)  || ...
-                                  issparse(item) || ~isreal(item) || varargin{1}.arraytostruct || ...
-                                  (~isempty(dozip) && numel(item) > zipsize)))
-    cid = I_(uint32(max(size(item))), varargin{:});
+if (~opt.nosubstruct_ && ((length(size(item)) > 2 && isnest == 0)  || ...
+                          issparse(item) || ~isreal(item) || opt.arraytostruct || ...
+                          (~isempty(dozip) && numel(item) > zipsize)))
+    cid = I_(uint32(max(size(item))), opt);
     if (isempty(name))
-        txt = [Omarker{1} N_('_ArrayType_', opt), S_(class(item), opt), N_('_ArraySize_', opt), I_a(size(item), cid(1), varargin{:})];
+        txt = [Omarker{1} N_('_ArrayType_', opt), S_(class(item), opt), N_('_ArraySize_', opt), I_a(size(item), cid(1), opt)];
     else
         if (isempty(item))
-            txt = [N_(decodevarname(name, varargin{:}), opt), Zmarker];
+            txt = [N_(decodevarname(name, opt.unpackhex), opt), Zmarker];
             return
         else
-            txt = [N_(decodevarname(name, varargin{:}), opt), Omarker{1}, N_('_ArrayType_', opt), S_(class(item), opt), N_('_ArraySize_', opt), I_a(size(item), cid(1), varargin{:})];
+            txt = [N_(decodevarname(name, opt.unpackhex), opt), Omarker{1}, N_('_ArrayType_', opt), S_(class(item), opt), N_('_ArraySize_', opt), I_a(size(item), cid(1), opt)];
         end
     end
     childcount = 2;
 else
     if (isempty(name))
-        txt = matdata2ubjson(item, level + 1, varargin{:});
+        txt = matdata2ubjson(item, level + 1, opt);
     else
-        if (numel(item) == 1 && varargin{1}.singletarray == 0)
-            numtxt = matdata2ubjson(item, level + 1, varargin{:});
-            txt = [N_(decodevarname(name, varargin{:}), opt) char(numtxt)];
+        if (numel(item) == 1 && opt.singletarray == 0)
+            numtxt = matdata2ubjson(item, level + 1, opt);
+            txt = [N_(decodevarname(name, opt.unpackhex), opt) char(numtxt)];
         else
-            txt = [N_(decodevarname(name, varargin{:}), opt), char(matdata2ubjson(item, level + 1, varargin{:}))];
+            txt = [N_(decodevarname(name, opt.unpackhex), opt), char(matdata2ubjson(item, level + 1, opt))];
         end
     end
     return
@@ -619,11 +669,11 @@ if (issparse(item))
             % General case, store row and column indices.
             fulldata = [ix, iy, data];
         end
-        cid = I_(uint32(max(size(fulldata))), varargin{:});
-        txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), varargin{:})];
+        cid = I_(uint32(max(size(fulldata))), opt);
+        txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), opt)];
         txt = [txt, N_('_ArrayZipType_', opt), S_(dozip, opt)];
         compfun = str2func([dozip 'encode']);
-        txt = [txt, N_('_ArrayZipData_', opt), I_a(compfun(typecast(fulldata(:), 'uint8')), Imarker(1), varargin{:})];
+        txt = [txt, N_('_ArrayZipData_', opt), I_a(compfun(typecast(fulldata(:), 'uint8')), Imarker(1), opt)];
         childcount = childcount + 3;
     else
         if (size(item, 1) == 1)
@@ -637,13 +687,13 @@ if (issparse(item))
             fulldata = [ix, iy, data];
         end
         if (ismsgpack)
-            cid = I_(uint32(max(size(fulldata))), varargin{:});
-            txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), varargin{:})];
+            cid = I_(uint32(max(size(fulldata))), opt);
+            txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), opt)];
             childcount = childcount + 1;
         end
-        varargin{:}.ArrayToStruct = 0;
+        opt.ArrayToStruct = 0;
         txt = [txt, N_('_ArrayData_', opt), ...
-               cell2ubjson('', num2cell(fulldata', 2)', level + 2, varargin{:})];
+               cell2ubjson('', num2cell(fulldata', 2)', level + 2, opt)];
         childcount = childcount + 1;
     end
 else
@@ -661,8 +711,8 @@ else
             childcount = childcount + 1;
             fulldata = [real(item(:)) imag(item(:))];
         end
-        cid = I_(uint32(max(size(fulldata))), varargin{:});
-        txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), varargin{:})];
+        cid = I_(uint32(max(size(fulldata))), opt);
+        txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), opt)];
         txt = [txt, N_('_ArrayZipType_', opt), S_(dozip, opt)];
         encodeparam = {};
         if (~isempty(regexp(dozip, '^blosc2', 'once')))
@@ -671,22 +721,22 @@ else
         else
             compfun = str2func([dozip 'encode']);
         end
-        txt = [txt, N_('_ArrayZipData_', opt), I_a(compfun(typecast(fulldata(:), 'uint8'), encodeparam{:}), Imarker(1), varargin{:})];
+        txt = [txt, N_('_ArrayZipData_', opt), I_a(compfun(typecast(fulldata(:), 'uint8'), encodeparam{:}), Imarker(1), opt)];
         childcount = childcount + 3;
     else
         if (ismsgpack)
-            cid = I_(uint32(length(item(:))), varargin{:});
-            txt = [txt, N_('_ArrayZipSize_', opt), I_a([~isreal(item) + 1 length(item(:))], cid(1), varargin{:})];
+            cid = I_(uint32(length(item(:))), opt);
+            txt = [txt, N_('_ArrayZipSize_', opt), I_a([~isreal(item) + 1 length(item(:))], cid(1), opt)];
             childcount = childcount + 1;
         end
         if (isreal(item))
             txt = [txt, N_('_ArrayData_', opt), ...
-                   matdata2ubjson(item(:)', level + 2, varargin{:})];
+                   matdata2ubjson(item(:)', level + 2, opt)];
             childcount = childcount + 1;
         else
             txt = [txt, N_('_ArrayIsComplex_', opt), FTmarker(2)];
             txt = [txt, N_('_ArrayData_', opt), ...
-                   matdata2ubjson([real(item(:)) imag(item(:))]', level + 2, varargin{:})];
+                   matdata2ubjson([real(item(:)) imag(item(:))]', level + 2, opt)];
             childcount = childcount + 2;
         end
     end
@@ -694,32 +744,32 @@ end
 if (Omarker{1} ~= '{')
     idx = find(txt == Omarker{1}, 1, 'first');
     if (~isempty(idx))
-        txt = [txt(1:idx - 1) Imsgpk_(childcount, 222, 128, varargin{:}) txt(idx + 1:end)];
+        txt = [txt(1:idx - 1) Imsgpk_(childcount, 222, 128, opt) txt(idx + 1:end)];
     end
 end
 txt = [txt, Omarker{2}];
 
 %% -------------------------------------------------------------------------
-function txt = matlabtable2ubjson(name, item, level, varargin)
+function txt = matlabtable2ubjson(name, item, level, opt)
 st = containers.Map();
 st('_TableRecords_') = table2cell(item);
 st('_TableRows_') = item.Properties.RowNames';
 st('_TableCols_') = item.Properties.VariableNames;
 if (isempty(name))
-    txt = map2ubjson(name, st, level, varargin{:});
+    txt = map2ubjson(name, st, level, opt);
 else
     temp = struct(name, struct());
     temp.(name) = st;
-    txt = map2ubjson(name, temp.(name), level, varargin{:});
+    txt = map2ubjson(name, temp.(name), level, opt);
 end
 
 %% -------------------------------------------------------------------------
-function txt = matlabobject2ubjson(name, item, level, varargin)
+function txt = matlabobject2ubjson(name, item, level, opt)
 try
     if numel(item) == 0 % empty object
         st = struct();
     elseif numel(item) == 1 %
-        txt = str2ubjson(name, char(item), level, varargin{:});
+        txt = str2ubjson(name, char(item), level, opt);
         return
     else
         propertynames = properties(item);
@@ -729,28 +779,28 @@ try
             end
         end
     end
-    txt = struct2ubjson(name, st, level, varargin{:});
+    txt = struct2ubjson(name, st, level, opt);
 catch
-    txt = any2ubjson(name, item, level, varargin{:});
+    txt = any2ubjson(name, item, level, opt);
 end
 
 %% -------------------------------------------------------------------------
-function txt = matdata2ubjson(mat, level, varargin)
-Zmarker = varargin{1}.ZM_;
+function txt = matdata2ubjson(mat, level, opt)
+Zmarker = opt.ZM_;
 if (isempty(mat))
     txt = Zmarker;
     return
 end
 
-FTmarker = varargin{1}.FTM_;
-Imarker = varargin{1}.IM_;
-Fmarker = varargin{1}.FM_;
-Amarker = varargin{1}.AM_;
+FTmarker = opt.FTM_;
+Imarker = opt.IM_;
+Fmarker = opt.FM_;
+Amarker = opt.AM_;
 
-isnest = varargin{:}.nestarray;
-ismsgpack = varargin{1}.messagepack;
-format = varargin{1}.formatversion;
-isnum2cell = varargin{1}.num2cell_;
+isnest = opt.nestarray;
+ismsgpack = opt.messagepack;
+format = opt.formatversion;
+isnum2cell = opt.num2cell_;
 
 if (ismsgpack)
     isnest = 1;
@@ -760,25 +810,25 @@ if (~isvector(mat) && isnest == 1)
     if (format > 1.9 && isnum2cell == 0)
         mat = permute(mat, ndims(mat):-1:1);
     end
-    varargin{1}.num2cell_ = 1;
+    opt.num2cell_ = 1;
 end
 
-if (isa(mat, 'integer') || isinteger(mat) || (~varargin{1}.keeptype && isfloat(mat) && all(mod(mat(:), 1) == 0)))
+if (isa(mat, 'integer') || isinteger(mat) || (~opt.keeptype && isfloat(mat) && all(mod(mat(:), 1) == 0)))
     if (~isvector(mat) && isnest == 1)
-        txt = cell2ubjson('', num2cell(mat, 1), level, varargin{:});
+        txt = cell2ubjson('', num2cell(mat, 1), level, opt);
     elseif (~ismsgpack || size(mat, 1) == 1)
-        if (varargin{1}.keeptype)
+        if (opt.keeptype)
             itype = class(mat);
-            idx = find(ismember(varargin{1}.IType_, itype));
+            idx = find(ismember(opt.IType_, itype));
             if (isempty(idx))
-                idx = find(ismember(varargin{1}.IType_, itype(2:end)));
+                idx = find(ismember(opt.IType_, itype(2:end)));
             end
             type = Imarker(idx);
             if (numel(mat) == 1)
-                varargin{1}.inttype_ = idx;
+                opt.inttype_ = idx;
             end
         elseif (~any(mat < 0))
-            cid = varargin{1}.IType_;
+            cid = opt.IType_;
             type = Imarker(end);
             maxdata = max(double(mat(:)));
             for i = 1:length(cid)
@@ -788,7 +838,7 @@ if (isa(mat, 'integer') || isinteger(mat) || (~varargin{1}.keeptype && isfloat(m
                 end
             end
         else
-            cid = varargin{1}.IType_;
+            cid = opt.IType_;
             type = Imarker(end);
             mindata = min(double(mat(:)));
             maxdata = max(double(mat(:)));
@@ -801,16 +851,16 @@ if (isa(mat, 'integer') || isinteger(mat) || (~varargin{1}.keeptype && isfloat(m
         end
         if (numel(mat) == 1)
             if (mat < 0)
-                txt = I_(int64(mat), varargin{:});
+                txt = I_(int64(mat), opt);
             else
-                txt = I_(uint64(mat), varargin{:});
+                txt = I_(uint64(mat), opt);
             end
         else
             rowmat = permute(mat, ndims(mat):-1:1);
-            txt = I_a(rowmat(:), type, size(mat), varargin{:});
+            txt = I_a(rowmat(:), type, size(mat), opt);
         end
     else
-        txt = cell2ubjson('', num2cell(mat, 2), level, varargin{:});
+        txt = cell2ubjson('', num2cell(mat, 2), level, opt);
     end
 elseif (islogical(mat))
     logicalval = FTmarker;
@@ -818,10 +868,10 @@ elseif (islogical(mat))
         txt = logicalval(mat + 1);
     else
         if (~isvector(mat) && isnest == 1)
-            txt = cell2ubjson('', num2cell(uint8(mat), 1), level, varargin{:});
+            txt = cell2ubjson('', num2cell(uint8(mat), 1), level, opt);
         else
             rowmat = permute(mat, ndims(mat):-1:1);
-            txt = I_a(uint8(rowmat(:)), Imarker(1), size(mat), varargin{:});
+            txt = I_a(uint8(rowmat(:)), Imarker(1), size(mat), opt);
         end
     end
 else
@@ -830,36 +880,36 @@ else
         am0 = char(145);
     end
     if (numel(mat) == 1)
-        if (varargin{1}.singletarray == 1)
-            txt = [am0 D_(mat, varargin{:}) Amarker{2}];
+        if (opt.singletarray == 1)
+            txt = [am0 D_(mat, opt) Amarker{2}];
         else
-            txt = D_(mat, varargin{:});
+            txt = D_(mat, opt);
         end
     else
         if (~isvector(mat) && isnest == 1)
-            txt = cell2ubjson('', num2cell(mat, 1), level, varargin{:});
+            txt = cell2ubjson('', num2cell(mat, 1), level, opt);
         else
             rowmat = permute(mat, ndims(mat):-1:1);
-            txt = D_a(rowmat(:), Fmarker(isa(rowmat, 'double') + 2), size(mat), varargin{:});
+            txt = D_a(rowmat(:), Fmarker(isa(rowmat, 'double') + 2), size(mat), opt);
         end
     end
 end
 
 %% -------------------------------------------------------------------------
-function val = N_(str, varargin)
-ismsgpack = varargin{1}.messagepack;
+function val = N_(str, opt)
+ismsgpack = opt.messagepack;
 str = char(str);
 if (~ismsgpack)
-    val = [I_(int32(length(str)), varargin{:}) str];
+    val = [I_(int32(length(str)), opt) str];
 else
-    val = S_(str, varargin{:});
+    val = S_(str, opt);
 end
 
 %% -------------------------------------------------------------------------
-function val = S_(str, varargin)
-ismsgpack = varargin{1}.messagepack;
-isdebug = varargin{1}.debug;
-Smarker = varargin{1}.SM_;
+function val = S_(str, opt)
+ismsgpack = opt.messagepack;
+isdebug = opt.debug;
+Smarker = opt.SM_;
 if (length(str) == 1)
     if (isdebug)
         val = [Smarker(1) sprintf('<%d>', str)];
@@ -868,44 +918,55 @@ if (length(str) == 1)
     end
 else
     if (ismsgpack)
-        val = [Imsgpk_(length(str), 218, 160, varargin{:}) str];
+        val = [Imsgpk_(length(str), 218, 160, opt) str];
     else
-        val = ['S' I_(int32(length(str)), varargin{:}) str];
+        val = ['S' I_(int32(length(str)), opt) str];
     end
 end
 
 %% -------------------------------------------------------------------------
-function val = Imsgpk_(num, base1, base0, varargin)
+function val = Imsgpk_(num, base1, base0, opt)
 if (num < 16)
     val = char(uint8(num) + uint8(base0));
     return
 end
-val = I_(uint32(num), varargin{:});
+val = I_(uint32(num), opt);
 if (val(1) > char(210))
     num = uint32(num);
-    val = [char(210) data2byte(endiancheck(cast(num, 'uint32'), varargin{:}), 'uint8')];
+    val = [char(210) data2byte(endiancheck(cast(num, 'uint32'), opt), 'uint8')];
 elseif (val(1) < char(209))
     num = uint16(num);
-    val = [char(209) data2byte(endiancheck(cast(num, 'uint16'), varargin{:}), 'uint8')];
+    val = [char(209) data2byte(endiancheck(cast(num, 'uint16'), opt), 'uint8')];
 end
 val(1) = char(val(1) - 209 + base1);
 
 %% -------------------------------------------------------------------------
-function val = I_(num, varargin)
+function val = I_(num, opt)
 if (~isinteger(num))
     error('input is not an integer');
 end
-Imarker = varargin{1}.IM_;
-cid = varargin{1}.IType_;
-isdebug = varargin{1}.debug;
-if (isfield(varargin{1}, 'inttype_'))
+
+Imarker = opt.IM_;
+cid = opt.IType_;
+isdebug = opt.debug;
+doswap = opt.flipendian_;
+
+% Fast path for pre-specified type
+if (isfield(opt, 'inttype_'))
+    idx = opt.inttype_;
     if (isdebug)
-        val = [Imarker(varargin{1}.inttype_) sprintf('<%.0f>', num)];
+        val = [Imarker(idx) sprintf('<%.0f>', num)];
     else
-        val = [Imarker(varargin{1}.inttype_) data2byte(endiancheck(cast(num, cid{varargin{1}.inttype_}), varargin{:}), 'uint8')];
+        casted = cast(num, cid{idx});
+        if (doswap)
+            casted = swapbytes(casted);
+        end
+        val = [Imarker(idx) char(typecast(casted, 'uint8'))];
     end
     return
 end
+
+% Fast path for MessagePack small integers
 if (Imarker(1) ~= 'U')
     if (num >= 0 && num < 127)
         val = uint8(num);
@@ -916,38 +977,186 @@ if (Imarker(1) ~= 'U')
         return
     end
 end
-if (Imarker(1) ~= 'U' && num < 0 && num < 127)
-    val = data2byte((endiancheck(cast(num, 'uint8'), varargin{:}) & 127), 'uint8');
+
+% Optimized type selection - same logic as original loop but with
+% inlined data2byte/endiancheck
+%
+% BJData cid order: uint8, int8, uint16, int16, uint32, int32, uint64, int64
+% UBJSON cid order: uint8, int8, int16, int32, int64
+
+numtypes = length(cid);
+numval = double(num);  % Convert once for comparisons
+
+% Type 1: uint8 (both BJData and UBJSON)
+if (numval >= 0 && numval <= 255 && numval == floor(numval))
+    if (isdebug)
+        val = [Imarker(1) sprintf('<%.0f>', num)];
+    else
+        val = [Imarker(1) char(uint8(num))];
+    end
     return
 end
-key = Imarker;
-for i = 1:length(cid)
-    if (num == cast(num, cid{i}))
+
+% Type 2: int8 (both BJData and UBJSON)
+if (numval >= -128 && numval <= 127 && numval == floor(numval))
+    if (isdebug)
+        val = [Imarker(2) sprintf('<%.0f>', num)];
+    else
+        val = [Imarker(2) char(typecast(int8(num), 'uint8'))];
+    end
+    return
+end
+
+if (numtypes >= 8)
+    % BJData format: uint8, int8, uint16, int16, uint32, int32, uint64, int64
+
+    % Type 3: uint16
+    if (numval >= 0 && numval <= 65535 && numval == floor(numval))
         if (isdebug)
-            val = [key(i) sprintf('<%.0f>', num)];
+            val = [Imarker(3) sprintf('<%.0f>', num)];
         else
-            val = [key(i) data2byte(endiancheck(cast(num, cid{i}), varargin{:}), 'uint8')];
+            casted = uint16(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(3) char(typecast(casted, 'uint8'))];
+        end
+        return
+    end
+
+    % Type 4: int16
+    if (numval >= -32768 && numval <= 32767 && numval == floor(numval))
+        if (isdebug)
+            val = [Imarker(4) sprintf('<%.0f>', num)];
+        else
+            casted = int16(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(4) char(typecast(casted, 'uint8'))];
+        end
+        return
+    end
+
+    % Type 5: uint32
+    if (numval >= 0 && numval <= 4294967295 && numval == floor(numval))
+        if (isdebug)
+            val = [Imarker(5) sprintf('<%.0f>', num)];
+        else
+            casted = uint32(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(5) char(typecast(casted, 'uint8'))];
+        end
+        return
+    end
+
+    % Type 6: int32
+    if (numval >= -2147483648 && numval <= 2147483647 && numval == floor(numval))
+        if (isdebug)
+            val = [Imarker(6) sprintf('<%.0f>', num)];
+        else
+            casted = int32(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(6) char(typecast(casted, 'uint8'))];
+        end
+        return
+    end
+
+    % Type 7: uint64
+    if (numval >= 0 && numval <= 18446744073709551615 && numval == floor(numval))
+        if (isdebug)
+            val = [Imarker(7) sprintf('<%.0f>', num)];
+        else
+            casted = uint64(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(7) char(typecast(casted, 'uint8'))];
+        end
+        return
+    end
+
+    % Type 8: int64
+    if (numval >= -9223372036854775808 && numval <= 9223372036854775807 && numval == floor(numval))
+        if (isdebug)
+            val = [Imarker(8) sprintf('<%.0f>', num)];
+        else
+            casted = int64(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(8) char(typecast(casted, 'uint8'))];
+        end
+        return
+    end
+else
+    % UBJSON format: uint8, int8, int16, int32, int64
+
+    % Type 3: int16
+    if (numval >= -32768 && numval <= 32767 && numval == floor(numval))
+        if (isdebug)
+            val = [Imarker(3) sprintf('<%.0f>', num)];
+        else
+            casted = int16(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(3) char(typecast(casted, 'uint8'))];
+        end
+        return
+    end
+
+    % Type 4: int32
+    if (numval >= -2147483648 && numval <= 2147483647 && numval == floor(numval))
+        if (isdebug)
+            val = [Imarker(4) sprintf('<%.0f>', num)];
+        else
+            casted = int32(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(4) char(typecast(casted, 'uint8'))];
+        end
+        return
+    end
+
+    % Type 5: int64
+    if (numval >= -9223372036854775808 && numval <= 9223372036854775807 && numval == floor(numval))
+        if (isdebug)
+            val = [Imarker(5) sprintf('<%.0f>', num)];
+        else
+            casted = int64(num);
+            if (doswap)
+                casted = swapbytes(casted);
+            end
+            val = [Imarker(5) char(typecast(casted, 'uint8'))];
         end
         return
     end
 end
-val = S_(sprintf('%.0f', num), varargin{:});
+
+% Fallback for very large numbers (convert to string)
+val = S_(sprintf('%.0f', num), opt);
 if (Imarker(1) == 'U')
     val(1) = 'H';
 end
 
 %% -------------------------------------------------------------------------
-function val = D_(num, varargin)
+function val = D_(num, opt)
 if (~isfloat(num))
     error('input is not a float');
 end
-isdebug = varargin{1}.debug;
+isdebug = opt.debug;
 if (isdebug)
     output = sprintf('<%g>', num);
 else
-    output = data2byte(endiancheck(num, varargin{:}), 'uint8');
+    output = data2byte(endiancheck(num, opt), 'uint8');
 end
-Fmarker = varargin{1}.FM_;
+Fmarker = opt.FM_;
 
 if (isa(num, 'half'))
     val = [Fmarker(1) output(:)'];
@@ -958,12 +1167,12 @@ else
 end
 
 %% -------------------------------------------------------------------------
-function data = I_a(num, type, dim, varargin)
+function data = I_a(num, type, dim, opt)
 if (isstruct(dim))
-    varargin = {dim};
+    opt = dim;
 end
-Imarker = varargin{1}.IM_;
-Amarker = varargin{1}.AM_;
+Imarker = opt.IM_;
+Amarker = opt.AM_;
 
 if (Imarker(1) ~= 'U' && type <= 127)
     type = char(204);
@@ -976,12 +1185,12 @@ end
 
 % based on UBJSON specs, all integer types are stored in big endian format
 
-cid = varargin{1}.IType_;
-data = data2byte(endiancheck(cast(num, cid{id}), varargin{:}), 'uint8');
-blen = varargin{1}.IByte_(id);
+cid = opt.IType_;
+data = data2byte(endiancheck(cast(num, cid{id}), opt), 'uint8');
+blen = opt.IByte_(id);
 
-isnest = varargin{1}.nestarray;
-isdebug = varargin{1}.debug;
+isnest = opt.nestarray;
+isdebug = opt.debug;
 if (isdebug)
     output = sprintf('<%g>', num);
 else
@@ -990,17 +1199,17 @@ end
 
 if (isnest == 0 && numel(num) > 1 && Imarker(1) == 'U')
     if (nargin >= 4 && ~isstruct(dim) && (length(dim) == 1 || (length(dim) >= 2 && prod(dim) ~= dim(2))))
-        cid = I_(uint32(max(dim)), varargin{:});
-        data = ['$' type '#' I_a(dim, cid(1), varargin{:}) output(:)'];
+        cid = I_(uint32(max(dim)), opt);
+        data = ['$' type '#' I_a(dim, cid(1), opt) output(:)'];
     else
-        data = ['$' type '#' I_(int32(numel(data) / blen), varargin{:}) output(:)'];
+        data = ['$' type '#' I_(int32(numel(data) / blen), opt) output(:)'];
     end
     data = ['[' data(:)'];
 else
     am0 = Amarker{1};
     if (Imarker(1) ~= 'U')
         Amarker = {char(hex2dec('dd')), ''};
-        am0 = Imsgpk_(numel(num), 220, 144, varargin{:});
+        am0 = Imsgpk_(numel(num), 220, 144, opt);
     end
     if (isdebug)
         data = sprintf([type '<%g>'], num);
@@ -1013,9 +1222,9 @@ else
 end
 
 %% -------------------------------------------------------------------------
-function data = D_a(num, type, dim, varargin)
-Fmarker = varargin{1}.FM_;
-Amarker = varargin{1}.AM_;
+function data = D_a(num, type, dim, opt)
+Fmarker = opt.FM_;
+Amarker = opt.AM_;
 
 id = find(ismember(Fmarker, type));
 
@@ -1023,11 +1232,11 @@ if (id == 0)
     error('unsupported float array');
 end
 
-data = data2byte(endiancheck(cast(num, varargin{1}.FType_{id}), varargin{:}), 'uint8');
-blen = varargin{1}.FByte_(id);
+data = data2byte(endiancheck(cast(num, opt.FType_{id}), opt), 'uint8');
+blen = opt.FByte_(id);
 
-isnest = varargin{1}.nestarray;
-isdebug = varargin{1}.debug;
+isnest = opt.nestarray;
+isdebug = opt.debug;
 if (isdebug)
     output = sprintf('<%g>', num);
 else
@@ -1036,17 +1245,17 @@ end
 
 if (isnest == 0 && numel(num) > 1 && Fmarker(end) == 'D')
     if (nargin >= 4 && (length(dim) == 1 || (length(dim) >= 2 && prod(dim) ~= dim(2))))
-        cid = I_(uint32(max(dim)), varargin{:});
-        data = ['$' type '#' I_a(dim, cid(1), varargin{:}) output(:)'];
+        cid = I_(uint32(max(dim)), opt);
+        data = ['$' type '#' I_a(dim, cid(1), opt) output(:)'];
     else
-        data = ['$' type '#' I_(int32(numel(data) / blen), varargin{:}) output(:)'];
+        data = ['$' type '#' I_(int32(numel(data) / blen), opt) output(:)'];
     end
     data = ['[' data];
 else
     am0 = Amarker{1};
     if (Fmarker(end) ~= 'D')
         Amarker = {char(hex2dec('dd')), ''};
-        am0 = Imsgpk_(numel(num), 220, 144, varargin{:});
+        am0 = Imsgpk_(numel(num), 220, 144, opt);
     end
     if (isdebug)
         data = sprintf([type '<%g>'], num);
@@ -1059,17 +1268,17 @@ else
 end
 
 %% -------------------------------------------------------------------------
-function txt = any2ubjson(name, item, level, varargin)
+function txt = any2ubjson(name, item, level, opt)
 st = containers.Map();
 st('_DataInfo_') = struct('MATLABObjectClass', class(item), 'MATLABObjectSize', size(item));
 st('_ByteStream_') = getByteStreamFromArray(item);
 
 if (isempty(name))
-    txt = map2ubjson(name, st, level, varargin{:});
+    txt = map2ubjson(name, st, level, opt);
 else
     temp = struct(name, struct());
     temp.(name) = st;
-    txt = map2ubjson(name, temp.(name), level, varargin{:});
+    txt = map2ubjson(name, temp.(name), level, opt);
 end
 
 %% -------------------------------------------------------------------------
@@ -1078,8 +1287,8 @@ bytes = typecast(varargin{:});
 bytes = char(bytes(:)');
 
 %% -------------------------------------------------------------------------
-function newdata = endiancheck(data, varargin)
-if (varargin{1}.flipendian_)
+function newdata = endiancheck(data, opt)
+if (opt.flipendian_)
     newdata = swapbytes(data);
 else
     newdata = data;

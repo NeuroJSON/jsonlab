@@ -206,15 +206,27 @@ if (jsonopt('BuiltinJSON', 0, opt) && exist('jsondecode', 'builtin'))
     end
 end
 
-pos = 1;
 inputlen = length(jsonstring);
 inputstr = jsonstring;
+
+% OPTIMIZATION: Precompute next non-whitespace position lookup table
+ws = (inputstr == ' ' | inputstr == char(9) | inputstr == char(10) | inputstr == char(13));
+nonws_idx = find(~ws);
+if ~isempty(nonws_idx)
+    marker = repmat(inputlen + 1, 1, inputlen);
+    marker(nonws_idx) = nonws_idx;
+    opt.next_nonws_ = fliplr(cummin(fliplr(marker)));
+else
+    opt.next_nonws_ = repmat(inputlen + 1, 1, inputlen);
+end
+opt.inputlen_ = inputlen;
+
+% Precompute array tokens for fast array parsing
 arraytokenidx = find(inputstr == '[' | inputstr == ']');
 arraytoken = inputstr(arraytokenidx);
 
 % String delimiters and escape chars identified to improve speed:
-esc = find(inputstr == '"' | inputstr == '\'); % comparable to: regexp(inputstr, '["\\]');
-index_esc = 1;
+esc = find(inputstr == '"' | inputstr == '\');
 
 opt.arraytoken_ = arraytoken;
 opt.arraytokenidx_ = arraytokenidx;
@@ -237,19 +249,30 @@ if (maxobjid == 0)
     maxobjid = inf;
 end
 opt.jsonpath_ = '$';
-if (nargout > 1 || opt.mmaponly)
+needmmap = (nargout > 1 || opt.mmaponly);
+if needmmap
     mmap = {};
 end
-if (regexp(inputstr, '^\s*$'))
+if isempty(nonws_idx)
     data = [];
     inputlen = 0;
 end
+
 jsoncount = 1;
+pos = 1;
+index_esc = 1;
+next_nonws = opt.next_nonws_;
+
 while pos <= inputlen
-    [cc, pos, w1] = next_char(inputstr, pos);
-    switch (cc)
+    % Inline next_char
+    w1 = pos;
+    pos = next_nonws(pos);
+    w1 = pos - w1;
+    cc = inputstr(pos);
+
+    switch cc
         case '{'
-            if (nargout > 1 || opt.mmaponly)
+            if needmmap
                 mmap{end + 1} = {opt.jsonpath_, [pos, 0, w1]};
                 [data{jsoncount}, pos, index_esc, newmmap] = parse_object(inputstr, pos, esc, index_esc, opt);
                 if (pos < 0)
@@ -266,7 +289,7 @@ while pos <= inputlen
                 end
             end
         case '['
-            if (nargout > 1 || opt.mmaponly)
+            if needmmap
                 mmap{end + 1} = {opt.jsonpath_, [pos, 0, w1]};
                 [data{jsoncount}, pos, index_esc, newmmap] = parse_array(inputstr, pos, esc, index_esc, opt);
                 mmap{end}{2}(2) = pos - mmap{end}{2}(1);
@@ -275,14 +298,14 @@ while pos <= inputlen
                 [data{jsoncount}, pos, index_esc] = parse_array(inputstr, pos, esc, index_esc, opt);
             end
         otherwise
-            pos = error_pos('Outer level structure must be an object or an array', inputstr, pos);
+            error_pos('Outer level structure must be an object or an array', inputstr, pos);
     end
-    if (jsoncount >= maxobjid)
+    if jsoncount >= maxobjid
         break
     end
     opt.jsonpath_ = sprintf('$%d', jsoncount);
     jsoncount = jsoncount + 1;
-end % while
+end
 
 if (length(objid) > 1 || min(objid) > 1)
     data = data(objid(objid <= length(data)));
@@ -292,7 +315,7 @@ jsoncount = length(data);
 if (jsoncount == 1 && iscell(data))
     data = data{1};
 end
-if (nargout > 1 || opt.mmaponly)
+if needmmap
     mmap = mmap';
     mmap = filterjsonmmap(mmap, jsonopt('MMapExclude', {}, opt), 0);
     mmap = filterjsonmmap(mmap, jsonopt('MMapInclude', {}, opt), 1);
@@ -307,10 +330,10 @@ if (jsonopt('JDataDecode', 1, opt) == 1)
                 ME.identifier, ME.message, char(savejson('', ME.stack)));
     end
 end
-if (opt.mmaponly)
+if opt.mmaponly
     data = mmap;
 end
-if (isfield(opt, 'progressbar_'))
+if isfield(opt, 'progressbar_')
     close(opt.progressbar_);
 end
 
@@ -318,58 +341,84 @@ end
 %% helper functions
 %% -------------------------------------------------------------------------
 
-function [object, pos, index_esc, mmap] = parse_array(inputstr, pos, esc, index_esc, varargin) % JSON array is written in row-major order
-if (nargout > 3)
+function [object, pos, index_esc, mmap] = parse_array(inputstr, pos, esc, index_esc, opt)
+% JSON array is written in row-major order
+needmmap = (nargout > 3);
+if needmmap
     mmap = {};
-    origpath = varargin{1}.jsonpath_;
+    origpath = opt.jsonpath_;
 end
-pos = parse_char(inputstr, pos, '[');
+
+next_nonws = opt.next_nonws_;
+inputlen = opt.inputlen_;
+
+% Inline parse_char for '['
+pos = next_nonws(pos);
+pos = pos + 1;  % skip '['
+if pos <= inputlen
+    pos = next_nonws(pos);
+end
+
 object = cell(0, 1);
-arraydepth = varargin{1}.arraydepth_;
+arraydepth = opt.arraydepth_;
 pbar = -1;
-if (isfield(varargin{1}, 'progressbar_'))
-    pbar = varargin{1}.progressbar_;
+if isfield(opt, 'progressbar_')
+    pbar = opt.progressbar_;
 end
-format = varargin{1}.formatversion;
-[cc, pos] = next_char(inputstr, pos);
+format = opt.formatversion;
+
+if pos > inputlen
+    return
+end
+
+cc = inputstr(pos);
 endpos = [];
 
 if cc ~= ']'
     try
-        if ((varargin{1}.fastarrayparser) >= 1 && arraydepth >= varargin{1}.fastarrayparser)
-            [endpos, maxlevel] = fast_match_bracket(varargin{1}.arraytoken_, varargin{1}.arraytokenidx_, pos);
-            if (~isempty(endpos))
+        if opt.fastarrayparser >= 1 && arraydepth >= opt.fastarrayparser
+            [endpos, maxlevel] = fast_match_bracket(opt.arraytoken_, opt.arraytokenidx_, pos);
+            if ~isempty(endpos)
                 arraystr = ['[' inputstr(pos:endpos)];
                 arraystr = sscanf_prep(arraystr);
-                if (isempty(find(arraystr == '"', 1)))
+                if isempty(find(arraystr == '"', 1))
                     % handle 1D array first
-                    if (maxlevel == 1)
+                    if maxlevel == 1
                         astr = arraystr(2:end - 1);
                         astr(astr == ' ') = '';
                         [obj, count, errmsg, nextidx] = sscanf(astr, '%f,', [1, inf]);
-                        if (nextidx >= length(astr) - 1)
+                        if nextidx >= length(astr) - 1
                             object = obj;
                             pos = endpos;
-                            pos = parse_char(inputstr, pos, ']');
+                            % Inline parse_char for ']'
+                            pos = next_nonws(pos);
+                            pos = pos + 1;
+                            if pos <= inputlen
+                                pos = next_nonws(pos);
+                            end
                             return
                         end
                     end
 
-                    % for N-D packed array in a nested array construct,
-                    if (maxlevel >= 2 && ~isempty(regexp(arraystr(2:end), '^\s*\[', 'once')))
+                    % for N-D packed array in a nested array construct
+                    if maxlevel >= 2 && ~isempty(regexp(arraystr(2:end), '^\s*\[', 'once'))
                         [dims, isndarray] = nestbracket2dim(arraystr);
                         rowstart = find(arraystr(2:end) == '[', 1) + 1;
-                        if (rowstart && isndarray)
+                        if rowstart && isndarray
                             [obj, nextidx] = parsendarray(arraystr, dims);
-                            if (nextidx >= length(arraystr) - 1)
+                            if nextidx >= length(arraystr) - 1
                                 object = obj;
-                                if (format > 1.9)
+                                if format > 1.9
                                     object = permute(object, ndims(object):-1:1);
                                 end
                                 pos = endpos;
-                                pos = parse_char(inputstr, pos, ']');
-                                if (pbar > 0)
-                                    waitbar(pos / length(inputstr), pbar, 'loading ...');
+                                pos = next_nonws(pos);
+                                pos = pos + 1;
+                                if pos <= inputlen
+                                    pos = next_nonws(pos);
+                                end
+                                if pbar > 0
+                                    waitbar(pos / inputlen, pbar, 'loading ...');
                                 end
                                 return
                             end
@@ -378,117 +427,127 @@ if cc ~= ']'
                 end
             end
         end
-        if (isempty(regexp(arraystr, ':', 'once')) && isempty(regexp(arraystr, '\(', 'once')))
-            arraystr = regexprep(arraystr, '\[', '{');
-            arraystr = regexprep(arraystr, '\]', '}');
-            if (varargin{1}.parsestringarray == 0)
-                arraystr = regexprep(arraystr, '\"', '''');
+        if ~isempty(endpos) && isempty(regexp(arraystr, '[:\(]', 'once'))
+            arraystr = strrep(strrep(arraystr, '[', '{'), ']', '}');
+            if opt.parsestringarray == 0
+                arraystr = strrep(arraystr, '"', '''');
             end
             object = eval(arraystr);
-            if (iscell(object))
+            if iscell(object)
                 object = cellfun(@unescapejsonstring, object, 'UniformOutput', false);
             end
             pos = endpos;
         end
     catch
     end
-    if (isempty(endpos) || pos ~= endpos)
+    if isempty(endpos) || pos ~= endpos
         w2 = 0;
         while 1
-            varargin{1}.arraydepth_ = arraydepth + 1;
-            if (nargout > 3)
-                varargin{1}.jsonpath_ = [origpath sprintf('[%d]', length(object))];
-                mmap{end + 1} = {varargin{1}.jsonpath_, [pos, 0, w2]};
-                [val, pos, index_esc, newmmap] = parse_value(inputstr, pos, esc, index_esc, varargin{:});
+            opt.arraydepth_ = arraydepth + 1;
+            if needmmap
+                opt.jsonpath_ = [origpath sprintf('[%d]', length(object))];
+                mmap{end + 1} = {opt.jsonpath_, [pos, 0, w2]};
+                [val, pos, index_esc, newmmap] = parse_value(inputstr, pos, esc, index_esc, opt);
                 mmap{end}{2}(2) = pos - mmap{end}{2}(1);
                 mmap = [mmap(:); newmmap(:)];
             else
-                [val, pos, index_esc] = parse_value(inputstr, pos, esc, index_esc, varargin{:});
+                [val, pos, index_esc] = parse_value(inputstr, pos, esc, index_esc, opt);
+            end
+            % Skip whitespace after value
+            if pos <= inputlen
+                pos = next_nonws(pos);
             end
             object{end + 1} = val;
-            [cc, pos] = next_char(inputstr, pos);
+            if pos > inputlen
+                break
+            end
+            cc = inputstr(pos);
             if cc == ']'
                 break
             end
-            [pos, w1, w2] = parse_char(inputstr, pos, ',');
+            % Inline parse_char for ','
+            pos = pos + 1;
+            w2 = pos;
+            if pos <= inputlen
+                pos = next_nonws(pos);
+            end
+            w2 = pos - w2;
         end
     end
 end
 
-if (varargin{1}.simplifycell)
-    if (iscell(object) && ~isempty(object) && (all(cellfun(@isnumeric, object)) || all(cellfun(@isstruct, object))))
-        if (all(cellfun(@(e) isequal(size(object{1}), size(e)), object(2:end))))
+if opt.simplifycell && iscell(object) && ~isempty(object)
+    if all(cellfun('isclass', object, 'double')) || all(cellfun('isclass', object, 'struct'))
+        if all(cellfun(@(e) isequal(size(object{1}), size(e)), object(2:end)))
             try
                 oldobj = object;
-                if (iscell(object) && length(object) > 1 && ndims(object{1}) >= 2)
+                if iscell(object) && length(object) > 1 && ndims(object{1}) >= 2
                     catdim = size(object{1});
                     catdim = ndims(object{1}) - (catdim(end) == 1) + 1;
                     object = cat(catdim, object{:});
                     object = permute(object, ndims(object):-1:1);
                 else
-                    object = cell2mat(object.').';
+                    object = cell2mat(object.')';
                 end
-                if (iscell(oldobj) && isstruct(object) && numel(object) > 1 && varargin{1}.simplifycellarray == 0)
+                if iscell(oldobj) && isstruct(object) && numel(object) > 1 && opt.simplifycellarray == 0
                     object = oldobj;
                 end
             catch
             end
         end
     end
-    if (~iscell(object) && size(object, 1) > 1 && ndims(object) == 2)
-        object = object.';
+end
+
+% Inline parse_char for ']'
+pos = next_nonws(pos);
+pos = pos + 1;
+if pos <= inputlen
+    pos = next_nonws(pos);
+end
+
+if pbar > 0
+    waitbar(pos / inputlen, pbar, 'loading ...');
+end
+
+%% -------------------------------------------------------------------------
+
+function [str, pos, index_esc] = parseStr(inputstr, pos, esc, index_esc, opt)
+inputlen = opt.inputlen_;
+pos = pos + 1;  % skip opening "
+
+% Fast path: find closing quote
+while index_esc <= length(esc) && esc(index_esc) < pos
+    index_esc = index_esc + 1;
+end
+
+% Check if simple string (next special char is a quote, not backslash)
+if index_esc <= length(esc) && inputstr(esc(index_esc)) == '"'
+    endpos = esc(index_esc);
+    str = inputstr(pos:endpos - 1);
+    pos = endpos + 1;
+    index_esc = index_esc + 1;
+    % Handle special values
+    if length(str) == 5
+        if strcmp(str, '_Inf_')
+            str = Inf;
+        elseif strcmp(str, '_NaN_')
+            str = NaN;
+        end
+    elseif length(str) == 6 && strcmp(str, '-_Inf_')
+        str = -Inf;
     end
-end
-pos = parse_char(inputstr, pos, ']');
-
-if (pbar > 0)
-    waitbar(pos / length(inputstr), pbar, 'loading ...');
-end
-%% -------------------------------------------------------------------------
-
-function [pos, w1, w2] = parse_char(inputstr, pos, c)
-w1 = pos;
-w2 = 0;
-pos = skip_whitespace(pos, inputstr);
-w1 = pos - w1;
-if pos > length(inputstr) || inputstr(pos) ~= c
-    pos = error_pos(sprintf('Expected %c at position %%d', c), inputstr, pos);
-else
-    pos = pos + 1;
-    w2 = pos;
-    pos = skip_whitespace(pos, inputstr);
-    w2 = pos - w2;
-end
-%% -------------------------------------------------------------------------
-
-function [c, pos, w1] = next_char(inputstr, pos)
-w1 = pos;
-pos = skip_whitespace(pos, inputstr);
-w1 = pos - w1;
-if pos > length(inputstr)
-    c = [];
-else
-    c = inputstr(pos);
+    return
 end
 
-%% -------------------------------------------------------------------------
-function [str, pos, index_esc, mmap] = parseStr(inputstr, pos, esc, index_esc, varargin)
-if (nargout > 3)
-    mmap = {};
-end
-if inputstr(pos) ~= '"'
-    pos = error_pos('String starting with " expected at position %d', inputstr, pos);
-else
-    pos = pos + 1;
-end
+% Slow path: string with escapes
 str = '';
-while pos <= length(inputstr)
+while pos <= inputlen
     while index_esc <= length(esc) && esc(index_esc) < pos
         index_esc = index_esc + 1;
     end
     if index_esc > length(esc)
-        str = [str inputstr(pos:end)];
-        pos = length(inputstr) + 1;
+        str = [str inputstr(pos:inputlen)];
+        pos = inputlen + 1;
         break
     else
         str = [str inputstr(pos:esc(index_esc) - 1)];
@@ -509,7 +568,7 @@ while pos <= length(inputstr)
             end
             return
         case '\'
-            if pos + 1 > length(inputstr)
+            if pos + 1 > inputlen
                 pos = error_pos('End of file reached right after escape character', inputstr, pos);
             end
             pos = pos + 1;
@@ -521,7 +580,7 @@ while pos <= length(inputstr)
                     str(nstr + 1) = sprintf(['\' inputstr(pos)]);
                     pos = pos + 1;
                 case 'u'
-                    if pos + 4 > length(inputstr)
+                    if pos + 4 > inputlen
                         pos = error_pos('End of file reached in escaped unicode character', inputstr, pos);
                     end
                     str(nstr + (1:6)) = inputstr(pos - 1:pos + 4);
@@ -529,113 +588,183 @@ while pos <= length(inputstr)
             end
         otherwise % should never happen
             str(nstr + 1) = inputstr(pos);
-            keyboard;
             pos = pos + 1;
     end
 end
 str = unescapejsonstring(str);
 pos = error_pos('End of file while expecting end of inputstr', inputstr, pos);
-%% -------------------------------------------------------------------------
-
-function [num, pos] = parse_number(inputstr, pos, varargin)
-currstr = inputstr(pos:min(pos + 30, end));
-[num, tmp, err, delta] = sscanf(currstr, '%f', 1);
-if ~isempty(err)
-    pos = error_pos('Error reading number at position %d', inputstr, pos);
-end
-pos = pos + delta - 1;
-%% -------------------------------------------------------------------------
-
-function varargout = parse_value(inputstr, pos, esc, index_esc, varargin)
-len = length(inputstr);
-if (isfield(varargin{1}, 'progressbar_'))
-    waitbar(pos / len, varargin{1}.progressbar_, 'loading ...');
-end
-varargout{3} = index_esc;
-if (nargout > 3)
-    varargout{4} = {};
-end
-switch (inputstr(pos))
-    case '"'
-        [varargout{1:nargout}] = parseStr(inputstr, pos, esc, index_esc, varargin{:});
-        return
-    case '['
-        [varargout{1:nargout}] = parse_array(inputstr, pos, esc, index_esc, varargin{:});
-        return
-    case '{'
-        [varargout{1:nargout}] = parse_object(inputstr, pos, esc, index_esc, varargin{:});
-        if (varargout{2} < 0)
-            varargin{1}.usemap = 1;
-            [varargout{1:nargout}] = parse_object(inputstr, -varargout{2}, esc, index_esc, varargin{:});
-        end
-        return
-    case {'-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
-        [varargout{1:2}] = parse_number(inputstr, pos, varargin{:});
-        return
-    case 't'
-        if pos + 3 <= len && strcmpi(inputstr(pos:pos + 3), 'true')
-            varargout{1} = true;
-            varargout{2} = pos + 4;
-            return
-        end
-    case 'f'
-        if pos + 4 <= len && strcmpi(inputstr(pos:pos + 4), 'false')
-            varargout{1} = false;
-            varargout{2} = pos + 5;
-            return
-        end
-    case 'n'
-        if pos + 3 <= len && strcmpi(inputstr(pos:pos + 3), 'null')
-            varargout{1} = [];
-            varargout{2} = pos + 4;
-            return
-        end
-end
-varargout{2} = error_pos('Value expected at position %d', inputstr, pos);
 
 %% -------------------------------------------------------------------------
-function [object, pos, index_esc, mmap] = parse_object(inputstr, pos, esc, index_esc, varargin)
+
+function [num, pos] = parse_number(inputstr, pos, inputlen)
+startpos = pos;
+if inputstr(pos) == '-'
+    pos = pos + 1;
+end
+while pos <= inputlen
+    c = inputstr(pos);
+    if c >= '0' && c <= '9'
+        pos = pos + 1;
+    else
+        break
+    end
+end
+if pos <= inputlen && inputstr(pos) == '.'
+    pos = pos + 1;
+    while pos <= inputlen
+        c = inputstr(pos);
+        if c >= '0' && c <= '9'
+            pos = pos + 1;
+        else
+            break
+        end
+    end
+end
+if pos <= inputlen && (inputstr(pos) == 'e' || inputstr(pos) == 'E')
+    pos = pos + 1;
+    if pos <= inputlen && (inputstr(pos) == '+' || inputstr(pos) == '-')
+        pos = pos + 1;
+    end
+    while pos <= inputlen
+        c = inputstr(pos);
+        if c >= '0' && c <= '9'
+            pos = pos + 1;
+        else
+            break
+        end
+    end
+end
+num = sscanf(inputstr(startpos:pos - 1), '%f', 1);
+
+%% -------------------------------------------------------------------------
+
+function [val, pos, index_esc, mmap] = parse_value(inputstr, pos, esc, index_esc, opt)
+needmmap = (nargout > 3);
+if needmmap
+    mmap = {};
+end
+
+inputlen = opt.inputlen_;
+
+if isfield(opt, 'progressbar_')
+    waitbar(pos / inputlen, opt.progressbar_, 'loading ...');
+end
+
+ch = inputstr(pos);
+if ch == '"'
+    [val, pos, index_esc] = parseStr(inputstr, pos, esc, index_esc, opt);
+elseif ch == '['
+    if needmmap
+        [val, pos, index_esc, mmap] = parse_array(inputstr, pos, esc, index_esc, opt);
+    else
+        [val, pos, index_esc] = parse_array(inputstr, pos, esc, index_esc, opt);
+    end
+elseif ch == '{'
+    if needmmap
+        [val, pos, index_esc, mmap] = parse_object(inputstr, pos, esc, index_esc, opt);
+    else
+        [val, pos, index_esc] = parse_object(inputstr, pos, esc, index_esc, opt);
+    end
+    if pos < 0
+        opt.usemap = 1;
+        if needmmap
+            [val, pos, index_esc, mmap] = parse_object(inputstr, -pos, esc, index_esc, opt);
+        else
+            [val, pos, index_esc] = parse_object(inputstr, -pos, esc, index_esc, opt);
+        end
+    end
+elseif ch == '-' || (ch >= '0' && ch <= '9')
+    [val, pos] = parse_number(inputstr, pos, inputlen);
+elseif ch == 't' && pos + 3 <= inputlen && inputstr(pos + 1) == 'r' && inputstr(pos + 2) == 'u' && inputstr(pos + 3) == 'e'
+    val = true;
+    pos = pos + 4;
+elseif ch == 'f' && pos + 4 <= inputlen && inputstr(pos + 1) == 'a' && inputstr(pos + 2) == 'l' && inputstr(pos + 3) == 's' && inputstr(pos + 4) == 'e'
+    val = false;
+    pos = pos + 5;
+elseif ch == 'n' && pos + 3 <= inputlen && inputstr(pos + 1) == 'u' && inputstr(pos + 2) == 'l' && inputstr(pos + 3) == 'l'
+    val = [];
+    pos = pos + 4;
+else
+    error_pos('Value expected at position %d', inputstr, pos);
+end
+
+%% -------------------------------------------------------------------------
+
+function [object, pos, index_esc, mmap] = parse_object(inputstr, pos, esc, index_esc, opt)
 oldpos = pos;
 oldindex_esc = index_esc;
-if (nargout > 3)
+needmmap = (nargout > 3);
+if needmmap
     mmap = {};
-    origpath = varargin{1}.jsonpath_;
+    origpath = opt.jsonpath_;
 end
-pos = parse_char(inputstr, pos, '{');
-usemap = varargin{1}.usemap;
-if (usemap)
+
+next_nonws = opt.next_nonws_;
+inputlen = opt.inputlen_;
+
+% Inline parse_char for '{'
+pos = next_nonws(pos);
+pos = pos + 1;
+if pos <= inputlen
+    pos = next_nonws(pos);
+end
+
+usemap = opt.usemap;
+if usemap
     object = containers.Map();
 else
     object = [];
 end
-[cc, pos] = next_char(inputstr, pos);
+
+if pos > inputlen
+    return
+end
+
+cc = inputstr(pos);
 if cc ~= '}'
     while 1
-        [str, pos, index_esc] = parseStr(inputstr, pos, esc, index_esc, varargin{:});
-        if (length(str) > 63)
+        [str, pos, index_esc] = parseStr(inputstr, pos, esc, index_esc, opt);
+        if ischar(str) && length(str) > 63
             pos = -oldpos;
             index_esc = oldindex_esc;
             object = [];
             return
         end
         if isempty(str) && ~usemap
-            str = 'x0x0_'; % empty name is valid in JSON, decodevarname('x0x0_') restores '\0'
+            str = 'x0x0_';  % empty name is valid in JSON, decodevarname('x0x0_') restores '\0'
         end
-        [pos, w1, w2] = parse_char(inputstr, pos, ':');
-        if (nargout > 3)
-            varargin{1}.jsonpath_ = [origpath, '.', str];
-            mmap{end + 1} = {varargin{1}.jsonpath_, [pos, 0, w2]};
-            [val, pos, index_esc, newmmap] = parse_value(inputstr, pos, esc, index_esc, varargin{:});
+
+        % Inline parse_char for ':'
+        if pos <= inputlen
+            pos = next_nonws(pos);
+        end
+        pos = pos + 1;  % skip ':'
+        w2 = 0;
+        if pos <= inputlen
+            oldpos2 = pos;
+            pos = next_nonws(pos);
+            w2 = pos - oldpos2;
+        end
+
+        if needmmap
+            opt.jsonpath_ = [origpath, '.', str];
+            mmap{end + 1} = {opt.jsonpath_, [pos, 0, w2]};
+            [val, pos, index_esc, newmmap] = parse_value(inputstr, pos, esc, index_esc, opt);
             mmap{end}{2}(2) = pos - mmap{end}{2}(1);
             mmap = [mmap(:); newmmap(:)];
         else
-            [val, pos, index_esc] = parse_value(inputstr, pos, esc, index_esc, varargin{:});
+            [val, pos, index_esc] = parse_value(inputstr, pos, esc, index_esc, opt);
         end
-        if (usemap)
+        % Skip whitespace after value
+        if pos <= inputlen
+            pos = next_nonws(pos);
+        end
+
+        if usemap
             object(str) = val;
         else
-            str = encodevarname(str, varargin{:});
-            if (length(str) > 63)
+            str = encodevarname(str, opt);
+            if length(str) > 63
                 pos = -oldpos;
                 index_esc = oldindex_esc;
                 object = [];
@@ -643,14 +772,28 @@ if cc ~= '}'
             end
             object.(str) = val;
         end
-        [cc, pos] = next_char(inputstr, pos);
+
+        if pos > inputlen
+            break
+        end
+        cc = inputstr(pos);
         if cc == '}'
             break
         end
-        pos = parse_char(inputstr, pos, ',');
+        % Inline parse_char for ','
+        pos = pos + 1;
+        if pos <= inputlen
+            pos = next_nonws(pos);
+        end
     end
 end
-pos = parse_char(inputstr, pos, '}');
+
+% Inline parse_char for '}'
+pos = next_nonws(pos);
+pos = pos + 1;
+if pos <= inputlen
+    pos = next_nonws(pos);
+end
 
 %% -------------------------------------------------------------------------
 
@@ -659,51 +802,42 @@ poShow = max(min([pos - 15 pos - 1 pos pos + 20], length(inputstr)), 1);
 if poShow(3) == poShow(2)
     poShow(3:4) = poShow(2) + [0 -1];  % display nothing after
 end
-msg = [sprintf(msg, pos) ': ' ...
-       inputstr(poShow(1):poShow(2)) '<error>' inputstr(poShow(3):poShow(4))];
+msg = [sprintf(msg, pos) ': ' inputstr(poShow(1):poShow(2)) '<e>' inputstr(poShow(3):poShow(4))];
 error('JSONLAB:JSON:InvalidFormat', msg);
 
 %% -------------------------------------------------------------------------
 
-function newpos = skip_whitespace(pos, inputstr)
-newpos = pos;
-while newpos <= length(inputstr) && isspace(inputstr(newpos))
-    newpos = newpos + 1;
-end
-
-%% -------------------------------------------------------------------------
 function newstr = unescapejsonstring(str)
 newstr = str;
-if (iscell(str))
+if iscell(str)
     try
         newstr = cell2mat(cellfun(@(x) cell2mat(x), str(:), 'un', 0));
     catch
     end
 end
-if (~ischar(str) || isempty(find(str == '\', 1)))
+if ~ischar(str) || isempty(find(str == '\', 1))
     return
 end
 newstr = sprintf(str);
 newstr = regexprep(newstr, '\\u([0-9A-Fa-f]{4})', '${char(base2dec($1,16))}');
 
 %% -------------------------------------------------------------------------
+
 function arraystr = sscanf_prep(str)
 arraystr = str;
-if (regexp(str, '"', 'once'))
+if any(str == '"')
     arraystr = regexprep(arraystr, '"_NaN_"', 'NaN');
     arraystr = regexprep(arraystr, '"([-+]*)_Inf_"', '$1Inf');
 end
-arraystr(arraystr == sprintf('\n')) = ' ';
-arraystr(arraystr == sprintf('\r')) = ' ';
+arraystr(arraystr == char(10) | arraystr == char(13)) = ' ';
 
 %% -------------------------------------------------------------------------
+
 function [obj, nextidx] = parsendarray(arraystr, dims)
 astr = arraystr;
-astr(astr == '[') = ' ';
-astr(astr == ']') = ' ';
-astr(astr == ',') = ' ';
+astr(astr == '[' | astr == ']' | astr == ',') = ' ';
 [obj, count, errmsg, nextidx] = sscanf(astr, '%f', inf);
-if (nextidx >= length(astr) - 1)
+if nextidx >= length(astr) - 1
     obj = reshape(obj, dims);
     nextidx = length(arraystr) + 1;
 end
