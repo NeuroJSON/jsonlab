@@ -26,9 +26,11 @@ jobs:
             brew install octave
           fi
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-9.4.0-w64-64.7z --output octave_9.4.0.7z
-            7z x octave_9.4.0.7z -ooctave -y
-            echo "$PWD/octave/octave-9.4.0-w64-64/mingw64/bin" >> $GITHUB_PATH
+            #curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-9.4.0-w64-64.7z --output octave_9.4.0.7z
+            #7z x octave_9.4.0.7z -ooctave -y
+            #echo "$PWD/octave/octave-9.4.0-w64-64/mingw64/bin" >> $GITHUB_PATH
+            choco install octave.portable -y
+            echo "/c/ProgramData/chocolatey/lib/octave.portable/tools/octave/mingw64/bin" >> $GITHUB_PATH
             echo "JAVA_HOME='$JAVA_HOME_11_X64'" >> $GITHUB_ENV
             echo "$JAVA_HOME_11_X64/bin/server" >> $GITHUB_PATH
             echo "$JAVA_HOME_11_X64/bin" >> $GITHUB_PATH
@@ -36,6 +38,7 @@ jobs:
       - name: Run octave test
         run: |
           env | grep JAVA
+choco install octave.portable --version=5.2.0
           octave-cli --version
           octave-cli --eval "disp(octave_config_info('JAVA_HOME')); disp(octave_config_info('JAVA_LIBS'))"
           octave-cli --eval "disp(usejava('jvm'));addpath(pwd);cd test;run_jsonlab_test"
