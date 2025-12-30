@@ -285,6 +285,8 @@ if isempty(val)
         valstr = '[]';
     elseif isstruct(val)
         valstr = '{}';
+    elseif ischar(val)
+        valstr = '""';  % Empty string
     else
         valstr = 'null';
     end
@@ -372,24 +374,34 @@ end
 %% -------------------------------------------------------------------------
 function valstr = formatString(str)
 str = strtrim(str);
-need_quotes = false;
 
-if ~isempty(str)
-    c1 = str(1);
-    if c1 == '[' || c1 == '{' || c1 == '>' || c1 == '|' || c1 == '!' || ...
-       c1 == '&' || c1 == '*' || c1 == '''' || c1 == '"'
+% Handle empty string explicitly
+if isempty(str)
+    valstr = '""';
+    return
+end
+
+% Check for newlines - must always quote and escape
+if any(str == char(10)) || any(str == char(13))
+    valstr = ['"', escapeyamlstring(str), '"'];
+    return
+end
+
+need_quotes = false;
+c1 = str(1);
+if c1 == '[' || c1 == '{' || c1 == '>' || c1 == '|' || c1 == '!' || ...
+   c1 == '&' || c1 == '*' || c1 == '''' || c1 == '"'
+    need_quotes = true;
+elseif any(str == ' ' | str == ':' | str == '#' | str == '[' | str == ']' | ...
+           str == '{' | str == '}' | str == ',' | str == '"' | str == '''')
+    need_quotes = true;
+else
+    strl = lower(str);
+    if strcmp(strl, 'true') || strcmp(strl, 'false') || strcmp(strl, 'null') || ...
+       strcmp(strl, 'yes') || strcmp(strl, 'no') || strcmp(strl, 'on') || strcmp(strl, 'off')
         need_quotes = true;
-    elseif any(str == ' ' | str == ':' | str == '#' | str == '[' | str == ']' | ...
-               str == '{' | str == '}' | str == ',' | str == '"' | str == '''')
+    elseif lookslikenumber(str)
         need_quotes = true;
-    else
-        strl = lower(str);
-        if strcmp(strl, 'true') || strcmp(strl, 'false') || strcmp(strl, 'null') || ...
-           strcmp(strl, 'yes') || strcmp(strl, 'no') || strcmp(strl, 'on') || strcmp(strl, 'off')
-            need_quotes = true;
-        elseif lookslikenumber(str)
-            need_quotes = true;
-        end
     end
 end
 
@@ -466,7 +478,7 @@ nl = sprintf('\n');
 
 nrows = size(item, 1);
 if (nrows > 1)
-    indent2 = [indent_str, '  '];
+    indent2 = [indent_str, repmat(' ', 1, opt.indent)];
     if (~isempty(name))
         lines = cell(1, nrows + 1);
         lines{1} = [indent_str, decodevarname(name, opt.unpackhex), ': |'];
@@ -484,6 +496,16 @@ if (nrows > 1)
     end
 else
     item = strtrim(item);
+
+    % Handle empty string
+    if isempty(item)
+        if (~isempty(name))
+            txt = [indent_str, decodevarname(name, opt.unpackhex), ': ""'];
+        else
+            txt = [indent_str, '""'];
+        end
+        return
+    end
     need_quotes = false;
     if ~isempty(item)
         c1 = item(1);

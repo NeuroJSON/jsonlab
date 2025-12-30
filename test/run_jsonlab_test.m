@@ -499,59 +499,201 @@ if (ismember('yaml', tests))
     fprintf('Test YAML functions\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
 
-    % Basic types
+    %% Basic scalar types - saveyaml
     test_jsonlab('single integer', @saveyaml, 5, '5');
+    test_jsonlab('negative integer', @saveyaml, -42, '-42');
+    test_jsonlab('zero', @saveyaml, 0, '0');
     test_jsonlab('single float', @saveyaml, 3.14, '3.14');
+    test_jsonlab('negative float', @saveyaml, -2.718, '-2.718');
+    test_jsonlab('scientific notation', @saveyaml, 1.5e10, '1.5e+10');
+    test_jsonlab('small scientific', @saveyaml, 1.5e-10, '1.5e-10');
     test_jsonlab('boolean true', @saveyaml, true, 'true', 'ParseLogical', 1);
     test_jsonlab('boolean false', @saveyaml, false, 'false', 'ParseLogical', 1);
     test_jsonlab('empty array', @saveyaml, [], '[]');
     test_jsonlab('empty cell', @saveyaml, {}, '[]');
+    % Note: saveyaml returns 'e:' for empty nested struct (null value)
+    test_jsonlab('empty struct nested', @saveyaml, struct('e', struct()), 'e:', 'EmptyArrayAsNull', 1);
+
+    %% Special float values
+    test_jsonlab('positive infinity', @saveyaml, Inf, '.inf');
+    test_jsonlab('negative infinity', @saveyaml, -Inf, '-.inf');
+    test_jsonlab('NaN', @saveyaml, NaN, '.nan');
+
+    %% Strings - saveyaml
     test_jsonlab('simple string', @saveyaml, 'teststring', 'teststring');
     test_jsonlab('string with spaces', @saveyaml, 'hello world', '"hello world"');
+    test_jsonlab('empty string', @saveyaml, '', '""');
+    test_jsonlab('string with colon', @saveyaml, 'key: value', '"key: value"');
+    test_jsonlab('string with hash', @saveyaml, 'test#comment', '"test#comment"');
+    test_jsonlab('string looks like bool', @saveyaml, 'true', '"true"');
+    test_jsonlab('string looks like null', @saveyaml, 'null', '"null"');
+    test_jsonlab('string looks like number', @saveyaml, '123', '"123"');
+    test_jsonlab('string with quotes', @saveyaml, 'say "hello"', '"say \"hello\""');
+    test_jsonlab('string with newline', @saveyaml, sprintf('line1\nline2'), '"line1\nline2"');
 
-    % Vectors and arrays
+    %% Vectors and arrays - saveyaml
     test_jsonlab('row vector', @saveyaml, [1, 2, 3], '[1, 2, 3]');
     test_jsonlab('column vector', @saveyaml, [1; 2; 3], sprintf('- [1]\n- [2]\n- [3]'));
     test_jsonlab('2d array', @saveyaml, [1, 2, 3; 4, 5, 6], sprintf('- [1, 2, 3]\n- [4, 5, 6]'));
+    test_jsonlab('single element array', @saveyaml, [5], '5');
+    test_jsonlab('logical array', @saveyaml, [true, false, true], '[1, 0, 1]');
+
+    %% Cell arrays - saveyaml
     test_jsonlab('cell array', @saveyaml, {'a', 'b', 'c'}, sprintf('- a\n- b\n- c'));
     test_jsonlab('mixed cell array', @saveyaml, {'a', 1, 0.9}, sprintf('- a\n- 1\n- 0.9'));
+    test_jsonlab('nested cell array', @saveyaml, {{'a', 'b'}, {'c', 'd'}}, sprintf('- - a\n  - b\n- - c\n  - d'));
+    test_jsonlab('cell with empty', @saveyaml, {'a', [], 'b'}, sprintf('- a\n- null\n- b'), 'EmptyArrayAsNull', 1);
     test_jsonlab('char array', @saveyaml, ['AC'; 'EG'], sprintf('|\n  AC\n  EG'));
 
-    % Structs
+    %% Structs - saveyaml
     test_jsonlab('simple struct', @saveyaml, struct('name', 'test', 'value', 5), sprintf('name: test\nvalue: 5'));
     test_jsonlab('nested struct', @saveyaml, struct('person', struct('name', 'John', 'age', 30)), ...
                  sprintf('person:\n  name: John\n  age: 30'));
     test_jsonlab('struct array', @saveyaml, repmat(struct('i', 1.1, 'd', 'str'), [1, 2]), ...
                  sprintf('- i: 1.1\n  d: str\n- i: 1.1\n  d: str'));
+    test_jsonlab('deeply nested struct', @saveyaml, struct('a', struct('b', struct('c', 1))), ...
+                 sprintf('a:\n  b:\n    c: 1'));
+    test_jsonlab('struct with array value', @saveyaml, struct('nums', [1, 2, 3]), 'nums: [1, 2, 3]');
+    test_jsonlab('struct with cell value', @saveyaml, struct('items', {{'x', 'y'}}), sprintf('items:\n  - x\n  - y'));
 
-    % Special characters
+    %% Special characters in struct keys/values
     test_jsonlab('string with colon', @saveyaml, struct('url', 'http://example.com'), 'url: "http://example.com"');
     test_jsonlab('string with dash', @saveyaml, struct('version', 'ubuntu-22.04'), 'version: ubuntu-22.04');
     test_jsonlab('string with at sign', @saveyaml, struct('action', 'actions/checkout@v3'), 'action: "actions/checkout@v3"');
     test_jsonlab('string with brackets', @saveyaml, struct('pattern', '[a-z]+'), 'pattern: "[a-z]+"');
+    test_jsonlab('string with braces', @saveyaml, struct('template', '${var}'), 'template: "${var}"');
 
-    % Inline arrays
+    %% Inline arrays in structs
     test_jsonlab('inline number array', @saveyaml, struct('values', [1, 2, 3]), 'values: [1, 2, 3]');
-    test_jsonlab('inline string array in cell', @saveyaml, struct('items', {{'a', 'b', 'c'}}), sprintf('items:\n  - a\n  - b\n  - c'));
+    test_jsonlab('inline 2d array', @saveyaml, struct('matrix', [1, 2; 3, 4]), sprintf('matrix:\n  - [1, 2]\n  - [3, 4]'));
 
-    % Load tests
+    %% ========== LOADYAML TESTS ==========
+
+    %% Basic types - loadyaml
     test_jsonlab('load simple key-value', @saveyaml, loadyaml('name: test'), 'name: test');
     test_jsonlab('load integer', @saveyaml, loadyaml('value: 5'), 'value: 5');
+    test_jsonlab('load negative integer', @saveyaml, loadyaml('value: -42'), 'value: -42');
     test_jsonlab('load float', @saveyaml, loadyaml('value: 3.14'), 'value: 3.14');
+    test_jsonlab('load scientific', @saveyaml, loadyaml('value: 1.5e10'), 'value: 1.5e+10');
+    test_jsonlab('load hex number', @saveyaml, loadyaml('value: 0xFF'), 'value: 255');
+
+    %% Booleans - loadyaml
     test_jsonlab('load boolean true', @saveyaml, loadyaml('flag: true'), 'flag: true');
     test_jsonlab('load boolean false', @saveyaml, loadyaml('flag: false'), 'flag: false');
+    test_jsonlab('load boolean yes', @saveyaml, loadyaml('flag: yes'), 'flag: true');
+    test_jsonlab('load boolean no', @saveyaml, loadyaml('flag: no'), 'flag: false');
+    test_jsonlab('load boolean on', @saveyaml, loadyaml('flag: on'), 'flag: true');
+    test_jsonlab('load boolean off', @saveyaml, loadyaml('flag: off'), 'flag: false');
+    test_jsonlab('load boolean TRUE', @saveyaml, loadyaml('flag: TRUE'), 'flag: true');
+    test_jsonlab('load boolean False', @saveyaml, loadyaml('flag: False'), 'flag: false');
+
+    %% Null values - loadyaml
     test_jsonlab('load null', @saveyaml, loadyaml('value: null'), 'value: null', 'EmptyArrayAsNull', 1);
+    test_jsonlab('load tilde null', @saveyaml, loadyaml('value: ~'), 'value: null', 'EmptyArrayAsNull', 1);
+    test_jsonlab('load empty value', @saveyaml, loadyaml('value:'), 'value: null', 'EmptyArrayAsNull', 1);
+
+    %% Special floats - loadyaml
+    test_jsonlab('load positive inf', @saveyaml, loadyaml('value: .inf'), 'value: .inf');
+    test_jsonlab('load negative inf', @saveyaml, loadyaml('value: -.inf'), 'value: -.inf');
+    test_jsonlab('load nan', @saveyaml, loadyaml('value: .nan'), 'value: .nan');
+    test_jsonlab('load +.inf', @saveyaml, loadyaml('value: +.inf'), 'value: .inf');
+
+    %% Strings - loadyaml
+    test_jsonlab('load unquoted string', @saveyaml, loadyaml('name: hello'), 'name: hello');
+    test_jsonlab('load double quoted string', @saveyaml, loadyaml('name: "hello world"'), 'name: "hello world"');
+    test_jsonlab('load single quoted string', @saveyaml, loadyaml('name: ''hello world'''), 'name: "hello world"');
+    test_jsonlab('load empty double quoted', @saveyaml, loadyaml('name: ""'), 'name: ""');
+    test_jsonlab('load empty single quoted', @saveyaml, loadyaml('name: '''''), 'name: ""');
+
+    %% Escape sequences - loadyaml
+    test_jsonlab('escape tab', @savejson, loadyaml('s: "hello\tworld"').s, sprintf('"hello\\tworld"'));
+    test_jsonlab('escape newline', @savejson, loadyaml('s: "line1\nline2"').s, sprintf('"line1\\nline2"'));
+    test_jsonlab('escape carriage return', @savejson, loadyaml('s: "col1\rcol2"').s, sprintf('"col1\\rcol2"'));
+    test_jsonlab('escape quote', @savejson, loadyaml('s: "say \"hi\""').s, '"say \"hi\""');
+    test_jsonlab('escape backslash', @savejson, loadyaml('s: "back\\slash"').s, '"back\\slash"');
+    test_jsonlab('escape bell code', @saveyaml, double(loadyaml('s: "\a"').s), '7');
+    test_jsonlab('escape vtab code', @saveyaml, double(loadyaml('s: "\v"').s), '11');
+    test_jsonlab('escape null code', @saveyaml, double(loadyaml('s: "\0"').s), '0');
+    test_jsonlab('escape hex', @savejson, loadyaml('s: "\x41\x42\x43"').s, '"ABC"');
+    test_jsonlab('escape unicode', @savejson, loadyaml('s: "\u0048\u0069"').s, '"Hi"');
+
+    %% Block sequences - loadyaml
     test_jsonlab('load simple list', @saveyaml, loadyaml(sprintf('- a\n- b\n- c')), sprintf('- a\n- b\n- c'));
+    test_jsonlab('load numeric list', @saveyaml, loadyaml(sprintf('- 1\n- 2\n- 3')), '[1, 2, 3]');
+    test_jsonlab('load mixed list', @saveyaml, loadyaml(sprintf('- hello\n- 42\n- true')), sprintf('- hello\n- 42\n- true'));
+
+    %% Inline arrays - loadyaml
     test_jsonlab('load inline array', @saveyaml, loadyaml('values: [1, 2, 3]'), 'values: [1, 2, 3]');
     test_jsonlab('load inline string array', @saveyaml, loadyaml('items: [a, b, c]'), sprintf('items:\n  - a\n  - b\n  - c'));
+    test_jsonlab('load inline mixed array', @saveyaml, loadyaml('data: [1, "two", true]'), sprintf('data:\n  - 1\n  - two\n  - true'));
+    test_jsonlab('load empty inline array', @saveyaml, loadyaml('items: []'), 'items: []');
+    test_jsonlab('load nested inline array', @saveyaml, loadyaml('coords: [[1, 2], [3, 4]]'), sprintf('coords:\n  - [1, 2]\n  - [3, 4]'));
+
+    %% Inline objects - loadyaml
+    result_inline_obj = loadyaml('person: {name: John, age: 30}');
+    test_jsonlab('load inline object name', @saveyaml, result_inline_obj.person.name, 'John');
+    test_jsonlab('load inline object age', @saveyaml, result_inline_obj.person.age, '30');
+    test_jsonlab('load empty inline object', @saveyaml, loadyaml('empty: {}'), 'empty:', 'EmptyArrayAsNull', 1);
+
+    %% Nested structures - loadyaml
     test_jsonlab('load nested object', @saveyaml, loadyaml(sprintf('person:\n  name: John\n  age: 30')), ...
                  sprintf('person:\n  name: John\n  age: 30'));
+    test_jsonlab('load deeply nested', @saveyaml, loadyaml(sprintf('a:\n  b:\n    c: 1')), sprintf('a:\n  b:\n    c: 1'));
     test_jsonlab('load array of objects', @saveyaml, loadyaml(sprintf('- name: Alice\n  age: 25\n- name: Bob\n  age: 30')), ...
                  sprintf('- name: Alice\n  age: 25\n- name: Bob\n  age: 30'));
 
-    % Multi-document
+    %% Double-nested block sequences (- - pattern) - loadyaml
+    yaml_nested = sprintf('coords:\n  - - [1, 2]\n    - [3, 4]\n  - - [5, 6]\n    - [7, 8]');
+    result = loadyaml(yaml_nested);
+    test_jsonlab('nested seq is cell', @saveyaml, iscell(result.coords), 'true');
+    test_jsonlab('nested seq length', @saveyaml, length(result.coords), '2');
+    test_jsonlab('nested seq polygon 1', @saveyaml, result.coords{1}, sprintf('- [1, 2]\n- [3, 4]'));
+    test_jsonlab('nested seq polygon 2', @saveyaml, result.coords{2}, sprintf('- [5, 6]\n- [7, 8]'));
+
+    %% Comments - loadyaml
+    test_jsonlab('load with comment', @saveyaml, loadyaml(sprintf('name: test # this is a comment')), 'name: test');
+    test_jsonlab('load with full line comment', @saveyaml, loadyaml(sprintf('# comment\nname: test')), 'name: test');
+    test_jsonlab('load hash in quoted string', @saveyaml, loadyaml('tag: "#hashtag"'), 'tag: "#hashtag"');
+
+    %% Multi-document - loadyaml
     test_jsonlab('load multi-document', @saveyaml, loadyaml(sprintf('---\nname: doc1\n---\nname: doc2')), ...
                  sprintf('- name: doc1\n- name: doc2'));
+
+    %% Complex structures - loadyaml
+    geojson_yaml = sprintf(['type: Feature\n' ...
+                            'geometry:\n' ...
+                            '  type: Polygon\n' ...
+                            '  coordinates:\n' ...
+                            '    - - [0, 0]\n' ...
+                            '      - [1, 0]\n' ...
+                            '      - [1, 1]\n' ...
+                            '      - [0, 0]']);
+    result = loadyaml(geojson_yaml);
+    test_jsonlab('geojson type', @saveyaml, result.type, 'Feature');
+    test_jsonlab('geojson geom type', @saveyaml, result.geometry.type, 'Polygon');
+    test_jsonlab('geojson coords is cell', @saveyaml, iscell(result.geometry.coordinates), 'true');
+    test_jsonlab('geojson coords size', @saveyaml, size(result.geometry.coordinates{1}), '[4, 2]');
+
+    %% Round-trip tests (use empty rootname to avoid variable name wrapping)
+    rt_int = struct('v', 42);
+    test_jsonlab('roundtrip integer', @saveyaml, loadyaml(saveyaml('', rt_int)), 'v: 42');
+    rt_float = struct('v', 3.14);
+    test_jsonlab('roundtrip float', @saveyaml, loadyaml(saveyaml('', rt_float)), 'v: 3.14');
+    rt_bool = struct('v', true);
+    test_jsonlab('roundtrip boolean', @saveyaml, loadyaml(saveyaml('', rt_bool)), 'v: true');
+    rt_vec = struct('v', [1, 2, 3]);
+    test_jsonlab('roundtrip row vector', @saveyaml, loadyaml(saveyaml('', rt_vec)), 'v: [1, 2, 3]');
+    rt_mat = struct('v', [1, 2; 3, 4]);
+    test_jsonlab('roundtrip matrix', @saveyaml, loadyaml(saveyaml('', rt_mat)), sprintf('v:\n  - [1, 2]\n  - [3, 4]'));
+
+    rt_struct = struct('name', 'test', 'value', 123);
+    test_jsonlab('roundtrip struct', @saveyaml, loadyaml(saveyaml('', rt_struct)), sprintf('name: test\nvalue: 123'));
+
+    rt_nested = struct('outer', struct('inner', struct('value', 42)));
+    test_jsonlab('roundtrip nested struct', @saveyaml, loadyaml(saveyaml('', rt_nested)), sprintf('outer:\n  inner:\n    value: 42'));
+
+    rt_arr = struct('data', [1, 2, 3], 'name', 'test');
+    test_jsonlab('roundtrip struct with array', @saveyaml, loadyaml(saveyaml('', rt_arr)), sprintf('data: [1, 2, 3]\nname: test'));
 end
 
 %%
@@ -560,18 +702,75 @@ if (ismember('yamlopt', tests))
     fprintf('Test YAML function options\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
 
-    % Test saveyaml options
+    %% saveyaml options
     test_jsonlab('indent option', @saveyaml, struct('a', struct('b', 1)), ...
                  sprintf('a:\n    b: 1'), 'Indent', 4);
     test_jsonlab('float format option', @saveyaml, pi, '3.142', 'FloatFormat', '%.3f');
     test_jsonlab('int format option', @saveyaml, uint8(5), '5', 'IntFormat', '%d');
 
-    % Test multi-document
+    %% Multi-document saveyaml
     test_jsonlab('save multi-document', @saveyaml, {struct('a', 1), struct('b', 2)}, ...
                  sprintf('---\na: 1\n---\nb: 2'), 'MultiDocument', 1);
 
-    % Test loadyaml options
+    %% loadyaml options
     test_jsonlab('simplify cell option', @saveyaml, loadyaml(sprintf('- 1\n- 2\n- 3'), 'SimplifyCell', 1), '[1, 2, 3]');
+    test_jsonlab('simplify cell off', @savejson, iscell(loadyaml(sprintf('- 1\n- 2\n- 3'), 'SimplifyCell', 0)), '[true]');
+
+    %% FastArrayParser option
+    yaml_arr = 'coords: [[1, 2], [3, 4], [5, 6]]';
+    result_fast = loadyaml(yaml_arr, 'FastArrayParser', 1);
+    result_slow = loadyaml(yaml_arr, 'FastArrayParser', 0);
+    test_jsonlab('fast array parser match', @savejson, isequal(result_fast.coords, result_slow.coords), '[true]');
+end
+
+%%
+if (ismember('yamledge', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test YAML edge cases\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    %% Edge cases - whitespace handling
+    test_jsonlab('extra spaces after colon', @saveyaml, loadyaml('value:   5').value, '5');
+    test_jsonlab('trailing spaces', @saveyaml, loadyaml('value: 5  ').value, '5');
+    test_jsonlab('leading spaces', @saveyaml, loadyaml(sprintf('  value: 5')).value, '5');
+
+    %% Edge cases - special key names
+    result = loadyaml('"quoted key": value');
+    fnames = fieldnames(result);
+    test_jsonlab('quoted key has field', @saveyaml, ~isempty(fnames), 'true');
+    test_jsonlab('quoted key value', @saveyaml, result.(fnames{1}), 'value');
+
+    %% Edge cases - deeply nested arrays (parsed as cell of matrices)
+    yaml_deep = 'arr: [[[1, 2], [3, 4]], [[5, 6], [7, 8]]]';
+    result = loadyaml(yaml_deep);
+    test_jsonlab('deep array is cell', @saveyaml, iscell(result.arr), 'true');
+    test_jsonlab('deep array length', @saveyaml, length(result.arr), '2');
+    test_jsonlab('deep array elem size', @saveyaml, size(result.arr{1}), '[2, 2]');
+
+    %% Edge cases - empty structures
+    test_jsonlab('empty array field', @saveyaml, isempty(loadyaml('arr: []').arr), 'true');
+    result_empty_obj = loadyaml('obj: {}');
+    test_jsonlab('empty object is struct', @saveyaml, isstruct(result_empty_obj.obj), 'true');
+    test_jsonlab('empty object no fields', @saveyaml, isempty(fieldnames(result_empty_obj.obj)), 'true');
+
+    %% Edge cases - unicode in strings
+    result = loadyaml('emoji: "\u263A"');
+    test_jsonlab('unicode char code', @saveyaml, double(result.emoji), '9786');
+
+    %% Edge cases - colons in values
+    test_jsonlab('time string', @saveyaml, loadyaml('time: "12:30:00"').time, '"12:30:00"');
+    test_jsonlab('url string', @saveyaml, loadyaml('url: "http://example.com"').url, '"http://example.com"');
+
+    %% Edge cases - array with single element
+    test_jsonlab('single element array', @saveyaml, loadyaml('arr: [42]').arr, '42');
+
+    %% Edge cases - tabs as indentation
+    yaml_tabs = sprintf('parent:\n\tchild: value');
+    test_jsonlab('tab indentation', @saveyaml, loadyaml(yaml_tabs).parent.child, 'value');
+
+    %% Edge cases - numbers in various formats
+    test_jsonlab('plain number', @saveyaml, loadyaml('val: 0777').val, '777');
+    test_jsonlab('hex number', @saveyaml, loadyaml('val: 0x1F').val, '31');
 end
 
 %%
