@@ -38,7 +38,6 @@ jobs:
       - name: Run octave test
         run: |
           env | grep JAVA
-choco install octave.portable --version=5.2.0
           octave-cli --version
           octave-cli --eval "disp(octave_config_info('JAVA_HOME')); disp(octave_config_info('JAVA_LIBS'))"
           octave-cli --eval "disp(usejava('jvm'));addpath(pwd);cd test;run_jsonlab_test"
