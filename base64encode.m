@@ -33,7 +33,7 @@ if (nargin == 0)
 end
 
 if (exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3)
-    [varargout{1:nargout}] = zmat(varargin{1}, 2, 'base64', varargin{2:end});
+    [varargout{1:nargout}] = zmat(varargin{1}, 1, 'base64', varargin{2:end});
     return
 end
 
