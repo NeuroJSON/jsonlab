@@ -30,15 +30,11 @@ jobs:
             7z x octave_9.4.0.7z -ooctave -y
             echo "$PWD/octave/octave-9.4.0-w64-64/mingw64/bin" >> $GITHUB_PATH
             echo "JAVA_HOME=$JAVA_HOME_11_X64" >> $GITHUB_ENV
-            echo "$JAVA_HOME_11_X64/bin/server" >> $GITHUB_PATH
-            echo "$JAVA_HOME_11_X64/bin" >> $GITHUB_PATH
           fi
       - name: Run octave test
         run: |
-          env | grep JAVA
-          octave-cli --eval "disp('--- pkg list ---');pkg list;disp('--- version ---');disp(version);disp('--- JAVA_HOME env ---');disp(getenv('JAVA_HOME'));disp('--- usejava ---');disp(usejava('jvm'));disp(usejava('desktop'));"
           octave-cli --version
-          octave-cli --eval "disp(usejava('jvm'));addpath(pwd);cd test;run_jsonlab_test"
+          octave-cli --eval "disp({'use jvm:', usejava('jvm')});addpath(pwd);cd test;run_jsonlab_test"
           octave-cli --eval "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest"
 
   matlab_test:
