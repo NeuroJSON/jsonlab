@@ -8,7 +8,7 @@ jobs:
     strategy:
       # provided octave versions: ubuntu-22.04 = 6.4, ubuntu-24.04 = 8.4, macos-15-intel = 10.3, windows-2022 = 9.4
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, macos-15-intel, macos-14, windows-2022]
+        os: [ubuntu-22.04, ubuntu-24.04, macos-15-intel, windows-2022]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -34,6 +34,7 @@ jobs:
         env:
           JAVA_HOME: ${{ env.JAVA_HOME_11_X64 }}
         run: |
+          env | grep JAVA
           octave-cli --version
           octave-cli --eval "addpath(pwd);cd test;run_jsonlab_test"
           octave-cli --eval "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest"
