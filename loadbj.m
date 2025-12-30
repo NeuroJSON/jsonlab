@@ -97,7 +97,7 @@ function [data, mmap] = loadbj(fname, varargin)
 
 opt = varargin2struct(varargin{:});
 
-if (length(fname) < 4096 && exist(fname, 'file'))
+if (length(fname) < 4096 && exist(fname, 'file') && ~exist(fname, 'dir'))
     fid = fopen(fname, 'rb');
     inputstr = fread(fid, jsonopt('MaxBuffer', inf, opt), 'uint8=>char')';
     fclose(fid);

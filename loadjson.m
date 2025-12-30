@@ -165,7 +165,7 @@ elseif (regexpi(fname, '^\s*(http|https|ftp|file)://'))
     else
         jsonstring = urlread(fname, webopt{:});
     end
-elseif (exist(fname, 'file'))
+elseif (exist(fname, 'file') && ~exist(fname, 'dir'))
     try
         encoding = jsonopt('Encoding', '', opt);
         if (isempty(encoding))

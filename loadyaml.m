@@ -29,7 +29,7 @@ webopt = jsonopt('WebOptions', {}, opt);
 
 if (~isempty(regexp(fname, '^\s*(http|https|ftp|file)://', 'once')))
     yamlstr = urlread(fname, webopt{:});
-elseif (exist(fname, 'file'))
+elseif (exist(fname, 'file') && ~exist(fname, 'dir'))
     try
         encoding = jsonopt('Encoding', '', opt);
         if (isempty(encoding))
