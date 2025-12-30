@@ -1,4 +1,4 @@
-\name: JSONLab CI
+name: JSONLab CI
 
 on: [push, pull_request]
 
