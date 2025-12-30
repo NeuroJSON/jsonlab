@@ -33,8 +33,9 @@ jobs:
           fi
       - name: Run octave test
         run: |
+          env | grep JAVA
           octave-cli --version
-          octave-cli --eval "addpath(pwd);cd test;run_jsonlab_test"
+          octave-cli --eval "disp(usejava('jvm'));addpath(pwd);cd test;run_jsonlab_test"
           octave-cli --eval "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest"
 
   matlab_test:
