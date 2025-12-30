@@ -29,7 +29,7 @@ jobs:
             curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-9.4.0-w64-64.7z --output octave_9.4.0.7z
             7z x octave_9.4.0.7z -ooctave -y
             echo "$PWD/octave/octave-9.4.0-w64-64/mingw64/bin" >> $GITHUB_PATH
-            echo "JAVA_HOME='$JAVA_HOME_11_X64'" >> $GITHUB_ENV
+            echo "JAVA_HOME=$JAVA_HOME_11_X64" >> $GITHUB_ENV
             echo "$JAVA_HOME_11_X64/bin/server" >> $GITHUB_PATH
             echo "$JAVA_HOME_11_X64/bin" >> $GITHUB_PATH
           fi
