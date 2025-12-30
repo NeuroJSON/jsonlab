@@ -29,12 +29,10 @@ jobs:
             curl --retry 3 -kL http://cdimage.debian.org/mirror/gnu.org/gnu/octave/windows/octave-9.4.0-w64-64.7z --output octave_9.4.0.7z
             7z x octave_9.4.0.7z -ooctave -y
             echo "$PWD/octave/octave-9.4.0-w64-64/mingw64/bin" >> $GITHUB_PATH
+            echo "JAVA_HOME='$JAVA_HOME_11_X64'" >> $GITHUB_ENV
           fi
       - name: Run octave test
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME_11_X64 }}
         run: |
-          env | grep JAVA
           octave-cli --version
           octave-cli --eval "addpath(pwd);cd test;run_jsonlab_test"
           octave-cli --eval "addpath(pwd);cd examples; demo_jsonlab_basic; jsonlab_selftest"
