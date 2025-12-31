@@ -18,6 +18,7 @@
 %        jd = jdict(data) wraps any matlab data (array, cell, struct, dictionary, ...) into a new jdict object
 %        jd = jdict(data, 'param1', value1, 'param2', value2, ...) use param/value pairs to initilize jd.flags
 %        jd = jdict(data, 'attr', attrmap) initilize data attributes using a containers.Map with JSONPath as keys
+%        jd = jdict(data, 'schema', jschema) initilize data's JSON schema using a containers.Map object jschema
 %
 %    member functions:
 %        jd.('cell1').v(i) or jd.('array1').v(2:3) returns specified elements if the element is a cell or array
@@ -354,16 +355,27 @@ classdef jdict < handle
                                 i = i + 2;
                                 continue
                             end
-                        else
-                            % single struct or scalar field access
+                        elseif isfield(val, onekey)
+                            % single struct with existing field
                             val = val.(onekey);
+                            trackpath = [trackpath '.' escapedonekey];
+                        else
+                            % field does not exist - return empty for <= assignment
+                            val = [];
                             trackpath = [trackpath '.' escapedonekey];
                         end
                     elseif (isa(val, 'containers.Map') || isa(val, 'dictionary'))
-                        val = val(onekey);
+                        if isKey(val, onekey)
+                            val = val(onekey);
+                        else
+                            % key does not exist - return empty for <= assignment
+                            val = [];
+                        end
                         trackpath = [trackpath '.' escapedonekey];
                     else
-                        error('key name "%s" not found', onekey);
+                        % data is empty or other type - return empty for <= assignment
+                        val = [];
+                        trackpath = [trackpath '.' escapedonekey];
                     end
                 else
                     error('method not supported');
@@ -512,6 +524,10 @@ classdef jdict < handle
                         continue
                     end
                     if (ischar(idx.subs) && ~(~isempty(idx.subs) && idx.subs(1) == char(36)))
+                        % Handle empty or non-struct/map data
+                        if isempty(opcell{i}) || (~isstruct(opcell{i}) && ~isa(opcell{i}, 'containers.Map') && ~isa(opcell{i}, 'dictionary'))
+                            opcell{i} = obj.newkey_();
+                        end
                         if (((isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary')) && ~isKey(opcell{i}, idx.subs)))
                             idx.type = '()';
                             opcell{i}(idx.subs) = obj.newkey_();
@@ -594,27 +610,30 @@ classdef jdict < handle
             obj.data = opcell{1};
         end
 
-        % export data to json
+        % export data to json, binary JSON, or other over a dozen formats
         function val = tojson(obj, varargin)
             % printing underlying data to compact-formed JSON string
-            val = obj.call_('savejson', '', obj, 'compact', 1, varargin{:});
+            val = obj.call_('savejd', '', obj, 'compact', 1, varargin{:});
         end
 
         % load data from over a dozen data formats, including json and binary json
         function obj = fromjson(obj, fname, varargin)
-            % loading diverse data files using loadjd interface in jsonlab
             obj.data = obj.call_('loadjd', fname, varargin{:});
         end
 
         function val = keys(obj)
-            % list subfields at the current level
             if (isstruct(obj.data))
-                val = fieldnames(obj.data);
+                val = builtin('fieldnames', obj.data);
             elseif (isa(obj.data, 'containers.Map') || isa(obj.data, 'dictionary'))
                 val = keys(obj.data);
             else
                 val = 1:length(obj.data);
             end
+            val = val(:);
+        end
+
+        function val = fieldnames(obj)
+            val = keys(obj);
         end
 
         % test if a key or index exists
@@ -809,14 +828,16 @@ classdef jdict < handle
                 error('No schema available. Use setschema() first or provide schema as argument.');
             end
 
-            subschema = jsonschema(obj.schema, [], 'getsubschema', obj.currentpath__);
+            subschema = obj.call_('jsonschema', obj.schema, [], ...
+                                  'getsubschema', obj.currentpath__);
 
             if isempty(subschema)
                 errors = {};
                 return
             end
 
-            [temp, errors] = jsonschema(obj.data, subschema, 'rootschema', obj.schema);
+            [temp, errors] = obj.call_('jsonschema', obj.data, subschema, ...
+                                       'rootschema', obj.schema);
         end
 
         % convert attributes to JSON Schema
@@ -937,13 +958,16 @@ classdef jdict < handle
         function result = le(obj, value)
             % validate against schema if defined
             if ~isempty(obj.schema)
-                subschema = jsonschema(obj.schema, [], 'getsubschema', obj.currentpath__);
+                subschema = obj.call_('jsonschema', obj.schema, [], ...
+                                      'getsubschema', obj.currentpath__);
 
                 % if subschema found for this path, validate
                 if ~isempty(subschema)
-                    [valid, errs] = jsonschema(value, subschema, 'rootschema', obj.schema);
+                    [valid, errs] = obj.call_('jsonschema', value, subschema, ...
+                                              'rootschema', obj.schema);
                     if ~valid
-                        errmsg = sprintf('Schema validation failed for "%s":', obj.currentpath__);
+                        errmsg = sprintf('Schema validation failed for "%s":', ...
+                                         obj.currentpath__);
                         for i = 1:length(errs)
                             errmsg = [errmsg ' ' errs{i} ';'];
                         end
@@ -952,15 +976,53 @@ classdef jdict < handle
                 end
             end
 
-            % assign via root object using JSONPath
+            % assign via root object
             if strcmp(obj.currentpath__, char(36))
                 obj.root__.data = value;
             else
-                idx.type = '.';
-                idx.subs = obj.currentpath__;
-                subsasgn(obj.root__, idx, value);
+                % parse currentpath__ to build index keys
+                % remove leading $. if present
+                path = obj.currentpath__;
+                if length(path) > 2 && path(1) == char(36) && path(2) == '.'
+                    path = path(3:end);
+                elseif path(1) == char(36)
+                    path = path(2:end);
+                end
+
+                % split by unescaped dots
+                parts = {};
+                current = '';
+                k = 1;
+                while k <= length(path)
+                    if k < length(path) && path(k) == '\' && path(k + 1) == '.'
+                        current = [current '.'];
+                        k = k + 2;
+                    elseif path(k) == '.'
+                        if ~isempty(current)
+                            parts{end + 1} = current;
+                        end
+                        current = '';
+                        k = k + 1;
+                    else
+                        current = [current path(k)];
+                        k = k + 1;
+                    end
+                end
+                if ~isempty(current)
+                    parts{end + 1} = current;
+                end
+
+                % build idxkey array for subsasgn
+                idxkey = struct('type', {}, 'subs', {});
+                for k = 1:length(parts)
+                    idxkey(k).type = '.';
+                    idxkey(k).subs = parts{k};
+                end
+
+                % call subsasgn on root object
+                subsasgn(obj.root__, idxkey, value);
             end
-            result = obj;
+            result = obj.root__;
         end
 
     end
