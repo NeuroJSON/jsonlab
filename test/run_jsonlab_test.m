@@ -3,7 +3,7 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test
 %   or
 % run_jsonlab_test(tests)
-% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray','schema','jdictadv'})
+% run_jsonlab_test({'js','jso','bj','bjo','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray','schema','jdictadv','schemaadv'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -26,6 +26,7 @@ function run_jsonlab_test(tests)
 %         'xarray': test jdict data attribute operations
 %         'schema': schema-attribute and jsonschema tests
 %         'jdictadv': jdict corner cases
+%         'schemaadv': jdict schema-guarded assignment and validate
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -35,7 +36,14 @@ function run_jsonlab_test(tests)
 
 if (nargin == 0)
     tests = {'js', 'jso', 'bj', 'bjo', 'jmap', 'bmap', 'jpath', ...
-             'jdict', 'bugs', 'yaml', 'yamlopt', 'xarray', 'schema', 'jdictadv'};
+             'jdict', 'bugs', 'yaml', 'yamlopt', 'xarray', 'schema', 'jdictadv', 'schemaadv'};
+end
+
+try
+    testmap = containers.Map();
+    hasContainersMap = true;
+catch
+    hasContainersMap = false;
 end
 
 %%
@@ -63,7 +71,7 @@ if (ismember('js', tests))
         test_jsonlab('string array', @savejson, [string('jdata'), string('shall'), string('prevail')], '["jdata","shall","prevail"]', 'compact', 1);
     end
     test_jsonlab('empty name', @savejson, loadjson('{"":""}'), '{"":""}', 'compact', 1);
-    if (exist('containers.Map'))
+    if (hasContainersMap)
         test_jsonlab('empty name with map', @savejson, loadjson('{"":""}', 'usemap', 1), '{"":""}', 'compact', 1);
         test_jsonlab('indentation', @savejson, savejson('s', containers.Map({'a', 'b'}, {[], struct('c', 1.1, 'd', struct('e', {1, 2}))})), ...
                      '"{\n\t\"s\":{\n\t\t\"a\":[],\n\t\t\"b\":{\n\t\t\t\"c\":1.1,\n\t\t\t\"d\":[\n\t\t\t\t{\n\t\t\t\t\t\"e\":1\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"e\":2\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t}\n}\n"');
@@ -107,17 +115,21 @@ if (ismember('js', tests))
         test_jsonlab('encoded fieldnames without decoding', @savejson, struct(encodevarname('_i'), 1, encodevarname('i_'), 'str'), ...
                      '{"x0x5F_i":1,"i_":"str"}', 'compact', 1, 'UnpackHex', 0);
     end
-    if (exist('containers.Map'))
-        test_jsonlab('containers.Map with string keys', @savejson, containers.Map([string('Andy'), string('^_^')], {true, '-_-'}), ...
-                     '{"Andy":true,"^_^":"-_-"}', 'compact', 1, 'usemap', 1);
+    if (hasContainersMap)
+        if (exist('string'))
+            test_jsonlab('containers.Map with string keys', @savejson, containers.Map([string('Andy'), string('^_^')], {true, '-_-'}), ...
+                         '{"Andy":true,"^_^":"-_-"}', 'compact', 1, 'usemap', 1);
+        end
         test_jsonlab('containers.Map with char keys', @savejson, containers.Map({'Andy', '^_^'}, {true, '-_-'}), ...
                      '{"Andy":true,"^_^":"-_-"}', 'compact', 1, 'usemap', 1);
         test_jsonlab('containers.Map with number keys', @savejson, containers.Map({1.1, 1.2}, {true, '-_-'}), ...
                      '{"_MapData_":[[1.1,true],[1.2,"-_-"]]}', 'compact', 1, 'usemap', 1);
     end
     if (exist('dictionary'))
-        test_jsonlab('dictionary with string keys', @savejson, dictionary([string('Andy'), string('^_^')], {true, '-_-'}), ...
-                     '{"Andy":true,"^_^":"-_-"}', 'compact', 1, 'usemap', 1);
+        if (exist('string'))
+            test_jsonlab('dictionary with string keys', @savejson, dictionary([string('Andy'), string('^_^')], {true, '-_-'}), ...
+                         '{"Andy":true,"^_^":"-_-"}', 'compact', 1, 'usemap', 1);
+        end
         test_jsonlab('dictionary with cell keys', @savejson, dictionary({'Andy', '^_^'}, {true, '-_-'}), ...
                      '{"_MapData_":[["Andy",true],["^_^","-_-"]]}', 'compact', 1, 'usemap', 1);
         test_jsonlab('dictionary with number keys', @savejson, dictionary({1.1, 1.2}, {true, '-_-'}), ...
@@ -219,7 +231,7 @@ if (ismember('bj', tests))
         test_jsonlab('string array', @savebj, [string('jdata'); string('shall'); string('prevail')], '[[SU<5>jdataSU<5>shallSU<7>prevail]]', 'debug', 1);
     end
     test_jsonlab('empty name', @savebj, loadbj(['{U' char(0) 'U' char(2) '}']), '{U<0>U<2>}', 'debug', 1);
-    if (exist('containers.Map'))
+    if (hasContainersMap)
         test_jsonlab('empty name with map', @savebj, loadbj(['{U' char(0) 'U' char(2) '}'], 'usemap', 1), '{U<0>U<2>}', 'debug', 1);
         test_jsonlab('key longer than 63', @savebj, loadbj(['{U' char(11) '...........U' char(2) '}'], 'usemap', 0), '{U<11>...........U<2>}', 'debug', 1);
     end
@@ -265,7 +277,7 @@ if (ismember('bj', tests))
         test_jsonlab('encoded fieldnames without decoding', @savebj, struct(encodevarname('_i'), 1, encodevarname('i_'), 'str'), ...
                      '{U<7>x0x5F_iU<1>U<2>i_SU<3>str}', 'debug', 1, 'UnpackHex', 0);
     end
-    if (exist('containers.Map'))
+    if (hasContainersMap)
         test_jsonlab('containers.Map with char keys', @savebj, containers.Map({'Andy', '^_^'}, {true, '-_-'}), ...
                      '{U<4>AndyTU<3>^_^SU<3>-_-}', 'debug', 1, 'usemap', 1);
     end
@@ -416,7 +428,7 @@ if (ismember('jpath', tests))
     test_jsonlab('jsonpath use [''*''] and ["*"]', @savejson, jsonpath(testdata, '$["book"][:-2][''author'']'), '["Yoda","Jinn"]', 'compact', 1);
     test_jsonlab('jsonpath use combinations', @savejson, jsonpath(testdata, '$..["book"][:-2].author[*][0]'), '["Yoda"]', 'compact', 1);
 
-    if (exist('containers.Map'))
+    if (hasContainersMap)
         testdata = loadjson(savejson('', testdata), 'usemap', 1);
         test_jsonlab('jsonpath use combinations', @savejson, jsonpath(testdata, '$..["book"].author[*][0]'), '["Yoda"]', 'compact', 1);
     end
@@ -439,7 +451,7 @@ if (ismember('jpath', tests))
 end
 
 %%
-if (ismember('jdict', tests) && exist('containers.Map'))
+if (ismember('jdict', tests) && hasContainersMap)
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test jdict\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
@@ -797,7 +809,7 @@ if (ismember('yamledge', tests))
 end
 
 %%
-if (ismember('xarray', tests) && exist('containers.Map'))
+if (ismember('xarray', tests) && hasContainersMap)
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test jdict xarray-like attributes\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
@@ -917,7 +929,7 @@ if (ismember('xarray', tests) && exist('containers.Map'))
 end
 
 %%
-if (ismember('schema', tests) && exist('containers.Map'))
+if (ismember('schema', tests) && hasContainersMap)
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test jdict JSON Schema validation\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
@@ -1301,7 +1313,7 @@ if (ismember('schema', tests) && exist('containers.Map'))
 end
 
 %%
-if (ismember('jdictadv', tests) && exist('containers.Map'))
+if (ismember('jdictadv', tests) && hasContainersMap)
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test jdict advanced member functions\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
@@ -1355,7 +1367,7 @@ if (ismember('jdictadv', tests) && exist('containers.Map'))
     test_jsonlab('keys on cell', @savejson, jd.keys(), '[1,2,3]', 'compact', 1);
     test_jsonlab('len on cell', @savejson, jd.len(), '[3]', 'compact', 1);
 
-    if exist('containers.Map')
+    if hasContainersMap
         jd = jdict(containers.Map({'x', 'y', 'z'}, {1, 2, 3}));
         k = jd.keys();
         test_jsonlab('keys on Map', @savejson, length(k), '[3]', 'compact', 1);
@@ -1401,7 +1413,7 @@ if (ismember('jdictadv', tests) && exist('containers.Map'))
     % =======================================================================
     % containers.Map as underlying data
     % =======================================================================
-    if exist('containers.Map')
+    if hasContainersMap
         m = containers.Map();
         m('key1') = struct('nested', 'value1');
         m('key2') = [1, 2, 3];
@@ -1487,7 +1499,7 @@ if (ismember('jdictadv', tests) && exist('containers.Map'))
     jd.('_DataInfo_') = struct('version', '1.0');
     test_jsonlab('special key _DataInfo_', @savejson, jd.('_DataInfo_').('version'), '"1.0"', 'compact', 1);
 
-    if exist('containers.Map')
+    if hasContainersMap
         jd = jdict(struct());
         jd.data = containers.Map();
         jd.('data').('key.with" dots') = 'dotvalue';
@@ -1510,7 +1522,7 @@ if (ismember('jdictadv', tests) && exist('containers.Map'))
     % =======================================================================
     % Mixed nested structures
     % =======================================================================
-    if exist('containers.Map')
+    if hasContainersMap
         jd = jdict();
         m = containers.Map('KeyType', 'char', 'ValueType', 'any');
         m('opt1') = 'val1';
@@ -1531,4 +1543,602 @@ if (ismember('jdictadv', tests) && exist('containers.Map'))
     test_jsonlab('nested nonexistent attr', @savejson, isempty(jd.('a').getattr('noattr')), '[true]', 'compact', 1);
 
     clear jd jd1 jd2 m k sa result json xattrs allpaths;
+end
+
+if (ismember('schemaadv', tests) && hasContainersMap)
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test jdict schema-validated assignment and subkey validation\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - root level
+    % =======================================================================
+    jd = jdict('hello');
+    jd.setschema(struct('type', 'string'));
+    jd <= 'world';
+    test_jsonlab('<= root string pass', @savejson, jd(), '"world"', 'compact', 1);
+
+    jd = jdict(10);
+    jd.setschema(struct('type', 'integer', 'minimum', 0, 'maximum', 100));
+    jd <= 50;
+    test_jsonlab('<= root integer pass', @savejson, jd(), '[50]', 'compact', 1);
+
+    jd = jdict(10);
+    jd.setschema(struct('type', 'integer', 'minimum', 0));
+    try
+        jd <= -5;
+        test_jsonlab('<= root integer fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= root integer fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    jd = jdict('test');
+    jd.setschema(struct('type', 'string', 'minLength', 3));
+    try
+        jd <= 'ab';
+        test_jsonlab('<= root string minLength fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= root string minLength fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - subkey level
+    % =======================================================================
+    jd = jdict(struct('name', 'John', 'age', 30));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('name', struct('type', 'string'), ...
+                               'age', struct('type', 'integer', 'minimum', 0, 'maximum', 150))));
+    jd.name <= 'Jane';
+    test_jsonlab('<= subkey string pass', @savejson, jd().name, '"Jane"', 'compact', 1);
+
+    jd.age <= 25;
+    test_jsonlab('<= subkey integer pass', @savejson, jd().age, '[25]', 'compact', 1);
+
+    try
+        jd.age <= -10;
+        test_jsonlab('<= subkey integer minimum fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= subkey integer minimum fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    try
+        jd.age <= 200;
+        test_jsonlab('<= subkey integer maximum fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= subkey integer maximum fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    try
+        jd.name <= 123;
+        test_jsonlab('<= subkey type mismatch fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= subkey type mismatch fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - nested subkey
+    % =======================================================================
+    jd = jdict(struct('person', struct('name', 'John', 'age', 30)));
+    s = struct('type', 'object', 'properties', struct('person', ...
+                                                      struct('type', 'object', 'properties', ...
+                                                             struct('name', struct('type', 'string', 'minLength', 1), ...
+                                                                    'age', struct('type', 'integer', 'minimum', 0)))));
+    jd.setschema(s);
+
+    jd.person.name <= 'Alice';
+    test_jsonlab('<= nested subkey pass', @savejson, jd().person.name, '"Alice"', 'compact', 1);
+
+    jd.person.age <= 40;
+    test_jsonlab('<= nested subkey integer pass', @savejson, jd().person.age, '[40]', 'compact', 1);
+
+    try
+        jd.person.name <= '';
+        test_jsonlab('<= nested subkey minLength fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= nested subkey minLength fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    try
+        jd.person.age <= -5;
+        test_jsonlab('<= nested subkey minimum fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= nested subkey minimum fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - no schema
+    % =======================================================================
+    jd = jdict(struct('x', 1));
+    jd.x <= 999;
+    test_jsonlab('<= no schema allows assignment', @savejson, jd().x, '[999]', 'compact', 1);
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - no subschema for path
+    % =======================================================================
+    jd = jdict(struct('a', 1, 'b', 2));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('a', struct('type', 'integer'))));
+    jd.b <= 'anything';
+    test_jsonlab('<= no subschema allows assignment', @savejson, jd().b, '"anything"', 'compact', 1);
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - with $ref
+    % =======================================================================
+    jd = jdict(struct('count', 5, 'total', 10));
+    s = ['{"$defs":{"posInt":{"type":"integer","minimum":0}},' ...
+         '"type":"object","properties":{' ...
+         '"count":{"$ref":"#/$defs/posInt"},' ...
+         '"total":{"$ref":"#/$defs/posInt"}}}'];
+    jd.setschema(loadjson(s, 'usemap', 1));
+
+    jd.count <= 100;
+    test_jsonlab('<= $ref pass', @savejson, jd().count, '[100]', 'compact', 1);
+
+    try
+        jd.total <= -1;
+        test_jsonlab('<= $ref minimum fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= $ref minimum fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - array items
+    % =======================================================================
+    jd = jdict(struct('scores', {{1, 2, 3}}));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('scores', struct('type', 'array', ...
+                                                'items', struct('type', 'integer', 'minimum', 0)))));
+
+    jd.scores <= {10, 20, 30};
+    test_jsonlab('<= array pass', @savejson, jd().scores, '[10,20,30]', 'compact', 1);
+
+    try
+        jd.scores <= {1, -2, 3};
+        test_jsonlab('<= array items fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= array items fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - enum
+    % =======================================================================
+    jd = jdict(struct('status', 'active'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('status', struct('type', 'string', ...
+                                                'enum', {{'active', 'inactive', 'pending'}}))));
+
+    jd.status <= 'inactive';
+    test_jsonlab('<= enum pass', @savejson, jd().status, '"inactive"', 'compact', 1);
+
+    try
+        jd.status <= 'unknown';
+        test_jsonlab('<= enum fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= enum fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - const
+    % =======================================================================
+    jd = jdict(struct('version', '1.0'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('version', struct('const', '1.0'))));
+
+    jd.version <= '1.0';
+    test_jsonlab('<= const pass', @savejson, jd().version, '"1.0"', 'compact', 1);
+
+    try
+        jd.version <= '2.0';
+        test_jsonlab('<= const fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= const fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - pattern
+    % =======================================================================
+    jd = jdict(struct('email', 'test@example.com'));
+    pat = '^[^@]+@[^@]+\.[^@]+$';
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('email', struct('type', 'string', 'pattern', pat))));
+
+    jd.email <= 'user@domain.org';
+    test_jsonlab('<= pattern pass', @savejson, jd().email, '"user@domain.org"', 'compact', 1);
+
+    try
+        jd.email <= 'invalid-email';
+        test_jsonlab('<= pattern fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= pattern fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - format
+    % =======================================================================
+    jd = jdict(struct('website', 'http://example.com'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('website', struct('type', 'string', 'format', 'uri'))));
+
+    jd.website <= 'https://newsite.org';
+    test_jsonlab('<= format uri pass', @savejson, jd().website, '"https://newsite.org"', 'compact', 1);
+
+    try
+        jd.website <= 'not-a-url';
+        test_jsonlab('<= format uri fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= format uri fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - multipleOf
+    % =======================================================================
+    jd = jdict(struct('quantity', 10));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('quantity', struct('type', 'integer', 'multipleOf', 5))));
+
+    jd.quantity <= 25;
+    test_jsonlab('<= multipleOf pass', @savejson, jd().quantity, '[25]', 'compact', 1);
+
+    try
+        jd.quantity <= 17;
+        test_jsonlab('<= multipleOf fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= multipleOf fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - exclusiveMinimum/Maximum
+    % =======================================================================
+    jd = jdict(struct('score', 50));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('score', struct('type', 'integer', ...
+                                               'exclusiveMinimum', 0, 'exclusiveMaximum', 100))));
+
+    jd.score <= 50;
+    test_jsonlab('<= exclusive range pass', @savejson, jd().score, '[50]', 'compact', 1);
+
+    try
+        jd.score <= 0;
+        test_jsonlab('<= exclusiveMinimum fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= exclusiveMinimum fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    try
+        jd.score <= 100;
+        test_jsonlab('<= exclusiveMaximum fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= exclusiveMaximum fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - maxLength
+    % =======================================================================
+    jd = jdict(struct('code', 'ABC'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('code', struct('type', 'string', 'minLength', 2, 'maxLength', 5))));
+
+    jd.code <= 'XYZ';
+    test_jsonlab('<= string length pass', @savejson, jd().code, '"XYZ"', 'compact', 1);
+
+    try
+        jd.code <= 'A';
+        test_jsonlab('<= minLength fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= minLength fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    try
+        jd.code <= 'TOOLONGCODE';
+        test_jsonlab('<= maxLength fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= maxLength fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - allOf
+    % =======================================================================
+    jd = jdict(struct('value', 10));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('value', struct('allOf', {{struct('type', 'integer'), ...
+                                                          struct('minimum', 5), struct('maximum', 20)}}))));
+
+    jd.value <= 15;
+    test_jsonlab('<= allOf pass', @savejson, jd().value, '[15]', 'compact', 1);
+
+    try
+        jd.value <= 3;
+        test_jsonlab('<= allOf fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= allOf fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - anyOf
+    % =======================================================================
+    jd = jdict(struct('id', 'abc'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('id', struct('anyOf', {{struct('type', 'string'), ...
+                                                       struct('type', 'integer')}}))));
+
+    jd.id <= 'xyz';
+    test_jsonlab('<= anyOf string pass', @savejson, jd().id, '"xyz"', 'compact', 1);
+
+    jd.id <= 123;
+    test_jsonlab('<= anyOf integer pass', @savejson, jd().id, '[123]', 'compact', 1);
+
+    try
+        jd.id <= true;
+        test_jsonlab('<= anyOf fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= anyOf fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - oneOf
+    % =======================================================================
+    jd = jdict(struct('dat', 5));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('dat', struct('oneOf', {{struct('type', 'integer', 'minimum', 10), ...
+                                                        struct('type', 'integer', 'maximum', 5)}}))));
+
+    jd.dat <= 3;
+    test_jsonlab('<= oneOf pass (second)', @savejson, jd().dat, '[3]', 'compact', 1);
+
+    jd.dat <= 15;
+    test_jsonlab('<= oneOf pass (first)', @savejson, jd().dat, '[15]', 'compact', 1);
+
+    try
+        jd.dat <= 7;
+        test_jsonlab('<= oneOf fail (matches none)', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= oneOf fail (matches none)', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - not
+    % =======================================================================
+    jd = jdict(struct('tag', 'hello'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('tag', struct('not', struct('type', 'integer')))));
+
+    jd.tag <= 'world';
+    test_jsonlab('<= not pass', @savejson, jd().tag, '"world"', 'compact', 1);
+
+    try
+        jd.tag <= 42;
+        test_jsonlab('<= not fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= not fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - minItems/maxItems
+    % =======================================================================
+    jd = jdict(struct('nums', {{1, 2, 3}}));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('nums', struct('type', 'array', 'minItems', 2, 'maxItems', 5))));
+
+    jd.nums <= {1, 2, 3, 4};
+    test_jsonlab('<= array length pass', @savejson, jd().nums, '[1,2,3,4]', 'compact', 1);
+
+    try
+        jd.nums <= {1};
+        test_jsonlab('<= minItems fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= minItems fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    try
+        jd.nums <= {1, 2, 3, 4, 5, 6};
+        test_jsonlab('<= maxItems fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= maxItems fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - uniqueItems
+    % =======================================================================
+    jd = jdict(struct('tags', {{'a', 'b', 'c'}}));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('tags', struct('type', 'array', 'uniqueItems', true))));
+
+    jd.tags <= {'x', 'y', 'z'};
+    test_jsonlab('<= uniqueItems pass', @savejson, jd().tags, '["x","y","z"]', 'compact', 1);
+
+    try
+        jd.tags <= {'a', 'b', 'a'};
+        test_jsonlab('<= uniqueItems fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= uniqueItems fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - contains
+    % =======================================================================
+    jd = jdict(struct('mixed', {{1, 'hello', 3}}));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('mixed', struct('type', 'array', ...
+                                               'contains', struct('type', 'string')))));
+
+    jd.mixed <= {1, 2, 'world'};
+    test_jsonlab('<= contains pass', @savejson, jd.mixed.v(3), '"world"', 'compact', 1);
+
+    try
+        jd.mixed <= {1, 2, 3};
+        test_jsonlab('<= contains fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= contains fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - required
+    % =======================================================================
+    jd = jdict(struct('obj', struct('a', 1, 'b', 2)));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('obj', struct('type', 'object', 'required', {{'a', 'b'}}))));
+
+    jd.obj <= struct('a', 10, 'b', 20);
+    test_jsonlab('<= required pass', @savejson, jd().obj, '{"a":10,"b":20}', 'compact', 1);
+
+    try
+        jd.obj <= struct('a', 10);
+        test_jsonlab('<= required fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= required fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - additionalProperties
+    % =======================================================================
+    jd = jdict(struct('config', struct('name', 'test')));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('config', struct('type', 'object', ...
+                                                'properties', struct('name', struct('type', 'string')), ...
+                                                'additionalProperties', false))));
+
+    jd.config <= struct('name', 'valid');
+    test_jsonlab('<= additionalProperties pass', @savejson, jd().config, '{"name":"valid"}', 'compact', 1);
+
+    try
+        jd.config <= struct('name', 'test', 'extra', 'field');
+        test_jsonlab('<= additionalProperties fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= additionalProperties fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % Schema-validated assignment (<=) tests - minProperties/maxProperties
+    % =======================================================================
+    jd = jdict(struct('meta', struct('a', 1, 'b', 2)));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('meta', struct('type', 'object', ...
+                                              'minProperties', 2, 'maxProperties', 4))));
+
+    jd.meta <= struct('x', 1, 'y', 2, 'z', 3);
+    test_jsonlab('<= properties count pass', @savejson, jd().meta, '{"x":1,"y":2,"z":3}', 'compact', 1);
+
+    try
+        jd.meta <= struct('a', 1);
+        test_jsonlab('<= minProperties fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= minProperties fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    try
+        jd.meta <= struct('a', 1, 'b', 2, 'c', 3, 'd', 4, 'e', 5);
+        test_jsonlab('<= maxProperties fail', @savejson, false, '[true]', 'compact', 1);
+    catch
+        test_jsonlab('<= maxProperties fail', @savejson, true, '[true]', 'compact', 1);
+    end
+
+    % =======================================================================
+    % validate() at subkey level
+    % =======================================================================
+    jd = jdict(struct('name', 'John', 'age', 30));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('name', struct('type', 'string'), ...
+                               'age', struct('type', 'integer', 'minimum', 0))));
+    test_jsonlab('validate root pass', @savejson, jd.validate(), '[]', 'compact', 1);
+    test_jsonlab('validate subkey name pass', @savejson, jd.name.validate(), '[]', 'compact', 1);
+    test_jsonlab('validate subkey age pass', @savejson, jd.age.validate(), '[]', 'compact', 1);
+
+    jd.age = -10;
+    test_jsonlab('validate root fail', @savejson, length(jd.validate()) > 0, '[true]', 'compact', 1);
+    test_jsonlab('validate subkey age fail', @savejson, length(jd.age.validate()) > 0, '[true]', 'compact', 1);
+    test_jsonlab('validate subkey name still pass', @savejson, jd.name.validate(), '[]', 'compact', 1);
+
+    % =======================================================================
+    % validate() nested subkey
+    % =======================================================================
+    jd = jdict(struct('person', struct('name', 'Alice', 'age', 25)));
+    s = struct('type', 'object', 'properties', struct('person', ...
+                                                      struct('type', 'object', 'properties', ...
+                                                             struct('name', struct('type', 'string'), ...
+                                                                    'age', struct('type', 'integer', 'minimum', 0)))));
+    jd.setschema(s);
+
+    test_jsonlab('validate nested root pass', @savejson, jd.validate(), '[]', 'compact', 1);
+    test_jsonlab('validate nested person pass', @savejson, jd.person.validate(), '[]', 'compact', 1);
+    test_jsonlab('validate nested person.name pass', @savejson, ...
+                 jd.person.name.validate(), '[]', 'compact', 1);
+
+    jd.person.age = -5;
+    test_jsonlab('validate nested root fail', @savejson, ...
+                 length(jd.validate()) > 0, '[true]', 'compact', 1);
+    test_jsonlab('validate nested person fail', @savejson, ...
+                 length(jd.person.validate()) > 0, '[true]', 'compact', 1);
+    test_jsonlab('validate nested person.age fail', @savejson, ...
+                 length(jd.person.age.validate()) > 0, '[true]', 'compact', 1);
+    test_jsonlab('validate nested person.name still pass', @savejson, ...
+                 jd.person.name.validate(), '[]', 'compact', 1);
+
+    % =======================================================================
+    % validate() with various schema criteria
+    % =======================================================================
+    jd = jdict(struct('code', 'ABC123'));
+    pat = '^[A-Z]+[0-9]+$';
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('code', struct('type', 'string', 'pattern', pat))));
+    test_jsonlab('validate pattern pass', @savejson, jd.code.validate(), '[]', 'compact', 1);
+    jd.code = '123ABC';
+    test_jsonlab('validate pattern fail', @savejson, ...
+                 length(jd.code.validate()) > 0, '[true]', 'compact', 1);
+
+    jd = jdict(struct('color', 'red'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('color', struct('enum', {{'red', 'green', 'blue'}}))));
+    test_jsonlab('validate enum pass', @savejson, jd.color.validate(), '[]', 'compact', 1);
+    jd.color = 'yellow';
+    test_jsonlab('validate enum fail', @savejson, ...
+                 length(jd.color.validate()) > 0, '[true]', 'compact', 1);
+
+    jd = jdict(struct('val', 10));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('val', struct('oneOf', {{struct('type', 'integer', 'minimum', 20), ...
+                                                        struct('type', 'integer', 'maximum', 5)}}))));
+    jd.val <= 3;
+    test_jsonlab('validate oneOf pass', @savejson, jd.val.validate(), '[]', 'compact', 1);
+    jd.val = 10;
+    test_jsonlab('validate oneOf fail', @savejson, ...
+                 length(jd.val.validate()) > 0, '[true]', 'compact', 1);
+
+    jd = jdict(struct('num', 15));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('num', struct('allOf', {{struct('type', 'integer'), ...
+                                                        struct('minimum', 10), struct('maximum', 20)}}))));
+    test_jsonlab('validate allOf pass', @savejson, jd.num.validate(), '[]', 'compact', 1);
+    jd.num = 5;
+    test_jsonlab('validate allOf fail', @savejson, ...
+                 length(jd.num.validate()) > 0, '[true]', 'compact', 1);
+
+    jd = jdict(struct('x', 'hello'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('x', struct('anyOf', {{struct('type', 'string'), ...
+                                                      struct('type', 'integer')}}))));
+    test_jsonlab('validate anyOf string pass', @savejson, jd.x.validate(), '[]', 'compact', 1);
+    jd.x <= 42;
+    test_jsonlab('validate anyOf integer pass', @savejson, jd.x.validate(), '[]', 'compact', 1);
+    jd.x = true;
+    test_jsonlab('validate anyOf fail', @savejson, ...
+                 length(jd.x.validate()) > 0, '[true]', 'compact', 1);
+
+    jd = jdict(struct('y', 'test'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('y', struct('not', struct('type', 'integer')))));
+    test_jsonlab('validate not pass', @savejson, jd.y.validate(), '[]', 'compact', 1);
+    jd.y = 123;
+    test_jsonlab('validate not fail', @savejson, ...
+                 length(jd.y.validate()) > 0, '[true]', 'compact', 1);
+
+    % =======================================================================
+    % validate() with no schema at subpath
+    % =======================================================================
+    jd = jdict(struct('a', 1, 'b', 'test'));
+    jd.setschema(struct('type', 'object', 'properties', ...
+                        struct('a', struct('type', 'integer'))));
+    test_jsonlab('validate subkey no schema pass', @savejson, ...
+                 jd.b.validate(), '[]', 'compact', 1);
+
+    clear jd s pat;
 end

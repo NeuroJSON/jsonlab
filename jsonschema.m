@@ -30,6 +30,20 @@ function [valid, errors] = jsonschema(data, schema, varargin)
 
 opt = varargin2struct(varargin{:});
 
+% Expose resolveref for external use
+if isfield(opt, 'resolveref')
+    valid = resolveref(opt.resolveref, data);
+    errors = {};
+    return
+end
+
+% Expose getsubschema for external use: jsonschema(schema, [], 'getsubschema', '$.path')
+if isfield(opt, 'getsubschema')
+    valid = getsubschema(data, opt.getsubschema);
+    errors = {};
+    return
+end
+
 % Generation mode: jsonschema(schema) or jsonschema(schema, [])
 if nargin == 1 || (nargin >= 2 && isempty(schema))
     schemaarg = data;
@@ -816,5 +830,62 @@ if isKey(schema, 'properties')
 else
     for i = 1:length(reqfields)
         val.(genvarname(reqfields{i})) = [];
+    end
+end
+
+%%
+function subschema = getsubschema(schema, jsonpath)
+
+subschema = schema;
+if isempty(schema) || isempty(jsonpath) || strcmp(jsonpath, '$')
+    return
+end
+
+% Parse path after $.
+path = regexprep(jsonpath, '^\$\.?', '');
+if isempty(path)
+    return
+end
+
+% Tokenize: split by unescaped dots and array indices
+tokens = regexp(path, '(?:\\.|[^\.\[]+|\[\d+\])', 'match');
+
+for i = 1:length(tokens)
+    tok = tokens{i};
+
+    % Resolve $ref if present
+    while isa(subschema, 'containers.Map') && isKey(subschema, '$ref')
+        subschema = resolveref(subschema('$ref'), schema);
+        if isempty(subschema)
+            return
+        end
+    end
+
+    if tok(1) == '['
+        % Array index -> use items schema
+        if isa(subschema, 'containers.Map') && isKey(subschema, 'items')
+            subschema = subschema('items');
+            if iscell(subschema) && ~isempty(subschema)
+                subschema = subschema{1};
+            end
+        else
+            subschema = [];
+            return
+        end
+    else
+        % Property name (unescape \.)
+        prop = strrep(tok, '\.', '.');
+        if isa(subschema, 'containers.Map') && isKey(subschema, 'properties')
+            props = subschema('properties');
+            if isa(props, 'containers.Map') && isKey(props, prop)
+                subschema = props(prop);
+            else
+                subschema = [];
+                return
+            end
+        else
+            subschema = [];
+            return
+        end
     end
 end

@@ -166,6 +166,7 @@ classdef jdict < handle
     properties (Access = private)
         flags__          % additional options, will be passed to jsonlab utility functions such as savejson/loadjson
         currentpath__    % internal variable tracking the current path when lookup embedded data at current depth
+        root__           % reference to root jdict object for validated assignment
     end
     methods
 
@@ -175,6 +176,7 @@ classdef jdict < handle
             obj.attr = containers.Map();
             obj.schema = [];
             obj.currentpath__ = char(36);
+            obj.root__ = obj;
             if (nargin >= 1)
                 if (~isempty(varargin))
                     allflags = [varargin(1:2:end); varargin(2:2:end)];
@@ -321,6 +323,7 @@ classdef jdict < handle
                             newobj.attr = obj.attr;
                             newobj.schema = obj.schema;
                             newobj.currentpath__ = trackpath;
+                            newobj.root__ = obj.root__;
                             val = newobj;
                             i = i + 2;
                             continue
@@ -381,7 +384,8 @@ classdef jdict < handle
                     end
                 end
                 newobj.schema = obj.schema;
-                newobj.currentpath__ = char(36);
+                newobj.currentpath__ = trackpath;
+                newobj.root__ = obj.root__;
                 val = newobj;
             end
             varargout{1} = val;
@@ -576,7 +580,11 @@ classdef jdict < handle
                     opcell{i} = obj.call_('jsonpath', opcell{i}, idx.subs, opcell{i + 1});
                 else
                     try
-                        opcell{i} = subsasgn(opcell{i}, idx, opcell{i + 1});
+                        if (exist('OCTAVE_VERSION', 'builtin') ~= 0) && (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                            opcell{i}(idx.subs) = opcell{i + 1};
+                        else
+                            opcell{i} = subsasgn(opcell{i}, idx, opcell{i + 1});
+                        end
                     catch
                         opcell{i}.(idx.subs) = opcell{i + 1};
                     end
@@ -793,19 +801,22 @@ classdef jdict < handle
 
         % validate data against JSON Schema
         function errors = validate(obj, schemadata)
-            % determine which schema to use
-            if (nargin >= 2 && ~isempty(schemadata))
-                useschema = schemadata;
-            else
-                useschema = obj.schema;
+            if nargin >= 2 && ~isempty(schemadata)
+                obj.setschema(schemadata);
             end
 
-            if (isempty(useschema))
+            if isempty(obj.schema)
                 error('No schema available. Use setschema() first or provide schema as argument.');
             end
 
-            % use standalone jsonschema function
-            [valid, errors] = jsonschema(obj.data, useschema);
+            subschema = jsonschema(obj.schema, [], 'getsubschema', obj.currentpath__);
+
+            if isempty(subschema)
+                errors = {};
+                return
+            end
+
+            [temp, errors] = jsonschema(obj.data, subschema, 'rootschema', obj.schema);
         end
 
         % convert attributes to JSON Schema
@@ -920,6 +931,36 @@ classdef jdict < handle
                     schema.('type') = 'object';
                 end
             end
+        end
+
+        % overload <= operator for schema-validated assignment
+        function result = le(obj, value)
+            % validate against schema if defined
+            if ~isempty(obj.schema)
+                subschema = jsonschema(obj.schema, [], 'getsubschema', obj.currentpath__);
+
+                % if subschema found for this path, validate
+                if ~isempty(subschema)
+                    [valid, errs] = jsonschema(value, subschema, 'rootschema', obj.schema);
+                    if ~valid
+                        errmsg = sprintf('Schema validation failed for "%s":', obj.currentpath__);
+                        for i = 1:length(errs)
+                            errmsg = [errmsg ' ' errs{i} ';'];
+                        end
+                        error(errmsg);
+                    end
+                end
+            end
+
+            % assign via root object using JSONPath
+            if strcmp(obj.currentpath__, char(36))
+                obj.root__.data = value;
+            else
+                idx.type = '.';
+                idx.subs = obj.currentpath__;
+                subsasgn(obj.root__, idx, value);
+            end
+            result = obj;
         end
 
     end
