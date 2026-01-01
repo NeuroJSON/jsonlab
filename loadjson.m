@@ -766,7 +766,7 @@ if cc ~= '}'
         end
 
         if usemap
-            object(str) = val;
+            object = subsasgn(object, struct('type', '()', 'subs', {{str}}), val);
         else
             str = encodevarname(str, opt);
             if length(str) > 63
