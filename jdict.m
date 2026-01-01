@@ -698,11 +698,7 @@ classdef jdict < handle
 
         % internal: insert new key if does not exist
         function val = newkey_(obj)
-            if (obj.flags__.hasmap_)
-                val = containers.Map;
-            else
-                val = struct;
-            end
+            val = struct;
         end
 
         function val = membercall_(obj, method, varargin)
