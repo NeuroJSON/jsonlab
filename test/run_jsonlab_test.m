@@ -72,7 +72,9 @@ if (ismember('js', tests))
     end
     test_jsonlab('empty name', @savejson, loadjson('{"":""}'), '{"":""}', 'compact', 1);
     if (hasContainersMap)
-        test_jsonlab('empty name with map', @savejson, loadjson('{"":""}', 'usemap', 1), '{"":""}', 'compact', 1);
+        if (~(exist('OCTAVE_VERSION', 'builtin') ~= 0 && ~isempty(regexp(OCTAVE_VERSION, '^[89]\.'))))
+            test_jsonlab('empty name with map', @savejson, loadjson('{"":""}', 'usemap', 1), '{"":""}', 'compact', 1);
+        end
         test_jsonlab('indentation', @savejson, savejson('s', containers.Map({'a', 'b'}, {[], struct('c', 1.1, 'd', struct('e', {1, 2}))})), ...
                      '"{\n\t\"s\":{\n\t\t\"a\":[],\n\t\t\"b\":{\n\t\t\t\"c\":1.1,\n\t\t\t\"d\":[\n\t\t\t\t{\n\t\t\t\t\t\"e\":1\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"e\":2\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t}\n}\n"');
         test_jsonlab('key longer than 63', @savejson, loadjson('{"...........":""}', 'usemap', 0), '{"...........":""}', 'compact', 1);
