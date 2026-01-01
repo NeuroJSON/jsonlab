@@ -173,7 +173,7 @@ classdef jdict < handle
 
         % constructor: initialize a jdict object
         function obj = jdict(val, varargin)
-            obj.flags__ = struct('builtinjson', 0);
+            obj.flags__ = getflags_();
             obj.attr = containers.Map();
             obj.schema = [];
             obj.currentpath__ = char(36);
@@ -181,7 +181,7 @@ classdef jdict < handle
             if (nargin >= 1)
                 if (~isempty(varargin))
                     allflags = [varargin(1:2:end); varargin(2:2:end)];
-                    obj.flags__ = struct(allflags{:});
+                    obj.flags__ = mergestruct_(obj.flags__, struct(allflags{:}));
                     if (isfield(obj.flags__, 'attr'))
                         obj.attr = obj.flags__.attr;
                     end
@@ -211,7 +211,7 @@ classdef jdict < handle
 
         % overloaded numel to prevent subsref from outputting many outputs
         function n = numel(obj, varargin)
-            if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+            if (obj.flags__.isoctave_)
                 n = 1;
             else
                 n = max(1, (nargin > 1) + numel(obj.data) * (nargin == 1));
@@ -276,7 +276,7 @@ classdef jdict < handle
                         tempobj.attr = obj.attr;
                         tempobj.schema = obj.schema;
                         tempobj.currentpath__ = trackpath;
-                        if (exist('OCTAVE_VERSION', 'builtin') ~= 0 && regexp(OCTAVE_VERSION, '^5\.'))
+                        if (obj.flags__.isoctave_ && regexp(OCTAVE_VERSION, '^5\.'))
                             val = membercall_(tempobj, idx.subs, idxkey(i + 1).subs{:});
                         else
                             fhandle = str2func(idx.subs);
@@ -313,10 +313,7 @@ classdef jdict < handle
                         dimpos = find(strcmp(dims, onekey));
                         if (~isempty(dimpos) && ~isempty(idxkey(i + 1).subs))
                             nddata = length(dims);
-                            indices = cell(1, nddata);
-                            for j = 1:nddata
-                                indices{j} = ':';
-                            end
+                            indices = repmat({':'}, 1, nddata);
                             indices{dimpos(1)} = idxkey(i + 1).subs{1};
                             subsargs = struct('type', '()', 'subs', {indices});
                             val = subsref(val, subsargs);
@@ -330,13 +327,14 @@ classdef jdict < handle
                             continue
                         end
                     end
-                    escapedonekey = regexprep(onekey, '(?<=[^\\]|^)\.', '\\.');
+                    escapedonekey = esckey_(onekey);
                     if (ischar(onekey) && ~isempty(onekey) && onekey(1) == char(36))
                         val = obj.call_('jsonpath', val, onekey);
                         trackpath = escapedonekey;
                     elseif (isstruct(val))
                         % check if struct array - if so, get field from all elements
-                        if (numel(val) > 1 && isfield(val, onekey))
+                        hasfield = isfield(val, onekey);
+                        if (numel(val) > 1 && hasfield)
                             % struct array - extract field from all elements
                             val = {val.(onekey)};
                             if (all(cellfun(@isnumeric, val)) && all(cellfun(@(x) isequal(size(x), size(val{1})), val)))
@@ -355,7 +353,7 @@ classdef jdict < handle
                                 i = i + 2;
                                 continue
                             end
-                        elseif isfield(val, onekey)
+                        elseif hasfield
                             % single struct with existing field
                             val = val.(onekey);
                             trackpath = [trackpath '.' escapedonekey];
@@ -364,7 +362,7 @@ classdef jdict < handle
                             val = [];
                             trackpath = [trackpath '.' escapedonekey];
                         end
-                    elseif (isa(val, 'containers.Map') || isa(val, 'dictionary'))
+                    elseif (ismap_(obj.flags__, val))
                         if isKey(val, onekey)
                             val = val(onekey);
                         else
@@ -435,7 +433,7 @@ classdef jdict < handle
                                 else
                                     onekey = idx.subs;
                                 end
-                                escapedonekey = regexprep(onekey, '(?<=[^\\]|^)\.', '\\.');
+                                escapedonekey = esckey_(onekey);
                                 if (ischar(onekey) && ~isempty(onekey))
                                     if (onekey(1) ~= char(36))
                                         temppath = [temppath '.' escapedonekey];
@@ -454,7 +452,6 @@ classdef jdict < handle
 
             % handle dimension-based assignment like jd.time(1:10) = newval
             if (oplen >= 2 && strcmp(idxkey(oplen).type, '()'))
-                % check if second-to-last is a dimension name
                 if (strcmp(idxkey(oplen - 1).type, '.') && ischar(idxkey(oplen - 1).subs))
                     dimname = idxkey(oplen - 1).subs;
                     % build path to the data
@@ -467,7 +464,7 @@ classdef jdict < handle
                             else
                                 onekey = idx.subs;
                             end
-                            escapedonekey = regexprep(onekey, '(?<=[^\\]|^)\.', '\\.');
+                            escapedonekey = esckey_(onekey);
                             if (ischar(onekey) && ~isempty(onekey))
                                 if (onekey(1) ~= char(36))
                                     temppath = [temppath '.' escapedonekey];
@@ -484,10 +481,7 @@ classdef jdict < handle
                         if (~isempty(dimpos) && ~isempty(idxkey(oplen).subs))
                             % build full indices
                             nddata = length(dims);
-                            indices = cell(1, nddata);
-                            for j = 1:nddata
-                                indices{j} = ':';
-                            end
+                            indices = repmat({':'}, 1, nddata);
                             indices{dimpos(1)} = idxkey(oplen).subs{1};
                             % perform assignment
                             subsargs = struct('type', '()', 'subs', {indices});
@@ -502,6 +496,36 @@ classdef jdict < handle
                             end
                             return
                         end
+                    end
+                end
+            end
+
+            % Fast path: single-level assignment like jd.key = value
+            if (oplen == 1 && strcmp(idxkey(1).type, '.') && ischar(idxkey(1).subs))
+                fieldname = idxkey(1).subs;
+                % Skip if JSONPath
+                if (isempty(fieldname) || fieldname(1) ~= char(36))
+                    if (isempty(obj.data))
+                        obj.data = struct();
+                    end
+                    if isstruct(obj.data)
+                        try
+                            obj.data.(fieldname) = otherobj;
+                            return
+                        catch
+                            % Field name invalid for struct, convert to Map
+                            fnames = fieldnames(obj.data);
+                            if (~isempty(fnames))
+                                obj.data = containers.Map(fnames, struct2cell(obj.data), 'UniformValues', 0);
+                            else
+                                obj.data = containers.Map;
+                            end
+                            obj.data(fieldname) = otherobj;
+                            return
+                        end
+                    elseif ismap_(obj.flags__, obj.data)
+                        obj.data(fieldname) = otherobj;
+                        return
                     end
                 end
             end
@@ -525,10 +549,10 @@ classdef jdict < handle
                     end
                     if (ischar(idx.subs) && ~(~isempty(idx.subs) && idx.subs(1) == char(36)))
                         % Handle empty or non-struct/map data
-                        if isempty(opcell{i}) || (~isstruct(opcell{i}) && ~isa(opcell{i}, 'containers.Map') && ~isa(opcell{i}, 'dictionary'))
+                        if isempty(opcell{i}) || (~isstruct(opcell{i}) && ~ismap_(obj.flags__, opcell{i}))
                             opcell{i} = obj.newkey_();
                         end
-                        if (((isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary')) && ~isKey(opcell{i}, idx.subs)))
+                        if (ismap_(obj.flags__, opcell{i}) && ~isKey(opcell{i}, idx.subs))
                             idx.type = '()';
                             opcell{i}(idx.subs) = obj.newkey_();
                         elseif (isstruct(opcell{i}) && ~isfield(opcell{i}, idx.subs))
@@ -548,21 +572,21 @@ classdef jdict < handle
                 end
                 if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
                     opcell{i + 1} = obj.call_('jsonpath', opcell{i}, idx.subs);
-                elseif (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                elseif (ismap_(obj.flags__, opcell{i}))
                     opcell{i + 1} = opcell{i}(idx.subs);
                 else
                     opcell{i + 1} = subsref(opcell{i}, idx);
                 end
             end
 
-            if (exist('OCTAVE_VERSION', 'builtin') ~= 0) && (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+            if (obj.flags__.isoctave_) && (ismap_(obj.flags__, opcell{i}))
                 opcell{i}(idx.subs) = otherobj;
                 opcell{end - 1} = opcell{i};
             else
                 if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
                     opcell{end - 1} = obj.call_('jsonpath', opcell{i}, idx.subs, otherobj);
                 else
-                    if (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                    if (ismap_(obj.flags__, opcell{i}))
                         idx = struct('type', '()', 'subs', idx.subs);
                     end
                     try
@@ -576,7 +600,7 @@ classdef jdict < handle
 
             for i = oplen - 1:-1:1
                 idx = idxkey(i);
-                if (ischar(idx.subs) && strcmp(idx.type, '.') && (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary')))
+                if (ischar(idx.subs) && strcmp(idx.type, '.') && ismap_(obj.flags__, opcell{i}))
                     idx.type = '()';
                 end
 
@@ -596,7 +620,7 @@ classdef jdict < handle
                     opcell{i} = obj.call_('jsonpath', opcell{i}, idx.subs, opcell{i + 1});
                 else
                     try
-                        if (exist('OCTAVE_VERSION', 'builtin') ~= 0) && (isa(opcell{i}, 'containers.Map') || isa(opcell{i}, 'dictionary'))
+                        if (obj.flags__.isoctave_) && (ismap_(obj.flags__, opcell{i}))
                             opcell{i}(idx.subs) = opcell{i + 1};
                         else
                             opcell{i} = subsasgn(opcell{i}, idx, opcell{i + 1});
@@ -624,12 +648,11 @@ classdef jdict < handle
         function val = keys(obj)
             if (isstruct(obj.data))
                 val = builtin('fieldnames', obj.data);
-            elseif (isa(obj.data, 'containers.Map') || isa(obj.data, 'dictionary'))
+            elseif (ismap_(obj.flags__, obj.data))
                 val = keys(obj.data);
             else
                 val = 1:length(obj.data);
             end
-            val = val(:);
         end
 
         function val = fieldnames(obj)
@@ -641,7 +664,7 @@ classdef jdict < handle
             % list subfields at the current level
             if (isstruct(obj.data))
                 val = isfield(obj.data, key);
-            elseif (isa(obj.data, 'containers.Map') || isa(obj.data, 'dictionary'))
+            elseif (ismap_(obj.flags__, obj.data))
                 val = isKey(obj.data, key);
             else
                 val = (key < length(obj.data));
@@ -675,7 +698,7 @@ classdef jdict < handle
 
         % internal: insert new key if does not exist
         function val = newkey_(obj)
-            if (exist('containers.Map'))
+            if (obj.flags__.hasmap_)
                 val = containers.Map;
             else
                 val = struct;
@@ -1026,4 +1049,50 @@ classdef jdict < handle
         end
 
     end
+end
+
+%% ========================================================================
+%% Helper functions (outside class for persistent caching)
+%% ========================================================================
+
+% cached platform flags - called once per session
+function flags = getflags_()
+    persistent cachedflags
+    if isempty(cachedflags)
+        cachedflags = struct();
+        cachedflags.builtinjson = 0;
+        cachedflags.isoctave_ = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+        try
+            containers.Map();
+            cachedflags.hasmap_ = true;
+        catch
+            cachedflags.hasmap_ = false;
+        end
+        try
+            dictionary();
+            cachedflags.hasdict_ = true;
+        catch
+            cachedflags.hasdict_ = false;
+        end
+    end
+    flags = cachedflags;
+end
+
+% merge two structs
+function s = mergestruct_(base, override)
+    s = base;
+    fnames = fieldnames(override);
+    for i = 1:length(fnames)
+        s.(fnames{i}) = override.(fnames{i});
+    end
+end
+
+% check if value is a map type
+function tf = ismap_(flags, val)
+    tf = isa(val, 'containers.Map') || (flags.hasdict_ && isa(val, 'dictionary'));
+end
+
+% escape dots in key for JSONPath
+function escaped = esckey_(key)
+    escaped = regexprep(key, '(?<=[^\\]|^)\.', '\\.');
 end
