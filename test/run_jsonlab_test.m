@@ -497,7 +497,27 @@ if (ismember('jdict', tests) && hasContainersMap)
     test_jsonlab('jd.(''$.key1'').subkey1', @savejson, jd.('key1').('subkey1'), '{"newkey":1}', 'compact', 1);
     test_jsonlab('jd.(''$.key1.subkey1'').newkey', @savejson, jd.('key1').('subkey1').newkey, '[1]', 'compact', 1);
 
-    clear testdata jd;
+    % Test basic struct assignment to empty struct array
+    person = jdict(struct('name', {}, 'age', {}, 'gender', {}));
+    person.(1) = struct('name', 'Jar Jar', 'age', 100, 'gender', 'M');
+    test_jsonlab('person.(1) = struct(...)', @savejson, person, '{"name":"Jar Jar","age":100,"gender":"M"}', 'compact', 1);
+
+    % Test append second struct
+    person.(2) = struct('name', 'Jane', 'age', 25, 'gender', 'F');
+    test_jsonlab('person.(2) = struct(...)', @savejson, person, '[{"name":"Jar Jar","age":100,"gender":"M"},{"name":"Jane","age":25,"gender":"F"}]', 'compact', 1);
+
+    % Test field-by-field assignment to new index
+    person.(3).name = 'Bob';
+    person.(3).age = 40;
+    person.(3).gender = 'M';
+    test_jsonlab('person.(3).name/age/gender', @savejson, person.v(3), '{"name":"Bob","age":40,"gender":"M"}', 'compact', 1);
+
+    % Test modify existing element
+    person.(1).name = 'Jar Jar Modified';
+    person.(1).age = 101;
+    test_jsonlab('person.(1).name = ...', @savejson, person.v(1), '{"name":"Jar Jar Modified","age":101,"gender":"M"}', 'compact', 1);
+
+    clear testdata jd person;
 end
 
 %%

@@ -123,8 +123,6 @@ function newitem = obj2jd(item, opt)
 if (iscell(item))
     newitem = cell2jd(item, opt);
 elseif (isa(item, 'jdict'))
-    attrpath = item.getattr();
-    opt.annotatearray = ~isempty(attrpath);
     newitem = obj2jd(item.v(), opt);
 elseif (isstruct(item))
     newitem = struct2jd(item, opt);
@@ -149,6 +147,7 @@ else
 end
 
 if (isa(item, 'jdict'))  % apply attribute
+    attrpath = item.getattr();
     if (isempty(attrpath))
         return
     end
@@ -156,14 +155,26 @@ if (isa(item, 'jdict'))  % apply attribute
     newitem = jdict(newitem);
 
     for i = 1:length(attrpath)
+        val = newitem.(attrpath{i}).v();
+        if (isempty(val))
+            continue
+        end
+        if (isnumeric(val))
+            opt.annotatearray = 1;
+            val = mat2jd(val, opt);
+        end
+        if (~(isstruct(val) && isfield(val, opt.N_ArrayType)))
+            continue
+        end
         attr = item.getattr(attrpath{i});
         attrname = keys(attr);
         for j = 1:length(attrname)
             if (strcmp(attrname{j}, 'dims'))
-                newitem.(attrpath{i}).(opt.N_ArrayLabel) = attr(attrname{j});
+                val.(opt.N_ArrayLabel) = attr(attrname{j});
             else
-                newitem.(attrpath{i}).(attrname{j}) = attr(attrname{j});
+                val.(attrname{j}) = attr(attrname{j});
             end
+            newitem.(attrpath{i}) = val;
         end
     end
 end

@@ -404,7 +404,6 @@ classdef jdict < handle
         % overloaded assignment operator: handling assignments at arbitrary depths
         function obj = subsasgn(obj, idxkey, otherobj)
             % overloading the setter function, obj.('key').('subkey')=otherobj
-            % expanded from rahnema1's sample at https://stackoverflow.com/a/79030223/4271392
 
             % handle curly bracket indexing for setting attributes
             oplen = length(idxkey);
@@ -423,7 +422,6 @@ classdef jdict < handle
                 if (iscell(idxkey(oplen).subs) && ~isempty(idxkey(oplen).subs))
                     attrn = idxkey(oplen).subs{1};
                     if (ischar(attrn))
-                        % Build the path by navigating through keys
                         temppath = obj.currentpath__;
                         for i = 1:oplen - 1
                             idx = idxkey(i);
@@ -443,7 +441,6 @@ classdef jdict < handle
                                 end
                             end
                         end
-                        % set attribute on original object with computed path
                         obj.setattr(temppath, attrn, otherobj);
                         return
                     end
@@ -454,7 +451,6 @@ classdef jdict < handle
             if (oplen >= 2 && strcmp(idxkey(oplen).type, '()'))
                 if (strcmp(idxkey(oplen - 1).type, '.') && ischar(idxkey(oplen - 1).subs))
                     dimname = idxkey(oplen - 1).subs;
-                    % build path to the data
                     temppath = obj.currentpath__;
                     for i = 1:oplen - 2
                         idx = idxkey(i);
@@ -474,19 +470,15 @@ classdef jdict < handle
                             end
                         end
                     end
-                    % check if dimname is in dims
                     dims = obj.getattr(temppath, 'dims');
                     if (~isempty(dims) && iscell(dims))
                         dimpos = find(strcmp(dims, dimname));
                         if (~isempty(dimpos) && ~isempty(idxkey(oplen).subs))
-                            % build full indices
                             nddata = length(dims);
                             indices = repmat({':'}, 1, nddata);
                             indices{dimpos(1)} = idxkey(oplen).subs{1};
-                            % perform assignment
                             subsargs = struct('type', '()', 'subs', {indices});
                             if (oplen > 2)
-                                % need to assign back through the chain
                                 subidx = idxkey(1:oplen - 2);
                                 tempdata = subsref(obj.data, subidx);
                                 tempdata = subsasgn(tempdata, subsargs, otherobj);
@@ -503,7 +495,6 @@ classdef jdict < handle
             % Fast path: single-level assignment like jd.key = value
             if (oplen == 1 && strcmp(idxkey(1).type, '.') && ischar(idxkey(1).subs))
                 fieldname = idxkey(1).subs;
-                % Skip if JSONPath
                 if (isempty(fieldname) || fieldname(1) ~= char(36))
                     if (isempty(obj.data))
                         obj.data = struct();
@@ -513,7 +504,6 @@ classdef jdict < handle
                             obj.data.(fieldname) = otherobj;
                             return
                         catch
-                            % Field name invalid for struct, convert to Map
                             fnames = fieldnames(obj.data);
                             if (~isempty(fnames))
                                 obj.data = containers.Map(fnames, struct2cell(obj.data), 'UniformValues', 0);
@@ -530,8 +520,46 @@ classdef jdict < handle
                 end
             end
 
+            % Fast path: single numeric index like jd.(1) = value
+            if (oplen == 1 && strcmp(idxkey(1).type, '.') && isnumeric(idxkey(1).subs))
+                newidx = idxkey(1).subs;
+                if isstruct(obj.data) && isstruct(otherobj)
+                    fnames = fieldnames(obj.data);
+                    if isempty(fnames) || numel(obj.data) == 0
+                        objfnames = fieldnames(otherobj);
+                        if newidx == 1
+                            obj.data = otherobj;
+                        else
+                            for fi = 1:length(objfnames)
+                                obj.data(newidx).(objfnames{fi}) = otherobj.(objfnames{fi});
+                            end
+                        end
+                    else
+                        if newidx > numel(obj.data)
+                            for fi = 1:length(fnames)
+                                obj.data(newidx).(fnames{fi}) = [];
+                            end
+                        end
+                        reordered = struct();
+                        for fi = 1:length(fnames)
+                            if isfield(otherobj, fnames{fi})
+                                reordered.(fnames{fi}) = otherobj.(fnames{fi});
+                            else
+                                reordered.(fnames{fi}) = [];
+                            end
+                        end
+                        obj.data(newidx) = reordered;
+                    end
+                elseif iscell(obj.data)
+                    obj.data{newidx} = otherobj;
+                else
+                    obj.data(newidx) = otherobj;
+                end
+                return
+            end
+
             oplen = length(idxkey);
-            opcell = cell (1, oplen + 1);
+            opcell = cell(1, oplen + 1);
             if (isempty(obj.data))
                 obj.data = obj.newkey_();
             end
@@ -540,6 +568,24 @@ classdef jdict < handle
             for i = 1:oplen
                 idx = idxkey(i);
                 if (strcmp(idx.type, '.'))
+                    % Handle numeric indexing: person.(1), person.(2), etc.
+                    if isnumeric(idx.subs)
+                        newidx = idx.subs;
+                        if isstruct(opcell{i}) && isscalar(newidx) && newidx > numel(opcell{i})
+                            fnames = fieldnames(opcell{i});
+                            for fi = 1:length(fnames)
+                                opcell{i}(newidx).(fnames{fi}) = [];
+                            end
+                        elseif iscell(opcell{i}) && isscalar(newidx) && newidx > numel(opcell{i})
+                            opcell{i}{newidx} = [];
+                        end
+                        if iscell(opcell{i})
+                            opcell{i + 1} = opcell{i}{newidx};
+                        else
+                            opcell{i + 1} = opcell{i}(newidx);
+                        end
+                        continue
+                    end
                     if (ischar(idx.subs) && strcmp(idx.subs, 'v') && i < oplen && strcmp(idxkey(i + 1).type, '()'))
                         opcell{i + 1} = opcell{i};
                         if (i < oplen && iscell(opcell{i}))
@@ -548,7 +594,6 @@ classdef jdict < handle
                         continue
                     end
                     if (ischar(idx.subs) && ~(~isempty(idx.subs) && idx.subs(1) == char(36)))
-                        % Handle empty or non-struct/map data
                         if isempty(opcell{i}) || (~isstruct(opcell{i}) && ~ismap_(obj.flags__, opcell{i}))
                             opcell{i} = obj.newkey_();
                         end
@@ -604,6 +649,17 @@ classdef jdict < handle
                     idx.type = '()';
                 end
 
+                % Handle numeric indexing in backward loop
+                if (strcmp(idx.type, '.') && isnumeric(idx.subs))
+                    newidx = idx.subs;
+                    if iscell(opcell{i})
+                        opcell{i}{newidx} = opcell{i + 1};
+                    else
+                        opcell{i}(newidx) = opcell{i + 1};
+                    end
+                    continue
+                end
+
                 if (ischar(idx.subs) && strcmp(idx.subs, 'v') && i < oplen && ismember(idxkey(i + 1).type, {'()', '{}'}))
                     opcell{i} = opcell{i + 1};
                     continue
@@ -615,7 +671,6 @@ classdef jdict < handle
                     else
                         opcell{i} = opcell{i + 1};
                     end
-                    i = i - 1;
                 elseif (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
                     opcell{i} = obj.call_('jsonpath', opcell{i}, idx.subs, opcell{i + 1});
                 else
