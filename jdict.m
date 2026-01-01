@@ -334,7 +334,11 @@ classdef jdict < handle
                     elseif (isstruct(val))
                         % check if struct array - if so, get field from all elements
                         hasfield = isfield(val, onekey);
-                        if (numel(val) > 1 && hasfield)
+                        if (numel(val) == 0)
+                            % empty struct array - track path for <= assignment
+                            val = [];
+                            trackpath = [trackpath '.' escapedonekey];
+                        elseif (numel(val) > 1 && hasfield)
                             % struct array - extract field from all elements
                             val = {val.(onekey)};
                             if (all(cellfun(@isnumeric, val)) && all(cellfun(@(x) isequal(size(x), size(val{1})), val)))
