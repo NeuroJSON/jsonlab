@@ -575,6 +575,7 @@ classdef jdict < handle
             end
             opcell{1} = obj.data;
 
+            % forward value extraction loop
             for i = 1:oplen
                 idx = idxkey(i);
                 if (strcmp(idx.type, '.'))
@@ -597,8 +598,26 @@ classdef jdict < handle
                         continue
                     end
                     if (ischar(idx.subs) && strcmp(idx.subs, 'v') && i < oplen && strcmp(idxkey(i + 1).type, '()'))
+                        % expand struct or cell when using .v(index) more
+                        % than the length
+                        nextsubs = idxkey(i + 1).subs;
+                        if iscell(nextsubs)
+                            nextsubs = nextsubs{1};
+                        end
+                        if isnumeric(nextsubs) && isscalar(nextsubs)
+                            if isstruct(opcell{i}) && nextsubs > numel(opcell{i})
+                                fnames = fieldnames(opcell{i});
+                                if (~isempty(fnames))
+                                    for fi = 1:length(fnames)
+                                        opcell{i}(nextsubs).(fnames{fi}) = [];
+                                    end
+                                end
+                            elseif iscell(opcell{i}) && nextsubs > numel(opcell{i})
+                                opcell{i}{nextsubs} = [];
+                            end
+                        end
                         opcell{i + 1} = opcell{i};
-                        if (i < oplen && iscell(opcell{i}))
+                        if iscell(opcell{i})
                             idxkey(i + 1).type = '{}';
                         end
                         continue
@@ -635,25 +654,44 @@ classdef jdict < handle
                 end
             end
 
-            if (obj.flags__.isoctave_) && (ismap_(obj.flags__, opcell{i}))
-                opcell{i}(idx.subs) = otherobj;
-                opcell{end - 1} = opcell{i};
+            if (oplen >= 2 && ischar(idxkey(oplen - 1).subs) && strcmp(idxkey(oplen - 1).subs, 'v') && strcmp(idxkey(oplen).type, '()'))
+                % Handle .v(index) = value at any depth
+                nextsubs = idxkey(oplen).subs;
+                if iscell(nextsubs)
+                    nextsubs = nextsubs{1};
+                end
+                if iscell(opcell{oplen})
+                    opcell{oplen}{nextsubs} = otherobj;
+                elseif isstruct(opcell{oplen}) && isempty(fieldnames(opcell{oplen}))
+                    % Empty struct with no fields - just replace
+                    opcell{oplen} = otherobj;
+                else
+                    opcell{oplen}(nextsubs) = otherobj;
+                end
+                opcell{oplen + 1} = opcell{oplen};
+            elseif (obj.flags__.isoctave_) && (ismap_(obj.flags__, opcell{oplen}))
+                opcell{oplen}(idx.subs) = otherobj;
+                opcell{oplen + 1} = opcell{oplen};
             else
                 if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
-                    opcell{end - 1} = obj.call_('jsonpath', opcell{i}, idx.subs, otherobj);
+                    opcell{oplen + 1} = obj.call_('jsonpath', opcell{oplen}, idx.subs, otherobj);
                 else
-                    if (ismap_(obj.flags__, opcell{i}))
+                    if (ismap_(obj.flags__, opcell{oplen}))
                         idx = struct('type', '()', 'subs', idx.subs);
                     end
                     try
-                        opcell{end - 1} = subsasgn(opcell{i}, idx, otherobj);
+                        opcell{oplen + 1} = subsasgn(opcell{oplen}, idx, otherobj);
                     catch
-                        opcell{i}.(idx.subs) = otherobj;
-                        opcell{end - 1} = opcell{i};
+                        opcell{oplen}.(idx.subs) = otherobj;
+                        opcell{oplen + 1} = opcell{oplen};
                     end
                 end
             end
 
+            % Propagate result for backward loop
+            opcell{oplen} = opcell{oplen + 1};
+
+            % backward assignment along the reversed path
             for i = oplen - 1:-1:1
                 idx = idxkey(i);
                 if (ischar(idx.subs) && strcmp(idx.type, '.') && ismap_(obj.flags__, opcell{i}))
@@ -677,7 +715,16 @@ classdef jdict < handle
                 end
 
                 if (i > 1 && ischar(idxkey(i - 1).subs) && strcmp(idxkey(i - 1).subs, 'v'))
-                    if (iscell(opcell{i}) && ~isempty(idx.subs))
+                    if (~isempty(idx.subs) && (iscell(opcell{i}) || (isstruct(opcell{i}) && ~isempty(fieldnames(opcell{i})))))
+                        % Add missing fields to opcell{i} if opcell{i+1} has more fields
+                        if isstruct(opcell{i}) && isstruct(opcell{i + 1})
+                            newfields = fieldnames(opcell{i + 1});
+                            for fi = 1:length(newfields)
+                                if ~isfield(opcell{i}, newfields{fi})
+                                    [opcell{i}.(newfields{fi})] = deal([]);
+                                end
+                            end
+                        end
                         opcell{i} = subsasgn(opcell{i}, idx, opcell{i + 1});
                     else
                         opcell{i} = opcell{i + 1};
