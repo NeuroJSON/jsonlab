@@ -931,7 +931,7 @@ classdef jdict < handle
                 obj.schema = schemadata;
             elseif (ischar(schemadata) || isa(schemadata, 'string') || isstruct(schemadata))
                 if (isstruct(schemadata))
-                    schemadata = savejson('', schemadata);
+                    schemadata = obj.call_('savejson', '', schemadata);
                 end
                 % load as containers.Map to preserve special keys like $ref
                 obj.schema = obj.call_('loadjson', char(schemadata), 'usemap', 1);
@@ -978,9 +978,8 @@ classdef jdict < handle
 
         % convert attributes to JSON Schema
         function schema = attr2schema(obj, varargin)
-            opt = varargin2struct(varargin{:});
-            schematitle = jsonopt('title', '', opt);
-            schemadesc = jsonopt('description', '', opt);
+            allflags = [varargin(1:2:end); varargin(2:2:end)];
+            opt = struct(allflags{:});
 
             schemaKeywords = {'type', 'enum', 'const', 'default', ...
                               'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', ...
@@ -995,11 +994,11 @@ classdef jdict < handle
 
             % Add title/description at root
             if strcmp(obj.currentpath__, char(36))
-                if ~isempty(schematitle)
-                    schema.('title') = schematitle;
+                if isfield(opt, 'title')
+                    schema.('title') = opt.title;
                 end
-                if ~isempty(schemadesc)
-                    schema.('description') = schemadesc;
+                if isfield(opt, 'description')
+                    schema.('description') = opt.description;
                 end
             end
 
