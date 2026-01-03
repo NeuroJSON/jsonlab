@@ -823,8 +823,22 @@ end
 if ~ischar(str) || isempty(find(str == '\', 1))
     return
 end
+
+% Handle lone trailing backslash: temporarily remove it before sprintf
+% But not if preceded by \ (i.e. \\) which is an escaped backslash
+len = length(str);
+trailing = (str(end) == 92) && (len < 2 || str(end - 1) ~= 92);  % 92 = '\'
+if trailing
+    str = str(1:end - 1);
+end
+
 newstr = sprintf(str);
 newstr = regexprep(newstr, '\\u([0-9A-Fa-f]{4})', '${char(base2dec($1,16))}');
+
+% Restore trailing backslash
+if trailing
+    newstr = [newstr, '\'];
+end
 
 %% -------------------------------------------------------------------------
 

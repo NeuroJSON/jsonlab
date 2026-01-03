@@ -223,7 +223,7 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
                 data(j).(N_ArrayData) = jdatadecode(data(j).(N_ArrayData), opt);
             end
             if (isstruct(data(j).(N_ArrayData)) && isfield(data(j).(N_ArrayData), N_ArrayType))
-                data(j).(N_ArrayData) = jdatadecode(data(j).(N_ArrayData), varargin{:});
+                data(j).(N_ArrayData) = jdatadecode(data(j).(N_ArrayData), opt);
             end
             if (iscell(data(j).(N_ArrayData)))
                 data(j).(N_ArrayData) = cell2mat(cellfun(@(x) double(x(:)), data(j).(N_ArrayData), 'uniformoutput', 0)).';
@@ -503,7 +503,7 @@ if (isfield(data, N_GraphNodes) && exist('graph', 'file') && exist('digraph', 'f
             edgedata = data(j).(N_GraphEdges0);
             isdirected = 0;
         elseif (isfield(data, N_GraphMatrix))
-            edgedata = jdatadecode(data(j).(N_GraphMatrix), varargin{:});
+            edgedata = jdatadecode(data(j).(N_GraphMatrix), opt);
         end
 
         if (exist('edgedata', 'var'))
