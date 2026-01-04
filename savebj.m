@@ -192,6 +192,9 @@ opt.keeptype = jsonopt('KeepType', 0, opt);
 opt.nosubstruct_ = 0;
 opt.soaformat = lower(jsonopt('SoAFormat', 'col', opt));
 opt.unpackhex = jsonopt('UnpackHex', 1, opt);
+opt.type2byte_ = struct('uint8', 1, 'int8', 1, 'int16', 2, 'uint16', 2, ...
+                        'int32', 4, 'uint32', 4, 'int64', 8, 'uint64', 8, ...
+                        'single', 4, 'double', 8, 'logical', 1);
 
 [os, maxelem, systemendian] = computer;
 opt.flipendian_ = (systemendian ~= upper(jsonopt('Endian', 'L', opt)));
@@ -650,8 +653,7 @@ end
 
 if (isrowmajor)
     % Interleave: reshape each column and concatenate horizontally
-    bytesizes = cellfun(@(t) numel(typecast(cast(0, t), 'uint8')), types);
-    bytesizes(strcmp(types, 'logical')) = 1;
+    bytesizes = cellfun(@(t) opt.type2byte_.(t), types);
     totalbytes = sum(bytesizes) * nrecords;
     payload = char(zeros(1, totalbytes));
     pos = 1;
