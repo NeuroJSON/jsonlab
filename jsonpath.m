@@ -54,13 +54,13 @@ if (~isempty(pat) && ~isempty(paths))
                 error(['data with a jsonpath ' jpath ' does not exist']);
             end
         end
-        idx = struct('type', '.', 'subs', paths{end}{1}(2:end));
-        datastack{end - 1} = subsasgn(jdict(datastack{i}), idx, varargin{1});
+        fieldname = paths{end}{1}(2:end);
+        datastack{end - 1} = setfield_safe(datastack{end - 1}, fieldname, varargin{1});
         for i = length(paths) - 1:-1:1
-            idx = struct('type', '.', 'subs', paths{i}{1}(2:end));
-            datastack{i} = subsasgn(jdict(datastack{i}), idx, datastack{i + 1}.v());
+            fieldname = paths{i}{1}(2:end);
+            datastack{i} = setfield_safe(datastack{i}, fieldname, datastack{i + 1});
         end
-        obj = datastack{1}.v();
+        obj = datastack{1};
     end
 end
 
@@ -201,4 +201,14 @@ if (~exist('obj', 'var'))
     obj = [];
 elseif (nargout > 1)
     isfound = true;
+end
+
+function data = setfield_safe(data, fieldname, value)
+if isstruct(data)
+    data.(fieldname) = value;
+elseif isa(data, 'containers.Map') || isa(data, 'dictionary')
+    data(fieldname) = value;
+else
+    idx = struct('type', '.', 'subs', fieldname);
+    data = subsasgn(data, idx, value);
 end
