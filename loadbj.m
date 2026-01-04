@@ -123,6 +123,10 @@ opt.usemap = jsonopt('UseMap', 0, opt);
 opt.nameisstring = jsonopt('NameIsString', 0, opt);
 opt.mmaponly = jsonopt('MmapOnly', 0, opt);
 
+% SoA schema parsing state
+opt.inschema_ = false;
+opt.schemammap_ = {};
+
 [os, maxelem, systemendian] = computer;
 opt.flipendian_ = (systemendian ~= upper(jsonopt('Endian', 'L', opt)));
 
@@ -301,6 +305,13 @@ end
 
 if cc == '$'
     type = inputstr(pos + 1);
+
+    % === SoA: [$ followed by { triggers row-major SoA parsing ===
+    if type == '{'
+        [object, pos] = parse_soa(pos + 1, 'row', opt);
+        return
+    end
+
     pos = pos + 2;
     cc = inputstr(pos);
     while cc == 'N'
@@ -448,7 +459,7 @@ end
 
 %% -------------------------------------------------------------------------
 
-function [str, pos] = parseStr(pos, type, opt)
+function [str, pos, opt] = parseStr(pos, type, opt)
 inputstr = opt.inputstr_;
 if isempty(type)
     type = inputstr(pos);
@@ -460,12 +471,18 @@ if isempty(type)
 end
 
 if type == 'C' || type == 'B'
-    str = inputstr(pos);
-    pos = pos + 1;
+    if opt.inschema_
+        % Schema mode: record type info, skip payload
+        opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', type, 'b', 1, 'd', '')};
+        str = '';
+    else
+        str = inputstr(pos);
+        pos = pos + 1;
+    end
     return
 end
 
-% Fast path for uint8 length (most common case)
+% S or H type: read length
 typecode = inputstr(pos);
 if typecode == 'U'
     bytelen = double(uint8(inputstr(pos + 1)));
@@ -473,6 +490,13 @@ if typecode == 'U'
 else
     [val, pos] = parse_number(pos, opt);
     bytelen = double(val);
+end
+
+if opt.inschema_
+    % Schema mode: record type info with length, skip payload
+    opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', type, 'b', bytelen, 'd', '')};
+    str = '';
+    return
 end
 
 endpos = pos + bytelen - 1;
@@ -533,7 +557,7 @@ pos = pos + len;
 
 %% -------------------------------------------------------------------------
 
-function [val, pos, mmap] = parse_value(pos, type, opt)
+function [val, pos, mmap, opt] = parse_value(pos, type, opt)
 needmmap = (nargout > 2);
 if needmmap
     mmap = {};
@@ -553,36 +577,61 @@ end
 
 switch cc
     case {'S', 'C', 'B', 'H'}
-        [val, pos] = parseStr(pos, type, opt);
+        [val, pos, opt] = parseStr(pos, type, opt);
     case '['
-        if needmmap
+        if opt.inschema_
+            % Schema mode: parse fixed array [type type ...]
+            [val, pos, opt] = parse_schema_array(pos, opt);
+        elseif needmmap
             [val, pos, mmap] = parse_array(pos, opt);
         else
             [val, pos] = parse_array(pos, opt);
         end
     case '{'
         if needmmap
-            [val, pos, mmap] = parse_object(pos, opt);
+            [val, pos, mmap, opt] = parse_object(pos, opt);
         else
-            [val, pos] = parse_object(pos, opt);
+            [val, pos, ~, opt] = parse_object(pos, opt);
         end
         if pos < 0
             opt.usemap = 1;
             if needmmap
-                [val, pos, mmap] = parse_object(-pos, opt);
+                [val, pos, mmap, opt] = parse_object(-pos, opt);
             else
-                [val, pos] = parse_object(-pos, opt);
+                [val, pos, ~, opt] = parse_object(-pos, opt);
             end
         end
     case {'i', 'U', 'I', 'u', 'l', 'm', 'L', 'M', 'h', 'd', 'D'}
-        [val, pos] = parse_number(pos, opt);
+        if opt.inschema_
+            % Schema mode: record type info, skip payload
+            len = double(opt.typemap_(uint8(cc), 2));
+            cid = opt.typestr_{opt.typemap_(uint8(cc), 1)};
+            opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', cc, 'b', len, 'd', cast([], cid))};
+            val = [];
+            pos = pos + 1;  % skip type marker only
+        else
+            [val, pos] = parse_number(pos, opt);
+        end
     case 'T'
-        val = true;
+        if opt.inschema_
+            opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', 'T', 'b', 1, 'd', true(0, 1))};
+            val = [];
+        else
+            val = true;
+        end
         pos = pos + 1;
     case 'F'
-        val = false;
+        if opt.inschema_
+            opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', 'F', 'b', 1, 'd', true(0, 1))};
+            val = [];
+        else
+            val = false;
+        end
         pos = pos + 1;
     case {'Z', 'N'}
+        if opt.inschema_
+            opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', cc, 'b', 0, 'd', [])};
+        end
         val = [];
         pos = pos + 1;
     otherwise
@@ -591,11 +640,45 @@ end
 
 %% -------------------------------------------------------------------------
 
+function [val, pos, opt] = parse_schema_array(pos, opt)
+% Parse fixed array in schema: [type type ...] -> record total bytes
+inputstr = opt.inputstr_;
+pos = pos + 1;  % skip '['
+
+basepath = opt.jsonpath_;
+totalbytes = 0;
+idx = 0;
+
+while inputstr(pos) ~= ']'
+    idx = idx + 1;
+    opt.jsonpath_ = sprintf('%s[%d]', basepath, idx - 1);
+    [~, pos, ~, opt] = parse_value(pos, [], opt);
+    % Get bytes from last mmap entry
+    if ~isempty(opt.schemammap_)
+        totalbytes = totalbytes + opt.schemammap_{end}{2}.b;
+    end
+end
+pos = pos + 1;  % skip ']'
+
+% Replace individual entries with single array entry
+% Remove the individual element entries, add combined entry
+nremove = idx;
+if nremove > 0
+    arraymmap = opt.schemammap_(end - nremove + 1:end);
+    opt.schemammap_(end - nremove + 1:end) = [];
+    opt.schemammap_{end + 1} = {basepath, struct('t', 'array', 'b', totalbytes, 'd', {arraymmap})};
+end
+
+opt.jsonpath_ = basepath;
+val = [];
+
+%% -------------------------------------------------------------------------
+
 function pos = error_pos(msg, opt, pos)
 inputstr = opt.inputstr_;
 poShow = max(min([pos - 15 pos - 1 pos pos + 20], length(inputstr)), 1);
 if poShow(3) == poShow(2)
-    poShow(3:4) = poShow(2) + [0 -1];  % display nothing after
+    poShow(3:4) = poShow(2) + [0 -1];
 end
 msg = [sprintf(msg, pos) ': ' ...
        inputstr(poShow(1):poShow(2)) '<e>' inputstr(poShow(3):poShow(4))];
@@ -603,7 +686,7 @@ error('JSONLAB:BJData:InvalidFormat', msg);
 
 %% -------------------------------------------------------------------------
 
-function [object, pos, mmap] = parse_object(pos, opt)
+function [object, pos, mmap, opt] = parse_object(pos, opt)
 oldpos = pos;
 needmmap = (nargout > 2);
 if needmmap
@@ -636,6 +719,13 @@ end
 
 if cc == '$'
     type = inputstr(pos + 1);
+
+    % === SoA: {$ followed by { triggers column-major SoA parsing ===
+    if type == '{'
+        [object, pos] = parse_soa(pos + 1, 'column', opt);
+        return
+    end
+
     pos = pos + 2;
     cc = inputstr(pos);
     while cc == 'N'
@@ -661,36 +751,46 @@ if cc ~= '}'
     num = 0;
     while 1
         if opt.nameisstring
-            [str, pos] = parseStr(pos, [], opt);
+            [str, pos, opt] = parseStr(pos, [], opt);
         else
             [str, pos] = parse_name(pos, opt);
         end
-        if length(str) > 63
+        if ~opt.inschema_ && length(str) > 63
             pos = -oldpos;
             object = [];
             return
         end
         if isempty(str)
-            str = 'x0x0_';  % empty name is valid in BJData/UBJSON, decodevarname('x0x0_') restores '\0'
+            str = 'x0x0_';  % empty name is valid in BJData/UBJSON
         end
         if needmmap
             opt.jsonpath_ = [origpath, '.', str];
             mmap{end + 1} = {opt.jsonpath_, pos};
-            [val, pos, newmmap] = parse_value(pos, [], opt);
+            [val, pos, newmmap, opt] = parse_value(pos, [], opt);
             mmap{end}{2} = [mmap{end}{2}, pos - mmap{end}{2}];
             mmap = [mmap(:); newmmap(:)];
         else
-            [val, pos] = parse_value(pos, type, opt);
+            % Update jsonpath for schema mmap
+            if opt.inschema_
+                opt.jsonpath_ = [opt.jsonpath_, '.', str];
+            end
+            [val, pos, ~, opt] = parse_value(pos, type, opt);
+            if opt.inschema_
+                % Restore jsonpath after parsing
+                opt.jsonpath_ = opt.jsonpath_(1:end - length(str) - 1);
+            end
         end
         num = num + 1;
         if usemap
             object(str) = val;
         else
-            str = encodevarname(str, opt);
-            if length(str) > 63
-                pos = -oldpos;
-                object = [];
-                return
+            if ~opt.inschema_
+                str = encodevarname(str, opt);
+                if length(str) > 63
+                    pos = -oldpos;
+                    object = [];
+                    return
+                end
             end
             object.(str) = val;
         end
@@ -710,4 +810,212 @@ end
 
 if count == -1
     pos = pos + 1;  % skip '}'
+end
+
+%% -------------------------------------------------------------------------
+
+function [object, pos] = parse_soa(pos, layout, opt)
+% Parse SoA container: pos at '{' of schema
+% layout: 'row' (from [$) or 'column' (from {$)
+
+inputstr = opt.inputstr_;
+
+% Parse schema with inschema_ flag - reuse parse_object
+opt.inschema_ = true;
+opt.schemammap_ = {};
+basepath = opt.jsonpath_;
+opt.jsonpath_ = '$';
+[schema, pos, ~, opt] = parse_object(pos, opt);
+opt.inschema_ = false;
+schemammap = opt.schemammap_;
+opt.jsonpath_ = basepath;
+
+% Skip N markers
+while pos <= opt.inputlen_ && inputstr(pos) == 'N'
+    pos = pos + 1;
+end
+
+% Parse # count
+if inputstr(pos) ~= '#'
+    error_pos('Expected # after schema', opt, pos);
+end
+pos = pos + 1;
+
+% Parse count (1D or ND)
+if inputstr(pos) == '['
+    opt.noembedding_ = 1;
+    [dim, pos] = parse_array(pos, opt);
+    opt.noembedding_ = 0;
+    count = prod(double(dim));
+    dim = double(dim(:)');
+else
+    [val, pos] = parse_number(pos, opt);
+    count = double(val);
+    dim = count;
+end
+
+% Calculate total bytes per record
+recordbytes = 0;
+for i = 1:length(schemammap)
+    recordbytes = recordbytes + schemammap{i}{2}.b;
+end
+
+% Read payload
+totalbytes = recordbytes * count;
+payload = uint8(inputstr(pos:pos + totalbytes - 1));
+pos = pos + totalbytes;
+
+% Create struct array from schema and populate with payload
+object = soa_payload_to_struct(schema, schemammap, payload, count, recordbytes, layout, opt);
+
+% Reshape for ND
+if length(dim) > 1
+    object = reshape(object, dim);
+end
+
+%% -------------------------------------------------------------------------
+
+function object = soa_payload_to_struct(schema, schemammap, payload, count, recordbytes, layout, opt)
+% Convert payload to struct array using jsonpath for assignment
+
+% Create empty struct array from schema template
+template = schema;
+object = repmat(template, count, 1);
+
+if count == 0
+    return
+end
+
+nfields = length(schemammap);
+
+if strcmp(layout, 'column')
+    % Column-major: all values of field1, then field2, ...
+    bytepos = 1;
+    for f = 1:nfields
+        jpath = schemammap{f}{1};
+        finfo = schemammap{f}{2};
+        nbytes = finfo.b * count;
+
+        fdata = payload(bytepos:bytepos + nbytes - 1);
+        values = decode_soa_column(fdata, finfo, count, opt);
+
+        % Assign values using jsonpath
+        for i = 1:count
+            if iscell(values)
+                object(i) = jsonpath(object(i), jpath, values{i});
+            else
+                object(i) = jsonpath(object(i), jpath, values(i));
+            end
+        end
+
+        bytepos = bytepos + nbytes;
+    end
+else
+    % Row-major: interleaved - extract each field's data across records
+    for f = 1:nfields
+        jpath = schemammap{f}{1};
+        finfo = schemammap{f}{2};
+        fieldbytes = finfo.b;
+
+        % Calculate offset of this field within record
+        fieldoffset = 0;
+        for k = 1:f - 1
+            fieldoffset = fieldoffset + schemammap{k}{2}.b;
+        end
+
+        % Extract interleaved data
+        fdata = zeros(fieldbytes * count, 1, 'uint8');
+        for i = 1:count
+            srcpos = (i - 1) * recordbytes + fieldoffset + 1;
+            dstpos = (i - 1) * fieldbytes + 1;
+            fdata(dstpos:dstpos + fieldbytes - 1) = payload(srcpos:srcpos + fieldbytes - 1);
+        end
+
+        values = decode_soa_column(fdata, finfo, count, opt);
+
+        % Assign values using jsonpath
+        for i = 1:count
+            if iscell(values)
+                object(i) = jsonpath(object(i), jpath, values{i});
+            else
+                object(i) = jsonpath(object(i), jpath, values(i));
+            end
+        end
+    end
+end
+
+%% -------------------------------------------------------------------------
+
+function values = decode_soa_column(fdata, finfo, count, opt)
+% Decode contiguous field data to array of values
+
+typemarker = finfo.t;
+nbytes = finfo.b;
+
+if nbytes == 0  % Z type - null
+    values = cell(count, 1);
+    [values{:}] = deal([]);
+    return
+end
+
+if typemarker == 'T' || typemarker == 'F'
+    % Boolean: T or F bytes
+    values = (fdata == uint8('T'));
+
+elseif any(typemarker == 'iUIulmLMhdD')
+    % Numeric - vectorized decode
+    cid = class(finfo.d);
+    if opt.flipendian_ && nbytes > 1
+        fdata = reshape(fdata, nbytes, count);
+        fdata = fdata(end:-1:1, :);
+        fdata = fdata(:);
+    end
+    values = typecast(fdata, cid);
+
+elseif typemarker == 'S' || typemarker == 'H'
+    % Fixed string
+    values = cell(count, 1);
+    for i = 1:count
+        s = (i - 1) * nbytes + 1;
+        e = s + nbytes - 1;
+        values{i} = deblank(char(fdata(s:e)));
+    end
+
+elseif typemarker == 'C' || typemarker == 'B'
+    % Single char/byte
+    values = char(fdata);
+
+elseif strcmp(typemarker, 'array')
+    % Fixed array - decode element by element
+    arraymmap = finfo.d;  % cell array of {path, typeinfo} for elements
+    values = cell(count, 1);
+    elemcount = length(arraymmap);
+
+    for i = 1:count
+        recstart = (i - 1) * nbytes;
+        arrval = [];
+        elemoffset = 0;
+        for e = 1:elemcount
+            einfo = arraymmap{e}{2};
+            ebytes = einfo.b;
+            edata = fdata(recstart + elemoffset + 1:recstart + elemoffset + ebytes);
+
+            if any(einfo.t == 'iUIulmLMhdD')
+                ecid = class(einfo.d);
+                if opt.flipendian_ && ebytes > 1
+                    edata = edata(end:-1:1);
+                end
+                elem = typecast(edata, ecid);
+            elseif einfo.t == 'T' || einfo.t == 'F'
+                elem = (edata(1) == uint8('T'));
+            else
+                elem = edata;
+            end
+            arrval = [arrval, elem];
+            elemoffset = elemoffset + ebytes;
+        end
+        values{i} = arrval;
+    end
+else
+    values = cell(count, 1);
 end

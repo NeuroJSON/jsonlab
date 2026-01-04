@@ -106,6 +106,14 @@ function output = savebj(rootname, obj, varargin)
 %                         for output format, it is incompatible with releases
 %                         older than v1.9.8; if old output is desired,
 %                         please set FormatVersion to 1.9 or earlier.
+%                         When FormatVersion>=4, BJData Draft-4 SOA format
+%                         is used for struct arrays and tables with uniform
+%                         column types.
+%          SoAFormat ['col'|'row']: specify the SOA memory layout when
+%                         FormatVersion>=4 and data qualifies for SOA.
+%                         'col','c','column' - column-major (columnar)
+%                         'row','r' - row-major (interleaved)
+%                         Default is 'col'.
 %          KeepType [0|1]: if set to 1, use the original data type to store
 %                         integers instead of converting to the integer type
 %                         of the minimum length without losing accuracy (default)
@@ -170,7 +178,7 @@ end
 opt.isoctave = isoctavemesh;
 opt.compression = jsonopt('Compression', '', opt);
 opt.nestarray = jsonopt('NestArray', 0, opt);
-opt.formatversion = jsonopt('FormatVersion', 2, opt);
+opt.formatversion = jsonopt('FormatVersion', 4, opt);
 opt.compressarraysize = jsonopt('CompressArraySize', 100, opt);
 opt.compressstringsize = jsonopt('CompressStringSize', inf, opt);
 opt.singletcell = jsonopt('SingletCell', 1, opt);
@@ -182,24 +190,13 @@ opt.num2cell_ = 0;
 opt.ubjson = bitand(jsonopt('UBJSON', 0, opt), ~opt.messagepack);
 opt.keeptype = jsonopt('KeepType', 0, opt);
 opt.nosubstruct_ = 0;
-
-% Performance optimization: cache UnpackHex to avoid repeated jsonopt calls
+opt.soaformat = lower(jsonopt('SoAFormat', 'col', opt));
 opt.unpackhex = jsonopt('UnpackHex', 1, opt);
 
 [os, maxelem, systemendian] = computer;
 opt.flipendian_ = (systemendian ~= upper(jsonopt('Endian', 'L', opt)));
 
-if (jsonopt('PreEncode', 1, opt))
-    obj = jdataencode(obj, 'Base64', 0, 'UseArrayZipSize', opt.messagepack, opt);
-end
-
-dozip = opt.compression;
-if (~isempty(dozip))
-    if (~ismember(dozip, {'zlib', 'gzip', 'lzma', 'lzip', 'lz4', 'lz4hc'}) && isempty(regexp(dozip, '^blosc2', 'once')))
-        error('compression method "%s" is not supported', dozip);
-    end
-end
-
+% Initialize type markers before SOA check
 if (~opt.messagepack)
     if (~opt.ubjson)
         opt.IM_ = 'UiuImlML';
@@ -233,6 +230,28 @@ else
     opt.ZM_ = char(hex2dec('c0'));
     opt.OM_ = {char(hex2dec('df')), ''};
     opt.AM_ = {char(hex2dec('dd')), ''};
+end
+
+% For formatversion >= 4 with SOA support, skip jdataencode for tables
+skippreencode = false;
+if (opt.formatversion >= 4 && ~opt.messagepack && ~opt.ubjson)
+    if (isa(obj, 'table') && size(obj, 1) > 1)
+        [cansoa, ~] = cantableencodeassoa(obj, opt);
+        if (cansoa)
+            skippreencode = true;
+        end
+    end
+end
+
+if (~skippreencode && jsonopt('PreEncode', 1, opt))
+    obj = jdataencode(obj, 'Base64', 0, 'UseArrayZipSize', opt.messagepack, opt);
+end
+
+dozip = opt.compression;
+if (~isempty(dozip))
+    if (~ismember(dozip, {'zlib', 'gzip', 'lzma', 'lzip', 'lz4', 'lz4hc'}) && isempty(regexp(dozip, '^blosc2', 'once')))
+        error('compression method "%s" is not supported', dozip);
+    end
 end
 
 rootisarray = 0;
@@ -405,6 +424,15 @@ txt = '';
 if (~isstruct(item))
     error('input is not a struct');
 end
+
+if (opt.formatversion >= 4 && numel(item) > 1 && ~opt.messagepack && ~opt.ubjson)
+    [cansoa, soainfo] = canencodeassoa(item, opt);
+    if (cansoa)
+        txt = data2soa(name, item, soainfo, opt);
+        return
+    end
+end
+
 dim = size(item);
 if (ndims(squeeze(item)) > 2) % for 3D or higher dimensions, flatten to 2D for now
     item = reshape(item, dim(1), numel(item) / dim(1));
@@ -486,6 +514,159 @@ if (forcearray)
 end
 
 txt = [parts{1:partIdx}];
+
+%% -------------------------------------------------------------------------
+function [cansoa, soainfo] = canencodeassoa(item, opt)
+% Check if struct array can be encoded as SOA (all fields are same-type scalars)
+cansoa = false;
+soainfo = struct('names', {{}}, 'nrecords', 0, 'types', {{}}, 'markers', {{}});
+
+if (~isstruct(item) || numel(item) <= 1)
+    return
+end
+
+names = fieldnames(item);
+if (isempty(names))
+    return
+end
+
+nfields = length(names);
+nrecords = numel(item);
+types = cell(1, nfields);
+markers = cell(1, nfields);
+
+for f = 1:nfields
+    val1 = item(1).(names{f});
+    if (~isscalar(val1) || ~(isnumeric(val1) || islogical(val1)))
+        return
+    end
+
+    if (islogical(val1))
+        types{f} = 'logical';
+        markers{f} = 'T';
+    else
+        idx = find(ismember(opt.IType_, class(val1)));
+        if (~isempty(idx))
+            types{f} = opt.IType_{idx};
+            markers{f} = opt.IM_(idx);
+        else
+            idx = find(ismember(opt.FType_, class(val1)));
+            if (isempty(idx))
+                return
+            end
+            types{f} = opt.FType_{idx};
+            markers{f} = opt.FM_(idx);
+        end
+    end
+
+    for r = 2:nrecords
+        valr = item(r).(names{f});
+        if (~isscalar(valr) || ~strcmp(class(valr), class(val1)))
+            if (~(islogical(val1) && islogical(valr)))
+                return
+            end
+        end
+    end
+end
+
+soainfo.names = names;
+soainfo.nrecords = nrecords;
+soainfo.types = types;
+soainfo.markers = markers;
+cansoa = true;
+
+%% -------------------------------------------------------------------------
+function txt = data2soa(name, item, soainfo, opt)
+% Unified SOA encoder for both struct arrays and tables
+names = soainfo.names;
+nfields = length(names);
+nrecords = soainfo.nrecords;
+markers = soainfo.markers;
+types = soainfo.types;
+istable = isa(item, 'table');
+isrowmajor = ismember(opt.soaformat, {'row', 'r'});
+
+% Build schema
+schemaparts = cell(1, nfields + 1);
+schemaparts{1} = '{';
+for f = 1:nfields
+    schemaparts{f + 1} = [I_(int32(length(names{f})), opt) names{f} markers{f}];
+end
+schema = [schemaparts{:} '}'];
+
+% Build count - use ND dimensions if not a vector
+dim = size(item);
+if istable
+    % Tables are always 2D with rows as records
+    countstr = I_(int32(nrecords), opt);
+else
+    % For struct arrays, preserve ND shape
+    if length(dim) > 1 && ~isvector(item)
+        % ND array - output as [dim1 dim2 ...] with explicit brackets
+        countstr = '[';
+        for d = 1:length(dim)
+            countstr = [countstr I_(int32(dim(d)), opt)];
+        end
+        countstr = [countstr ']'];
+    else
+        countstr = I_(int32(nrecords), opt);
+    end
+end
+
+% Build header
+if (isrowmajor)
+    header = ['[$' schema '#' countstr];
+else
+    header = ['{$' schema '#' countstr];
+end
+if (~isempty(name))
+    header = [N_(decodevarname(name, opt.unpackhex), opt) header];
+end
+
+% Build payload - flatten item for iteration
+if ~istable
+    item = item(:);
+end
+
+payloadparts = cell(1, nfields);
+for f = 1:nfields
+    if (istable)
+        coldata = item{:, names{f}};
+        coldata = cast(coldata(:), types{f});
+    else
+        coldata = arrayfun(@(x) cast(x.(names{f}), types{f}), item(:));
+    end
+    if (strcmp(types{f}, 'logical'))
+        boolchars = repmat('F', 1, nrecords);
+        boolchars(coldata ~= 0) = 'T';
+        payloadparts{f} = boolchars;
+    else
+        if (opt.flipendian_)
+            coldata = swapbytes(coldata);
+        end
+        payloadparts{f} = char(typecast(coldata(:)', 'uint8'));
+    end
+end
+
+if (isrowmajor)
+    % Interleave: reshape each column and concatenate horizontally
+    bytesizes = cellfun(@(t) numel(typecast(cast(0, t), 'uint8')), types);
+    bytesizes(strcmp(types, 'logical')) = 1;
+    totalbytes = sum(bytesizes) * nrecords;
+    payload = char(zeros(1, totalbytes));
+    pos = 1;
+    for r = 1:nrecords
+        for f = 1:nfields
+            bsize = bytesizes(f);
+            payload(pos:pos + bsize - 1) = payloadparts{f}((r - 1) * bsize + 1:r * bsize);
+            pos = pos + bsize;
+        end
+    end
+else
+    payload = [payloadparts{:}];
+end
+
+txt = [header payload];
 
 %% -------------------------------------------------------------------------
 function txt = map2ubjson(name, item, level, opt)
@@ -615,7 +796,7 @@ ismsgpack = opt.messagepack;
 if (ismsgpack)
     isnest = 1;
 end
-if (~opt.nosubstruct_ && ((length(size(item)) > 2 && isnest == 0)  || ...
+if (~opt.nosubstruct_ && ((length(size(item)) > 2 && isnest == 0) || ...
                           issparse(item) || ~isreal(item) || opt.arraytostruct || ...
                           (~isempty(dozip) && numel(item) > zipsize)))
     cid = I_(uint32(max(size(item))), opt);
@@ -660,13 +841,10 @@ if (issparse(item))
     childcount = childcount + 1;
     if (~isempty(dozip) && numel(data * 2) > zipsize)
         if (size(item, 1) == 1)
-            % Row vector, store only column indices.
             fulldata = [iy(:), data'];
         elseif (size(item, 2) == 1)
-            % Column vector, store only row indices.
             fulldata = [ix, data];
         else
-            % General case, store row and column indices.
             fulldata = [ix, iy, data];
         end
         cid = I_(uint32(max(size(fulldata))), opt);
@@ -677,13 +855,10 @@ if (issparse(item))
         childcount = childcount + 3;
     else
         if (size(item, 1) == 1)
-            % Row vector, store only column indices.
             fulldata = [iy(:), data'];
         elseif (size(item, 2) == 1)
-            % Column vector, store only row indices.
             fulldata = [ix, data];
         else
-            % General case, store row and column indices.
             fulldata = [ix, iy, data];
         end
         if (ismsgpack)
@@ -751,6 +926,15 @@ txt = [txt, Omarker{2}];
 
 %% -------------------------------------------------------------------------
 function txt = matlabtable2ubjson(name, item, level, opt)
+
+if (opt.formatversion >= 4 && ~opt.messagepack && ~opt.ubjson && size(item, 1) > 1)
+    [cansoa, soainfo] = cantableencodeassoa(item, opt);
+    if (cansoa)
+        txt = data2soa(name, item, soainfo, opt);
+        return
+    end
+end
+
 st = containers.Map();
 st('_TableRecords_') = table2cell(item);
 st('_TableRows_') = item.Properties.RowNames';
@@ -764,17 +948,96 @@ else
 end
 
 %% -------------------------------------------------------------------------
+function [cansoa, soainfo] = cantableencodeassoa(item, opt)
+% Check if table can be encoded as SOA with auto type detection
+cansoa = false;
+soainfo = struct('names', {{}}, 'nrecords', 0, 'types', {{}}, 'markers', {{}});
+
+varnames = item.Properties.VariableNames;
+ncols = length(varnames);
+nrows = size(item, 1);
+
+if (nrows <= 1 || ncols == 0)
+    return
+end
+
+types = cell(1, ncols);
+markers = cell(1, ncols);
+
+for c = 1:ncols
+    coldata = item{:, c};
+    if (~isvector(coldata) || ~(isnumeric(coldata) || islogical(coldata)))
+        return
+    end
+
+    if (islogical(coldata))
+        types{c} = 'logical';
+        markers{c} = 'T';
+    else
+        [types{c}, markers{c}] = findmintype(double(coldata(:)), opt);
+        if (isempty(types{c}))
+            return
+        end
+    end
+end
+
+soainfo.names = varnames;
+soainfo.nrecords = nrows;
+soainfo.types = types;
+soainfo.markers = markers;
+cansoa = true;
+
+%% -------------------------------------------------------------------------
+function [basetype, marker] = findmintype(data, opt)
+% Find minimum precision type for numeric data
+basetype = '';
+marker = '';
+
+isallint = all(isfinite(data)) && all(data == floor(data));
+if (isallint)
+    minval = min(data);
+    maxval = max(data);
+    ranges = {[0 255], [0 65535], [0 4294967295], [0 18446744073709551615], ...
+              [-128 127], [-32768 32767], [-2147483648 2147483647], [-9223372036854775808 9223372036854775807]};
+    itypes = {'uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16', 'int32', 'int64'};
+    for i = 1:length(itypes)
+        idx = find(ismember(opt.IType_, itypes{i}));
+        if (~isempty(idx) && minval >= ranges{i}(1) && maxval <= ranges{i}(2))
+            basetype = itypes{i};
+            marker = opt.IM_(idx);
+            return
+        end
+    end
+end
+
+idx = find(ismember(opt.FType_, 'single'));
+if (~isempty(idx))
+    sdata = single(data);
+    if (all(double(sdata) == data | (isnan(data) & isnan(sdata)) | (isinf(data) & isinf(sdata) & sign(data) == sign(sdata))))
+        basetype = 'single';
+        marker = opt.FM_(idx);
+        return
+    end
+end
+
+idx = find(ismember(opt.FType_, 'double'));
+if (~isempty(idx))
+    basetype = 'double';
+    marker = opt.FM_(idx);
+end
+
+%% -------------------------------------------------------------------------
 function txt = matlabobject2ubjson(name, item, level, opt)
 try
-    if numel(item) == 0 % empty object
+    if numel(item) == 0
         st = struct();
-    elseif numel(item) == 1 %
+    elseif numel(item) == 1
         txt = str2ubjson(name, char(item), level, opt);
         return
     else
         propertynames = properties(item);
         for p = 1:numel(propertynames)
-            for o = numel(item):-1:1 % array of objects
+            for o = numel(item):-1:1
                 st(o).(propertynames{p}) = item(o).(propertynames{p});
             end
         end
@@ -951,7 +1214,6 @@ cid = opt.IType_;
 isdebug = opt.debug;
 doswap = opt.flipendian_;
 
-% Fast path for pre-specified type
 if (isfield(opt, 'inttype_'))
     idx = opt.inttype_;
     if (isdebug)
@@ -966,7 +1228,6 @@ if (isfield(opt, 'inttype_'))
     return
 end
 
-% Fast path for MessagePack small integers
 if (Imarker(1) ~= 'U')
     if (num >= 0 && num < 127)
         val = uint8(num);
@@ -978,168 +1239,22 @@ if (Imarker(1) ~= 'U')
     end
 end
 
-% Optimized type selection - same logic as original loop but with
-% inlined data2byte/endiancheck
-%
-% BJData cid order: uint8, int8, uint16, int16, uint32, int32, uint64, int64
-% UBJSON cid order: uint8, int8, int16, int32, int64
-
-numtypes = length(cid);
-numval = double(num);  % Convert once for comparisons
-
-% Type 1: uint8 (both BJData and UBJSON)
-if (numval >= 0 && numval <= 255 && numval == floor(numval))
-    if (isdebug)
-        val = [Imarker(1) sprintf('<%.0f>', num)];
-    else
-        val = [Imarker(1) char(uint8(num))];
-    end
-    return
-end
-
-% Type 2: int8 (both BJData and UBJSON)
-if (numval >= -128 && numval <= 127 && numval == floor(numval))
-    if (isdebug)
-        val = [Imarker(2) sprintf('<%.0f>', num)];
-    else
-        val = [Imarker(2) char(typecast(int8(num), 'uint8'))];
-    end
-    return
-end
-
-if (numtypes >= 8)
-    % BJData format: uint8, int8, uint16, int16, uint32, int32, uint64, int64
-
-    % Type 3: uint16
-    if (numval >= 0 && numval <= 65535 && numval == floor(numval))
+numval = double(num);
+for i = 1:length(cid)
+    casted = cast(numval, cid{i});
+    if (double(casted) == numval)
         if (isdebug)
-            val = [Imarker(3) sprintf('<%.0f>', num)];
+            val = [Imarker(i) sprintf('<%.0f>', num)];
         else
-            casted = uint16(num);
             if (doswap)
                 casted = swapbytes(casted);
             end
-            val = [Imarker(3) char(typecast(casted, 'uint8'))];
-        end
-        return
-    end
-
-    % Type 4: int16
-    if (numval >= -32768 && numval <= 32767 && numval == floor(numval))
-        if (isdebug)
-            val = [Imarker(4) sprintf('<%.0f>', num)];
-        else
-            casted = int16(num);
-            if (doswap)
-                casted = swapbytes(casted);
-            end
-            val = [Imarker(4) char(typecast(casted, 'uint8'))];
-        end
-        return
-    end
-
-    % Type 5: uint32
-    if (numval >= 0 && numval <= 4294967295 && numval == floor(numval))
-        if (isdebug)
-            val = [Imarker(5) sprintf('<%.0f>', num)];
-        else
-            casted = uint32(num);
-            if (doswap)
-                casted = swapbytes(casted);
-            end
-            val = [Imarker(5) char(typecast(casted, 'uint8'))];
-        end
-        return
-    end
-
-    % Type 6: int32
-    if (numval >= -2147483648 && numval <= 2147483647 && numval == floor(numval))
-        if (isdebug)
-            val = [Imarker(6) sprintf('<%.0f>', num)];
-        else
-            casted = int32(num);
-            if (doswap)
-                casted = swapbytes(casted);
-            end
-            val = [Imarker(6) char(typecast(casted, 'uint8'))];
-        end
-        return
-    end
-
-    % Type 7: uint64
-    if (numval >= 0 && numval <= 18446744073709551615 && numval == floor(numval))
-        if (isdebug)
-            val = [Imarker(7) sprintf('<%.0f>', num)];
-        else
-            casted = uint64(num);
-            if (doswap)
-                casted = swapbytes(casted);
-            end
-            val = [Imarker(7) char(typecast(casted, 'uint8'))];
-        end
-        return
-    end
-
-    % Type 8: int64
-    if (numval >= -9223372036854775808 && numval <= 9223372036854775807 && numval == floor(numval))
-        if (isdebug)
-            val = [Imarker(8) sprintf('<%.0f>', num)];
-        else
-            casted = int64(num);
-            if (doswap)
-                casted = swapbytes(casted);
-            end
-            val = [Imarker(8) char(typecast(casted, 'uint8'))];
-        end
-        return
-    end
-else
-    % UBJSON format: uint8, int8, int16, int32, int64
-
-    % Type 3: int16
-    if (numval >= -32768 && numval <= 32767 && numval == floor(numval))
-        if (isdebug)
-            val = [Imarker(3) sprintf('<%.0f>', num)];
-        else
-            casted = int16(num);
-            if (doswap)
-                casted = swapbytes(casted);
-            end
-            val = [Imarker(3) char(typecast(casted, 'uint8'))];
-        end
-        return
-    end
-
-    % Type 4: int32
-    if (numval >= -2147483648 && numval <= 2147483647 && numval == floor(numval))
-        if (isdebug)
-            val = [Imarker(4) sprintf('<%.0f>', num)];
-        else
-            casted = int32(num);
-            if (doswap)
-                casted = swapbytes(casted);
-            end
-            val = [Imarker(4) char(typecast(casted, 'uint8'))];
-        end
-        return
-    end
-
-    % Type 5: int64
-    if (numval >= -9223372036854775808 && numval <= 9223372036854775807 && numval == floor(numval))
-        if (isdebug)
-            val = [Imarker(5) sprintf('<%.0f>', num)];
-        else
-            casted = int64(num);
-            if (doswap)
-                casted = swapbytes(casted);
-            end
-            val = [Imarker(5) char(typecast(casted, 'uint8'))];
+            val = [Imarker(i) char(typecast(casted, 'uint8'))];
         end
         return
     end
 end
 
-% Fallback for very large numbers (convert to string)
 val = S_(sprintf('%.0f', num), opt);
 if (Imarker(1) == 'U')
     val(1) = 'H';
@@ -1183,7 +1298,7 @@ if (id == 0)
     error('unsupported integer array');
 end
 
-% based on UBJSON specs, all integer types are stored in big endian format
+% based on Mo UBJSON specs, all integer types are stored in big endian format
 
 cid = opt.IType_;
 data = data2byte(endiancheck(cast(num, cid{id}), opt), 'uint8');
