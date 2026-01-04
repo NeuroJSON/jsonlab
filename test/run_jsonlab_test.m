@@ -358,7 +358,7 @@ if (ismember('bjo', tests))
 end
 
 %%
-if (ismember('bjsoa', tests))
+if (ismember('bjsoa', tests) && hasContainersMap)
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Test Binary JSON SOA (Structure-of-Arrays) functions\n');
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
