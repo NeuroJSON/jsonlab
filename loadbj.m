@@ -493,8 +493,8 @@ else
 end
 
 if opt.inschema_
-    % Schema mode: record type info with length, skip payload
-    opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', type, 'b', bytelen, 'd', '')};
+    % Schema mode: fixed-length string S <int> <len>
+    opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', type, 'b', bytelen, 'd', '', 'enc', 'fixed')};
     str = '';
     return
 end
@@ -580,7 +580,7 @@ switch cc
         [val, pos, opt] = parseStr(pos, type, opt);
     case '['
         if opt.inschema_
-            % Schema mode: parse fixed array [type type ...]
+            % Schema mode: check for string encoding markers [$S# or [$<type>]
             [val, pos, opt] = parse_schema_array(pos, opt);
         elseif needmmap
             [val, pos, mmap] = parse_array(pos, opt);
@@ -641,11 +641,77 @@ end
 %% -------------------------------------------------------------------------
 
 function [val, pos, opt] = parse_schema_array(pos, opt)
-% Parse fixed array in schema: [type type ...] -> record total bytes
+% Parse array in schema: [type type ...] or [$S#...] or [$<type>]
 inputstr = opt.inputstr_;
 pos = pos + 1;  % skip '['
 
 basepath = opt.jsonpath_;
+
+% Check for optimized array marker [$
+if inputstr(pos) == '$'
+    pos = pos + 1;
+    typemarker = inputstr(pos);
+    pos = pos + 1;
+
+    if typemarker == 'S' || typemarker == 'H'
+        % Dictionary-based: [$S#<count>S<len>str1 S<len>str2...
+        if inputstr(pos) ~= '#'
+            error_pos('Expected # after [$S in schema', opt, pos);
+        end
+        pos = pos + 1;
+        [dictcount, pos] = parse_number(pos, opt);
+        dictcount = double(dictcount);
+
+        % Read dictionary strings (temporarily disable schema mode)
+        dict = cell(1, dictcount);
+        opt.inschema_ = false;
+        for i = 1:dictcount
+            if inputstr(pos) == 'S' || inputstr(pos) == 'H'
+                [dict{i}, pos, opt] = parseStr(pos, [], opt);
+            else
+                [dict{i}, pos, opt] = parseStr(pos, typemarker, opt);
+            end
+        end
+        opt.inschema_ = true;
+
+        % Determine index type based on dict size
+        if dictcount <= 255
+            idxtype = 'U';
+            idxbytes = 1;
+        elseif dictcount <= 65535
+            idxtype = 'u';
+            idxbytes = 2;
+        elseif dictcount <= 4294967295
+            idxtype = 'm';
+            idxbytes = 4;
+        else
+            idxtype = 'M';
+            idxbytes = 8;
+        end
+
+        opt.schemammap_{end + 1} = {basepath, struct('t', typemarker, 'b', idxbytes, ...
+                                                     'd', '', 'enc', 'dict', 'dict', {dict}, 'idxtype', idxtype)};
+        val = [];
+        return
+
+    elseif any(typemarker == 'iUIulmLM')
+        % Offset-table-based: [$<int-type>]
+        if inputstr(pos) ~= ']'
+            error_pos('Expected ] after [$<type> in schema', opt, pos);
+        end
+        pos = pos + 1;
+
+        idxbytes = double(opt.typemap_(uint8(typemarker), 2));
+        opt.schemammap_{end + 1} = {basepath, struct('t', 'S', 'b', idxbytes, ...
+                                                     'd', '', 'enc', 'offset', 'idxtype', typemarker)};
+        val = [];
+        return
+    else
+        error_pos('Unexpected type after [$ in schema', opt, pos - 1);
+    end
+end
+
+% Regular fixed array: [type type ...]
 totalbytes = 0;
 idx = 0;
 
@@ -653,7 +719,6 @@ while inputstr(pos) ~= ']'
     idx = idx + 1;
     opt.jsonpath_ = sprintf('%s[%d]', basepath, idx - 1);
     [~, pos, ~, opt] = parse_value(pos, [], opt);
-    % Get bytes from last mmap entry
     if ~isempty(opt.schemammap_)
         totalbytes = totalbytes + opt.schemammap_{end}{2}.b;
     end
@@ -661,7 +726,6 @@ end
 pos = pos + 1;  % skip ']'
 
 % Replace individual entries with single array entry
-% Remove the individual element entries, add combined entry
 nremove = idx;
 if nremove > 0
     arraymmap = opt.schemammap_(end - nremove + 1:end);
@@ -820,7 +884,7 @@ function [object, pos] = parse_soa(pos, layout, opt)
 
 inputstr = opt.inputstr_;
 
-% Parse schema with inschema_ flag - reuse parse_object
+% Parse schema with inschema_ flag
 opt.inschema_ = true;
 opt.schemammap_ = {};
 basepath = opt.jsonpath_;
@@ -854,31 +918,58 @@ else
     dim = count;
 end
 
-% Calculate total bytes per record
+% Calculate fixed bytes per record
 recordbytes = 0;
 for i = 1:length(schemammap)
     recordbytes = recordbytes + schemammap{i}{2}.b;
 end
 
-% Read payload
+% Read fixed payload
 totalbytes = recordbytes * count;
 payload = uint8(inputstr(pos:pos + totalbytes - 1));
 pos = pos + totalbytes;
 
-% Create struct array from schema and populate with payload
+% Read deferred offset-table fields
+for i = 1:length(schemammap)
+    finfo = schemammap{i}{2};
+    if isfield(finfo, 'enc') && strcmp(finfo.enc, 'offset')
+        idxtype = finfo.idxtype;
+
+        % Read (count+1) offsets
+        [offsets, adv] = parse_block(pos, idxtype, count + 1, opt);
+        pos = pos + adv;
+        offsets = double(offsets);
+
+        % Read string buffer
+        buflen = offsets(end);
+        if buflen > 0
+            strbuf = inputstr(pos:pos + buflen - 1);
+            pos = pos + buflen;
+        else
+            strbuf = '';
+        end
+
+        schemammap{i}{2}.offsets = offsets;
+        schemammap{i}{2}.strbuf = strbuf;
+    end
+end
+
+% Create struct array from payload
 object = soa_payload_to_struct(schema, schemammap, payload, count, recordbytes, layout, opt);
 
-% Reshape for ND
+% Reshape for ND arrays
 if length(dim) > 1
-    object = reshape(object, dim);
+    % Data was stored in row-major order after permutation
+    % First reshape with dimensions in reversed order (row-major layout)
+    object = reshape(object, fliplr(dim));
+    % Then permute back to column-major for MATLAB
+    object = permute(object, length(dim):-1:1);
 end
 
 %% -------------------------------------------------------------------------
-
 function object = soa_payload_to_struct(schema, schemammap, payload, count, recordbytes, layout, opt)
-% Convert payload to struct array using jsonpath for assignment
+% Convert payload to struct array
 
-% Create empty struct array from schema template
 template = schema;
 object = repmat(template, count, 1);
 
@@ -889,81 +980,146 @@ end
 nfields = length(schemammap);
 
 if strcmp(layout, 'column')
-    % Column-major: all values of field1, then field2, ...
+    % Column-major: all values of field1, then all values of field2, ...
     bytepos = 1;
     for f = 1:nfields
         jpath = schemammap{f}{1};
         finfo = schemammap{f}{2};
         nbytes = finfo.b * count;
 
-        fdata = payload(bytepos:bytepos + nbytes - 1);
+        if nbytes > 0
+            fdata = payload(bytepos:bytepos + nbytes - 1);
+        else
+            fdata = [];
+        end
         values = decode_soa_column(fdata, finfo, count, opt);
 
-        % Assign values using jsonpath
         for i = 1:count
             if iscell(values)
-                object(i) = jsonpath(object(i), jpath, values{i});
+                object(i) = setfield_by_path(object(i), jpath, values{i});
             else
-                object(i) = jsonpath(object(i), jpath, values(i));
+                object(i) = setfield_by_path(object(i), jpath, values(i));
             end
         end
 
         bytepos = bytepos + nbytes;
     end
 else
-    % Row-major: interleaved - extract each field's data across records
+    % Row-major: interleaved records
+    fieldoffsets = zeros(1, nfields);
+    fieldbytes = zeros(1, nfields);
+    offset = 0;
+    for f = 1:nfields
+        fieldoffsets(f) = offset;
+        fieldbytes(f) = schemammap{f}{2}.b;
+        offset = offset + fieldbytes(f);
+    end
+
     for f = 1:nfields
         jpath = schemammap{f}{1};
         finfo = schemammap{f}{2};
-        fieldbytes = finfo.b;
+        fbytes = fieldbytes(f);
 
-        % Calculate offset of this field within record
-        fieldoffset = 0;
-        for k = 1:f - 1
-            fieldoffset = fieldoffset + schemammap{k}{2}.b;
+        if fbytes == 0
+            values = cell(count, 1);
+            [values{:}] = deal([]);
+        else
+            % Extract interleaved data into contiguous array
+            fdata = zeros(fbytes * count, 1, 'uint8');
+            for i = 1:count
+                srcpos = (i - 1) * recordbytes + fieldoffsets(f) + 1;
+                dstpos = (i - 1) * fbytes + 1;
+                fdata(dstpos:dstpos + fbytes - 1) = payload(srcpos:srcpos + fbytes - 1);
+            end
+            values = decode_soa_column(fdata, finfo, count, opt);
         end
 
-        % Extract interleaved data
-        fdata = zeros(fieldbytes * count, 1, 'uint8');
-        for i = 1:count
-            srcpos = (i - 1) * recordbytes + fieldoffset + 1;
-            dstpos = (i - 1) * fieldbytes + 1;
-            fdata(dstpos:dstpos + fieldbytes - 1) = payload(srcpos:srcpos + fieldbytes - 1);
-        end
-
-        values = decode_soa_column(fdata, finfo, count, opt);
-
-        % Assign values using jsonpath
         for i = 1:count
             if iscell(values)
-                object(i) = jsonpath(object(i), jpath, values{i});
+                object(i) = setfield_by_path(object(i), jpath, values{i});
             else
-                object(i) = jsonpath(object(i), jpath, values(i));
+                object(i) = setfield_by_path(object(i), jpath, values(i));
             end
         end
     end
 end
 
-%% -------------------------------------------------------------------------
+function obj = setfield_by_path(obj, jpath, value)
+% Set field value using JSONPath-like path (e.g., '$.field' or '$.parent.child')
+if length(jpath) >= 2 && strcmp(jpath(1:2), '$.')
+    jpath = jpath(3:end);
+elseif length(jpath) >= 1 && jpath(1) == '$'
+    jpath = jpath(2:end);
+end
 
+if isempty(jpath)
+    obj = value;
+    return
+end
+
+dotpos = strfind(jpath, '.');
+if isempty(dotpos)
+    obj.(jpath) = value;
+else
+    fieldname = jpath(1:dotpos(1) - 1);
+    remaining = jpath(dotpos(1) + 1:end);
+    obj.(fieldname) = setfield_by_path(obj.(fieldname), remaining, value);
+end
+
+%% -------------------------------------------------------------------------
 function values = decode_soa_column(fdata, finfo, count, opt)
 % Decode contiguous field data to array of values
 
 typemarker = finfo.t;
 nbytes = finfo.b;
 
-if nbytes == 0  % Z type - null
+if nbytes == 0
     values = cell(count, 1);
     [values{:}] = deal([]);
     return
 end
 
+% Handle fixed array type
+if strcmp(typemarker, 'array')
+    arraymmap = finfo.d;
+    values = cell(count, 1);
+    elemcount = length(arraymmap);
+    for i = 1:count
+        recstart = (i - 1) * nbytes;
+        arrval = [];
+        elemoffset = 0;
+        for e = 1:elemcount
+            einfo = arraymmap{e}{2};
+            ebytes = einfo.b;
+            edata = fdata(recstart + elemoffset + 1:recstart + elemoffset + ebytes);
+            if length(einfo.t) == 1 && any(einfo.t == 'iUIulmLMhdD')
+                ecid = class(einfo.d);
+                if opt.flipendian_ && ebytes > 1
+                    edata = edata(end:-1:1);
+                end
+                elem = typecast(edata, ecid);
+            elseif length(einfo.t) == 1 && (einfo.t == 'T' || einfo.t == 'F')
+                elem = (edata(1) == uint8('T'));
+            else
+                elem = double(edata);
+            end
+            arrval = [arrval, elem];
+            elemoffset = elemoffset + ebytes;
+        end
+        values{i} = arrval;
+    end
+    return
+end
+
+if length(typemarker) ~= 1
+    values = cell(count, 1);
+    return
+end
+
 if typemarker == 'T' || typemarker == 'F'
-    % Boolean: T or F bytes
     values = (fdata == uint8('T'));
 
-elseif any(typemarker == 'iUIulmLMhdD')
-    % Numeric - vectorized decode
+elseif any(typemarker == 'iUIulmLMhdD') && (~isfield(finfo, 'enc') || isempty(finfo.enc))
     cid = class(finfo.d);
     if opt.flipendian_ && nbytes > 1
         fdata = reshape(fdata, nbytes, count);
@@ -973,48 +1129,79 @@ elseif any(typemarker == 'iUIulmLMhdD')
     values = typecast(fdata, cid);
 
 elseif typemarker == 'S' || typemarker == 'H'
-    % Fixed string
-    values = cell(count, 1);
-    for i = 1:count
-        s = (i - 1) * nbytes + 1;
-        e = s + nbytes - 1;
-        values{i} = deblank(char(fdata(s:e)));
+    enc = '';
+    if isfield(finfo, 'enc')
+        enc = finfo.enc;
+    end
+
+    if strcmp(enc, 'fixed') || isempty(enc)
+        % Fixed-length string
+        values = cell(count, 1);
+        for i = 1:count
+            startpos = (i - 1) * nbytes + 1;
+            endpos = startpos + nbytes - 1;
+            str = char(fdata(startpos:endpos));
+            % Remove trailing nulls
+            nullpos = find(str == 0, 1);
+            if ~isempty(nullpos)
+                str = str(1:nullpos - 1);
+            end
+            % FIX: Ensure row vector and proper empty string
+            if isempty(str)
+                values{i} = '';  % This creates 0x0 char
+            else
+                values{i} = str(:)';  % Ensure row vector
+            end
+        end
+
+    elseif strcmp(enc, 'dict')
+        idxtype = finfo.idxtype;
+        idxbytes = double(opt.typemap_(uint8(idxtype), 2));
+        cid = opt.typestr_{opt.typemap_(uint8(idxtype), 1)};
+        if opt.flipendian_ && idxbytes > 1
+            fdata = reshape(fdata, idxbytes, count);
+            fdata = fdata(end:-1:1, :);
+            fdata = fdata(:);
+        end
+        indices = double(typecast(fdata, cid)) + 1;
+        values = finfo.dict(indices)';
+
+    elseif strcmp(enc, 'offset')
+        offsets = finfo.offsets;
+        strbuf = finfo.strbuf;
+
+        % Parse record indices from fdata
+        idxtype = finfo.idxtype;
+        idxbytes = double(opt.typemap_(uint8(idxtype), 2));
+        cid = opt.typestr_{opt.typemap_(uint8(idxtype), 1)};
+
+        if opt.flipendian_ && idxbytes > 1
+            fdata = reshape(fdata, idxbytes, count);
+            fdata = fdata(end:-1:1, :);
+            fdata = fdata(:);
+        end
+        recindices = double(typecast(fdata, cid));  % 0-based
+
+        values = cell(count, 1);
+        for i = 1:count
+            idx = recindices(i);  % 0-based record index
+            startpos = offsets(idx + 1) + 1;  % +1 for 0-based to 1-based
+            endpos = offsets(idx + 2);
+            if endpos >= startpos
+                str = strbuf(startpos:endpos);
+                values{i} = str(:)';  % FIX: Ensure row vector
+            else
+                values{i} = '';  % FIX: Proper empty string (0x0)
+            end
+        end
+    else
+        values = cell(count, 1);
     end
 
 elseif typemarker == 'C' || typemarker == 'B'
-    % Single char/byte
-    values = char(fdata);
-
-elseif strcmp(typemarker, 'array')
-    % Fixed array - decode element by element
-    arraymmap = finfo.d;  % cell array of {path, typeinfo} for elements
     values = cell(count, 1);
-    elemcount = length(arraymmap);
-
     for i = 1:count
-        recstart = (i - 1) * nbytes;
-        arrval = [];
-        elemoffset = 0;
-        for e = 1:elemcount
-            einfo = arraymmap{e}{2};
-            ebytes = einfo.b;
-            edata = fdata(recstart + elemoffset + 1:recstart + elemoffset + ebytes);
-
-            if any(einfo.t == 'iUIulmLMhdD')
-                ecid = class(einfo.d);
-                if opt.flipendian_ && ebytes > 1
-                    edata = edata(end:-1:1);
-                end
-                elem = typecast(edata, ecid);
-            elseif einfo.t == 'T' || einfo.t == 'F'
-                elem = (edata(1) == uint8('T'));
-            else
-                elem = edata;
-            end
-            arrval = [arrval, elem];
-            elemoffset = elemoffset + ebytes;
-        end
-        values{i} = arrval;
+        values{i} = char(fdata(i));
     end
 else
     values = cell(count, 1);

@@ -114,6 +114,10 @@ function output = savebj(rootname, obj, varargin)
 %                         'col','c','column' - column-major (columnar)
 %                         'row','r' - row-major (interleaved)
 %                         Default is 'col'.
+%          SoAStringThreshold [0.5|float]: for string fields, if the ratio
+%                         of unique strings to total records is below this
+%                         threshold, use dictionary encoding; otherwise use
+%                         fixed-length or offset-table encoding.
 %          KeepType [0|1]: if set to 1, use the original data type to store
 %                         integers instead of converting to the integer type
 %                         of the minimum length without losing accuracy (default)
@@ -191,15 +195,15 @@ opt.ubjson = bitand(jsonopt('UBJSON', 0, opt), ~opt.messagepack);
 opt.keeptype = jsonopt('KeepType', 0, opt);
 opt.nosubstruct_ = 0;
 opt.soaformat = lower(jsonopt('SoAFormat', 'col', opt));
+opt.soathreshold = jsonopt('SoAStringThreshold', 0.5, opt);
 opt.unpackhex = jsonopt('UnpackHex', 1, opt);
 opt.type2byte_ = struct('uint8', 1, 'int8', 1, 'int16', 2, 'uint16', 2, ...
-                        'int32', 4, 'uint32', 4, 'int64', 8, 'uint64', 8, ...
-                        'single', 4, 'double', 8, 'logical', 1);
+                        'int32', 4, 'uint32', 4, 'int64', 8, 'uint64', 8, 'single', 4, 'double', 8, 'logical', 1);
 
-[os, maxelem, systemendian] = computer;
+[~, ~, systemendian] = computer;
 opt.flipendian_ = (systemendian ~= upper(jsonopt('Endian', 'L', opt)));
 
-% Initialize type markers before SOA check
+% Initialize type markers
 if (~opt.messagepack)
     if (~opt.ubjson)
         opt.IM_ = 'UiuImlML';
@@ -225,7 +229,7 @@ else
     opt.IM_ = char([hex2dec('cc') hex2dec('d0') hex2dec('cd') hex2dec('d1') hex2dec('ce') hex2dec('d2') hex2dec('cf') hex2dec('d3')]);
     opt.IType_ = {'uint8', 'int8', 'uint16', 'int16', 'uint32', 'int32', 'uint64', 'int64'};
     opt.IByte_ = [1, 1, 2, 2, 4, 4, 8, 8];
-    opt.FM_ = char([hex2dec('cd') hex2dec('ca') hex2dec('cb')]); % MsgPack does not have half-precision, map to uint16
+    opt.FM_ = char([hex2dec('cd') hex2dec('ca') hex2dec('cb')]);
     opt.FType_ = {'int16', 'single', 'double'};
     opt.FByte_ = [2, 4, 8];
     opt.FTM_ = char([hex2dec('c2') hex2dec('c3')]);
@@ -239,10 +243,8 @@ end
 skippreencode = false;
 if (opt.formatversion >= 4 && ~opt.messagepack && ~opt.ubjson)
     if (isa(obj, 'table') && size(obj, 1) > 1)
-        [cansoa, ~] = cantableencodeassoa(obj, opt);
-        if (cansoa)
-            skippreencode = true;
-        end
+        [cansoa, ~] = table2soa(obj, opt);
+        skippreencode = cansoa;
     end
 end
 
@@ -265,10 +267,8 @@ if ((isnumeric(obj) || islogical(obj) || ischar(obj) || isstruct(obj) || ...
      iscell(obj) || isobject(obj)) && isempty(rootname) && forceroot == 0)
     rootisarray = 1;
     rootlevel = 0;
-else
-    if (isempty(rootname))
-        rootname = varname;
-    end
+elseif (isempty(rootname))
+    rootname = varname;
 end
 
 if ((isstruct(obj) || iscell(obj)) && isempty(rootname) && forceroot)
@@ -349,44 +349,36 @@ txt = '';
 if (~iscell(item) && ~isa(item, 'string'))
     error('input is not a cell');
 end
-isnum2cell = opt.num2cell_;
-if (isnum2cell)
+if (opt.num2cell_)
     item = squeeze(item);
-else
-    format = opt.formatversion;
-    if (format > 1.9 && ~isvector(item))
-        item = permute(item, ndims(item):-1:1);
-    end
+elseif (opt.formatversion > 1.9 && ~isvector(item))
+    item = permute(item, ndims(item):-1:1);
 end
 
 dim = size(item);
-if (ndims(squeeze(item)) > 2) % for 3D or higher dimensions, flatten to 2D for now
+if (ndims(squeeze(item)) > 2)
     item = reshape(item, dim(1), numel(item) / dim(1));
     dim = size(item);
 end
 bracketlevel = ~opt.singletcell;
 Zmarker = opt.ZM_;
-Imarker = opt.IM_;
 Amarker = opt.AM_;
+len = numel(item);
 
-if (~strcmp(Amarker{1}, '['))
+am0 = Amarker{1};
+if (~strcmp(am0, '['))
     am0 = Imsgpk_(dim(2), 220, 144, opt);
-else
-    am0 = Amarker{1};
 end
-len = numel(item); % let's handle 1D cell first
 
-% Performance optimization: use cell array to accumulate parts
 parts = {};
 partIdx = 0;
 
 if (len > bracketlevel)
+    partIdx = partIdx + 1;
     if (~isempty(name))
-        partIdx = partIdx + 1;
         parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) am0];
         name = '';
     else
-        partIdx = partIdx + 1;
         parts{partIdx} = am0;
     end
 elseif (len == 0)
@@ -418,7 +410,6 @@ if (len > bracketlevel)
     partIdx = partIdx + 1;
     parts{partIdx} = Amarker{2};
 end
-
 txt = [parts{1:partIdx}];
 
 %% -------------------------------------------------------------------------
@@ -429,7 +420,7 @@ if (~isstruct(item))
 end
 
 if (opt.formatversion >= 4 && numel(item) > 1 && ~opt.messagepack && ~opt.ubjson)
-    [cansoa, soainfo] = canencodeassoa(item, opt);
+    [cansoa, soainfo] = struct2soa(item, opt);
     if (cansoa)
         txt = data2soa(name, item, soainfo, opt);
         return
@@ -437,13 +428,12 @@ if (opt.formatversion >= 4 && numel(item) > 1 && ~opt.messagepack && ~opt.ubjson
 end
 
 dim = size(item);
-if (ndims(squeeze(item)) > 2) % for 3D or higher dimensions, flatten to 2D for now
+if (ndims(squeeze(item)) > 2)
     item = reshape(item, dim(1), numel(item) / dim(1));
     dim = size(item);
 end
 len = numel(item);
 forcearray = (len > 1 || (opt.singletarray == 1 && level > 0));
-Imarker = opt.IM_;
 Amarker = opt.AM_;
 Omarker = opt.OM_;
 
@@ -451,24 +441,19 @@ if (isfield(item, encodevarname('_ArrayType_')))
     opt.nosubstruct_ = 1;
 end
 
-if (~strcmp(Amarker{1}, '['))
+am0 = Amarker{1};
+if (~strcmp(am0, '['))
     am0 = Imsgpk_(dim(2), 220, 144, opt);
-else
-    am0 = Amarker{1};
 end
 
-% Performance optimization: use cell array to accumulate parts
 parts = {};
 partIdx = 0;
 
-if (~isempty(name))
-    if (forcearray)
-        partIdx = partIdx + 1;
+if (forcearray)
+    partIdx = partIdx + 1;
+    if (~isempty(name))
         parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) am0];
-    end
-else
-    if (forcearray)
-        partIdx = partIdx + 1;
+    else
         parts{partIdx} = am0;
     end
 end
@@ -481,25 +466,22 @@ for j = 1:dim(2)
         parts{partIdx} = am0;
     end
     for i = 1:dim(1)
-        names = fieldnames(item(i, j));
-        if (~strcmp(Omarker{1}, '{'))
-            om0 = Imsgpk_(length(names), 222, 128, opt);
-        else
-            om0 = Omarker{1};
+        fnames = fieldnames(item(i, j));
+        om0 = Omarker{1};
+        if (~strcmp(om0, '{'))
+            om0 = Imsgpk_(length(fnames), 222, 128, opt);
         end
+        partIdx = partIdx + 1;
         if (~isempty(name) && len == 1 && ~forcearray)
-            partIdx = partIdx + 1;
             parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) om0];
         else
-            partIdx = partIdx + 1;
             parts{partIdx} = om0;
         end
-        if (~isempty(names))
-            % Performance optimization: cache struct to avoid repeated indexing
+        if (~isempty(fnames))
             currentItem = item(i, j);
-            for e = 1:length(names)
+            for e = 1:length(fnames)
                 partIdx = partIdx + 1;
-                parts{partIdx} = obj2ubjson(names{e}, currentItem.(names{e}), ...
+                parts{partIdx} = obj2ubjson(fnames{e}, currentItem.(fnames{e}), ...
                                             level + (dim(1) > 1) + 1 + forcearray, opt);
             end
         end
@@ -515,14 +497,17 @@ if (forcearray)
     partIdx = partIdx + 1;
     parts{partIdx} = Amarker{2};
 end
-
 txt = [parts{1:partIdx}];
 
 %% -------------------------------------------------------------------------
-function [cansoa, soainfo] = canencodeassoa(item, opt)
-% Check if struct array can be encoded as SOA (all fields are same-type scalars)
+function [cansoa, soainfo] = struct2soa(item, opt)
+% Check if struct array can be encoded as SOA
+% Supports: scalar numerics, logicals, strings, nested structs,
+%           and fixed-size numeric/logical arrays
+
 cansoa = false;
-soainfo = struct('names', {{}}, 'nrecords', 0, 'types', {{}}, 'markers', {{}});
+soainfo = struct('names', {{}}, 'nrecords', 0, 'types', {{}}, 'markers', {{}}, ...
+                 'strmeta', {{}}, 'substruct', {{}}, 'arraymeta', {{}});
 
 if (~isstruct(item) || numel(item) <= 1)
     return
@@ -537,38 +522,121 @@ nfields = length(names);
 nrecords = numel(item);
 types = cell(1, nfields);
 markers = cell(1, nfields);
+strmeta = cell(1, nfields);
+substruct = cell(1, nfields);
+arraymeta = cell(1, nfields);
 
 for f = 1:nfields
-    val1 = item(1).(names{f});
-    if (~isscalar(val1) || ~(isnumeric(val1) || islogical(val1)))
-        return
+    % Collect all values for this field
+    allvals = {item.(names{f})};
+
+    % Find first non-empty value to determine type
+    val1 = [];
+    val1idx = 0;
+    for r = 1:nrecords
+        if (~isempty(allvals{r}))
+            val1 = allvals{r};
+            val1idx = r;
+            break
+        end
     end
 
-    if (islogical(val1))
-        types{f} = 'logical';
-        markers{f} = 'T';
-    else
-        idx = find(ismember(opt.IType_, class(val1)));
-        if (~isempty(idx))
-            types{f} = opt.IType_{idx};
-            markers{f} = opt.IM_(idx);
+    % If all values are empty, treat as empty string field
+    if (isempty(val1))
+        types{f} = 'string';
+        markers{f} = '';
+        continue
+    end
+
+    if (isvector(val1) && ~isscalar(val1) && (isnumeric(val1) || islogical(val1)))
+        % Fixed-size numeric/logical array - must verify ALL records have same size
+        arrsize = numel(val1);
+        if (islogical(val1))
+            elemtype = 'logical';
+            elemmarker = 'T';
         else
-            idx = find(ismember(opt.FType_, class(val1)));
-            if (isempty(idx))
-                return
-            end
-            types{f} = opt.FType_{idx};
-            markers{f} = opt.FM_(idx);
+            [elemtype, elemmarker] = soatype(val1(1), opt);
         end
-    end
+        if (isempty(elemtype))
+            return
+        end
 
-    for r = 2:nrecords
-        valr = item(r).(names{f});
-        if (~isscalar(valr) || ~strcmp(class(valr), class(val1)))
-            if (~(islogical(val1) && islogical(valr)))
+        % Check ALL records (including first one)
+        for r = 1:nrecords
+            valr = allvals{r};
+            if isempty(valr)
+                % Empty is OK, will be filled with zeros
+                continue
+            end
+            if (~isvector(valr) || numel(valr) ~= arrsize)
+                return  % Size mismatch - cannot use SOA
+            end
+            if (~strcmp(class(valr), class(val1)))
+                return  % Type mismatch - cannot use SOA
+            end
+        end
+        types{f} = 'fixedarray';
+        markers{f} = ['[' repmat(elemmarker, 1, arrsize) ']'];
+        arraymeta{f} = struct('size', arrsize, 'type', elemtype, 'marker', elemmarker);
+
+    elseif (isscalar(val1) && (isnumeric(val1) || islogical(val1)))
+        % Scalar numeric or logical
+        [types{f}, markers{f}] = soatype(val1, opt);
+        if (isempty(types{f}))
+            return
+        end
+        % Verify uniformity - all must be scalar of same type (or empty)
+        for r = 1:nrecords
+            valr = allvals{r};
+            if isempty(valr)
+                continue  % Empty is OK
+            end
+            if (~isscalar(valr))
+                return  % Must be scalar
+            end
+            if (~strcmp(class(valr), class(val1)) && ~(islogical(val1) && islogical(valr)))
+                return  % Type mismatch
+            end
+        end
+
+    elseif (ischar(val1) && (isrow(val1) || isempty(val1)))
+        % String field - verify ALL are char row vectors or empty
+        for r = 1:nrecords
+            valr = allvals{r};
+            if isempty(valr)
+                continue  % Empty is OK
+            end
+            if (~ischar(valr))
+                return  % Must be char
+            end
+            if (~isempty(valr) && ~isrow(valr))
+                return  % Must be row vector
+            end
+        end
+        types{f} = 'string';
+        markers{f} = '';
+
+    elseif (isstruct(val1) && isscalar(val1))
+        % Embedded struct - verify ALL have same field names
+        subnames = fieldnames(val1);
+        if (isempty(subnames))
+            return
+        end
+        for r = 1:nrecords
+            valr = allvals{r};
+            if (~isstruct(valr) || ~isscalar(valr) || ~isequal(fieldnames(valr), subnames))
                 return
             end
         end
+        [cansub, subinfo] = struct2soa([allvals{:}]', opt);
+        if (~cansub)
+            return
+        end
+        types{f} = 'substruct';
+        markers{f} = '';
+        substruct{f} = subinfo;
+    else
+        return  % Unsupported type
     end
 end
 
@@ -576,47 +644,441 @@ soainfo.names = names;
 soainfo.nrecords = nrecords;
 soainfo.types = types;
 soainfo.markers = markers;
+soainfo.strmeta = strmeta;
+soainfo.substruct = substruct;
+soainfo.arraymeta = arraymeta;
 cansoa = true;
 
 %% -------------------------------------------------------------------------
-function txt = data2soa(name, item, soainfo, opt)
-% Unified SOA encoder for both struct arrays and tables
-names = soainfo.names;
-nfields = length(names);
-nrecords = soainfo.nrecords;
-markers = soainfo.markers;
-types = soainfo.types;
-istable = isa(item, 'table');
-isrowmajor = ismember(opt.soaformat, {'row', 'r'});
+function [cansoa, soainfo] = table2soa(item, opt)
+% Check if table can be encoded as SOA
+% Now supports fixed-size array columns
+cansoa = false;
+soainfo = struct('names', {{}}, 'nrecords', 0, 'types', {{}}, 'markers', {{}}, ...
+                 'strmeta', {{}}, 'substruct', {{}}, 'arraymeta', {{}});
 
-% Build schema
-schemaparts = cell(1, nfields + 1);
-schemaparts{1} = '{';
-for f = 1:nfields
-    schemaparts{f + 1} = [I_(int32(length(names{f})), opt) names{f} markers{f}];
+varnames = item.Properties.VariableNames;
+ncols = length(varnames);
+nrows = size(item, 1);
+
+if (nrows <= 1 || ncols == 0)
+    return
 end
-schema = [schemaparts{:} '}'];
 
-% Build count - use ND dimensions if not a vector
-dim = size(item);
-if istable
-    % Tables are always 2D with rows as records
-    countstr = I_(int32(nrecords), opt);
-else
-    % For struct arrays, preserve ND shape
-    if length(dim) > 1 && ~isvector(item)
-        % ND array - output as [dim1 dim2 ...] with explicit brackets
-        countstr = '[';
-        for d = 1:length(dim)
-            countstr = [countstr I_(int32(dim(d)), opt)];
+types = cell(1, ncols);
+markers = cell(1, ncols);
+strmeta = cell(1, ncols);
+substruct = cell(1, ncols);
+arraymeta = cell(1, ncols);
+
+for c = 1:ncols
+    coldata = item{:, c};
+
+    if (ismatrix(coldata) && size(coldata, 2) > 1 && (isnumeric(coldata) || islogical(coldata)))
+        % Fixed-size array column (NxM matrix)
+        arrsize = size(coldata, 2);
+        if (islogical(coldata))
+            elemtype = 'logical';
+            elemmarker = 'T';
+        else
+            % Use soatype to get proper marker for element type
+            [elemtype, elemmarker] = soatype(coldata(1), opt);
+            if (isempty(elemtype))
+                [elemtype, elemmarker] = findmintype(double(coldata(:)), opt);
+            end
         end
-        countstr = [countstr ']'];
+        if (isempty(elemtype))
+            return
+        end
+        types{c} = 'fixedarray';
+        markers{c} = ['[' repmat(elemmarker, 1, arrsize) ']'];
+        arraymeta{c} = struct('size', arrsize, 'type', elemtype, 'marker', elemmarker);
+
+    elseif (isvector(coldata) && (isnumeric(coldata) || islogical(coldata)))
+        if (islogical(coldata))
+            types{c} = 'logical';
+            markers{c} = 'T';
+        else
+            [types{c}, markers{c}] = findmintype(double(coldata(:)), opt);
+            if (isempty(types{c}))
+                return
+            end
+        end
+    elseif (iscell(coldata) && all(cellfun(@(x) ischar(x) && (isempty(x) || isrow(x)), coldata)))
+        [types{c}, markers{c}, strmeta{c}] = soastrtype(coldata(:)', opt);
     else
-        countstr = I_(int32(nrecords), opt);
+        return
     end
 end
 
-% Build header
+soainfo.names = varnames;
+soainfo.nrecords = nrows;
+soainfo.types = types;
+soainfo.markers = markers;
+soainfo.strmeta = strmeta;
+soainfo.substruct = substruct;
+soainfo.arraymeta = arraymeta;
+cansoa = true;
+
+%% -------------------------------------------------------------------------
+function [strtype, marker, meta] = soastrtype(allstrings, opt)
+% Determine string encoding type
+nrecords = length(allstrings);
+meta = struct('fixedlen', 0, 'dict', {{}}, 'offsettype', '');
+
+% Ensure all are char (convert [] to '')
+for i = 1:nrecords
+    if isempty(allstrings{i}) || ~ischar(allstrings{i})
+        allstrings{i} = '';
+    end
+end
+
+uniquestrings = unique(allstrings);
+nunique = length(uniquestrings);
+lens = cellfun(@length, allstrings);
+maxlen = max([lens, 0]);
+
+if (nunique / nrecords <= opt.soathreshold && nunique <= 65535)
+    % Dictionary encoding
+    strtype = 'dictstring';
+    meta.dict = uniquestrings;
+    marker = ['[$S#' I_(int32(nunique), opt)];
+    for i = 1:nunique
+        marker = [marker 'S' I_(int32(length(uniquestrings{i})), opt) uniquestrings{i}];
+    end
+    meta.offsettype = mininttype(nunique);
+elseif (maxlen <= 255 && maxlen > 0)
+    % Fixed-length encoding (only if maxlen > 0)
+    strtype = 'fixedstring';
+    meta.fixedlen = maxlen;
+    marker = ['S' I_(int32(maxlen), opt)];
+elseif (maxlen == 0)
+    % All strings are empty - use fixed length of 1 with null padding
+    strtype = 'fixedstring';
+    meta.fixedlen = 1;
+    marker = ['S' I_(int32(1), opt)];
+else
+    % Offset-table encoding
+    strtype = 'offsetstring';
+    meta.offsettype = mininttype(sum(lens));
+    marker = ['[$' meta.offsettype ']'];
+end
+
+%% -------------------------------------------------------------------------
+function [payload, deferred] = soapayload(item, soainfo, istable, isrowmajor, opt)
+names = soainfo.names;
+nfields = length(names);
+nrecords = soainfo.nrecords;
+types = soainfo.types;
+strmeta = soainfo.strmeta;
+substruct = soainfo.substruct;
+arraymeta = soainfo.arraymeta;
+
+payloadparts = cell(1, nfields);
+deferred = {};
+
+for f = 1:nfields
+    if (istable)
+        coldata = item{:, names{f}};
+        if (~iscell(coldata))
+            if (isnumeric(coldata) || islogical(coldata))
+                coldata = num2cell(coldata);
+            else
+                coldata = cellstr(coldata);
+            end
+        end
+        coldata = fillempties(coldata, types{f}, arraymeta{f});
+    else
+        coldata = {item.(names{f})};
+        coldata = fillempties(coldata, types{f}, arraymeta{f});
+    end
+
+    switch types{f}
+        case 'logical'
+            boolchars = repmat('F', 1, nrecords);
+            boolchars([coldata{:}] ~= 0) = 'T';
+            payloadparts{f} = boolchars;
+
+        case 'fixedarray'
+            am = arraymeta{f};
+            if (iscell(coldata))
+                mat = cell2mat(cellfun(@(x) x(:)', coldata, 'UniformOutput', false)');
+            else
+                mat = coldata;
+            end
+            if (strcmp(am.type, 'logical'))
+                bools = repmat('F', size(mat));
+                bools(mat ~= 0) = 'T';
+                payloadparts{f} = reshape(bools', 1, []);
+            else
+                mat = cast(mat', am.type);
+                if (opt.flipendian_)
+                    mat = swapbytes(mat);
+                end
+                payloadparts{f} = char(typecast(mat(:)', 'uint8'));
+            end
+
+        case 'fixedstring'
+            fixedlen = strmeta{f}.fixedlen;
+            strbytes = char(zeros(1, nrecords * fixedlen));
+            for r = 1:nrecords
+                s = coldata{r};
+                if ~ischar(s)
+                    s = '';
+                end
+                slen = min(length(s), fixedlen);
+                if (slen > 0)
+                    strbytes((r - 1) * fixedlen + (1:slen)) = s(1:slen);
+                end
+            end
+            payloadparts{f} = strbytes;
+
+        case 'dictstring'
+            [~, indices] = ismember(coldata, strmeta{f}.dict);
+            payloadparts{f} = intbytes(indices - 1, strmeta{f}.offsettype, opt);
+
+        case 'offsetstring'
+            indices = uint32(0:nrecords - 1);
+            payloadparts{f} = intbytes(indices, strmeta{f}.offsettype, opt);
+            [offsetdata, strbuf] = buildoffsettable(coldata, strmeta{f}.offsettype, opt);
+            deferred{end + 1} = [offsetdata strbuf];
+
+        case 'substruct'
+            [subpayload, subdeferred] = soapayload([coldata{:}]', substruct{f}, false, false, opt);
+            payloadparts{f} = subpayload;
+            deferred = [deferred subdeferred];
+
+        otherwise
+            numdata = cellfun(@(x) cast(x, types{f}), coldata);
+            if (opt.flipendian_)
+                numdata = swapbytes(numdata);
+            end
+            payloadparts{f} = char(typecast(numdata(:)', 'uint8'));
+    end
+end
+
+if (isrowmajor && nfields > 0)
+    payload = interleave(payloadparts, types, strmeta, substruct, arraymeta, nrecords, opt);
+else
+    payload = [payloadparts{:}];
+end
+
+%% -------------------------------------------------------------------------
+function coldata = fillempties(coldata, typename, arraymeta)
+% Replace [] with appropriate default value based on type
+if (nargin < 3)
+    arraymeta = [];
+end
+for i = 1:length(coldata)
+    val = coldata{i};
+    needsfix = isempty(val);
+    if needsfix
+        switch typename
+            case 'logical'
+                coldata{i} = false;
+            case 'fixedarray'
+                if (strcmp(arraymeta.type, 'logical'))
+                    coldata{i} = false(1, arraymeta.size);
+                else
+                    coldata{i} = zeros(1, arraymeta.size, arraymeta.type);
+                end
+            case {'fixedstring', 'dictstring', 'offsetstring', 'string'}
+                coldata{i} = '';
+            otherwise  % numeric
+                if (contains(typename, 'int'))
+                    coldata{i} = 0;
+                else
+                    coldata{i} = NaN;
+                end
+        end
+    end
+end
+
+%% -------------------------------------------------------------------------
+function payload = interleave(payloadparts, types, strmeta, substruct, arraymeta, nrecords, opt)
+nfields = length(types);
+bytesizes = zeros(1, nfields);
+
+for f = 1:nfields
+    switch types{f}
+        case 'logical'
+            bytesizes(f) = 1;
+        case 'fixedarray'
+            am = arraymeta{f};
+            if (strcmp(am.type, 'logical'))
+                bytesizes(f) = am.size;
+            else
+                bytesizes(f) = am.size * opt.type2byte_.(am.type);
+            end
+        case 'fixedstring'
+            bytesizes(f) = strmeta{f}.fixedlen;
+        case 'dictstring'
+            bytesizes(f) = opt.type2byte_.(typeformarker(strmeta{f}.offsettype));
+        case 'offsetstring'
+            bytesizes(f) = opt.type2byte_.(typeformarker(strmeta{f}.offsettype));
+        case 'substruct'
+            bytesizes(f) = calcstructsize(substruct{f}, opt);
+        otherwise
+            bytesizes(f) = opt.type2byte_.(types{f});
+    end
+end
+
+totalbytes = sum(bytesizes) * nrecords;
+payload = char(zeros(1, totalbytes));
+
+pos = 1;
+for r = 1:nrecords
+    for f = 1:nfields
+        bsize = bytesizes(f);
+        if bsize > 0
+            srcstart = (r - 1) * bsize + 1;
+            srcend = srcstart + bsize - 1;
+            payload(pos:pos + bsize - 1) = payloadparts{f}(srcstart:srcend);
+            pos = pos + bsize;
+        end
+    end
+end
+
+%% -------------------------------------------------------------------------
+function nbytes = calcstructsize(soainfo, opt)
+% Calculate byte size of one record in embedded struct
+nbytes = 0;
+for f = 1:length(soainfo.types)
+    switch soainfo.types{f}
+        case 'logical'
+            nbytes = nbytes + 1;
+        case 'fixedarray'
+            am = soainfo.arraymeta{f};
+            if (strcmp(am.type, 'logical'))
+                nbytes = nbytes + am.size;
+            else
+                nbytes = nbytes + am.size * opt.type2byte_.(am.type);
+            end
+        case 'fixedstring'
+            nbytes = nbytes + soainfo.strmeta{f}.fixedlen;
+        case 'dictstring'
+            nbytes = nbytes + opt.type2byte_.(typeformarker(soainfo.strmeta{f}.offsettype));
+        case 'offsetstring'
+            nbytes = nbytes + opt.type2byte_.(typeformarker(soainfo.strmeta{f}.offsettype));
+        case 'substruct'
+            nbytes = nbytes + calcstructsize(soainfo.substruct{f}, opt);
+        otherwise
+            nbytes = nbytes + opt.type2byte_.(soainfo.types{f});
+    end
+end
+
+%% -------------------------------------------------------------------------
+function soainfo = resolvestrtypes(item, soainfo, istable, opt)
+% Resolve deferred string types and build all markers
+for f = 1:length(soainfo.types)
+    if (strcmp(soainfo.types{f}, 'string'))
+        if (istable)
+            coldata = item{:, soainfo.names{f}};
+            if (~iscell(coldata))
+                coldata = cellstr(coldata);
+            end
+            allstrings = coldata(:)';
+        else
+            allstrings = {item.(soainfo.names{f})};
+        end
+        allstrings = cellfun(@(x) char(x), allstrings, 'UniformOutput', false);
+        [soainfo.types{f}, soainfo.markers{f}, soainfo.strmeta{f}] = soastrtype(allstrings, opt);
+    elseif (strcmp(soainfo.types{f}, 'substruct'))
+        if (istable)
+            coldata = item{:, soainfo.names{f}};
+        else
+            coldata = {item.(soainfo.names{f})};
+        end
+        soainfo.substruct{f} = resolvestrtypes([coldata{:}]', soainfo.substruct{f}, false, opt);
+        soainfo.markers{f} = buildschema(soainfo.substruct{f}, opt);
+    end
+end
+
+%% -------------------------------------------------------------------------
+function [typename, marker] = soatype(val, opt)
+% Get type name and marker for a scalar value
+typename = '';
+marker = '';
+if (islogical(val))
+    typename = 'logical';
+    marker = 'T';
+else
+    idx = find(ismember(opt.IType_, class(val)), 1);
+    if (~isempty(idx))
+        typename = opt.IType_{idx};
+        marker = opt.IM_(idx);
+    else
+        idx = find(ismember(opt.FType_, class(val)), 1);
+        if (~isempty(idx))
+            typename = opt.FType_{idx};
+            marker = opt.FM_(idx);
+        end
+    end
+end
+
+%% -------------------------------------------------------------------------
+function otype = mininttype(maxval)
+% Select smallest unsigned integer type marker for value
+if (maxval <= 255)
+    otype = 'U';
+elseif (maxval <= 65535)
+    otype = 'u';
+elseif (maxval <= 4294967295)
+    otype = 'm';
+else
+    otype = 'M';
+end
+
+%% -------------------------------------------------------------------------
+function schema = buildschema(soainfo, opt)
+% Build schema string for SOA header
+parts = cell(1, length(soainfo.names) + 2);
+parts{1} = '{';
+for i = 1:length(soainfo.names)
+    parts{i + 1} = [I_(int32(length(soainfo.names{i})), opt) soainfo.names{i} soainfo.markers{i}];
+end
+parts{end} = '}';
+schema = [parts{:}];
+
+%% -------------------------------------------------------------------------
+function txt = data2soa(name, item, soainfo, opt)
+% SOA encoder for struct arrays and tables
+nrecords = soainfo.nrecords;
+isrowmajor = ismember(opt.soaformat, {'row', 'r'});
+istable = isa(item, 'table');
+
+% Get original dimensions before any modifications
+if (~istable)
+    origdim = size(item);
+    isnd = (length(origdim) >= 2 && min(origdim) > 1);  % True 2D+ array (not a vector)
+
+    if isnd
+        % For ND arrays, permute from column-major to row-major before flattening
+        % MATLAB stores in column-major, BJData expects row-major
+        item = permute(item, length(origdim):-1:1);
+    end
+    item = item(:);
+end
+
+% Resolve string types and build markers
+soainfo = resolvestrtypes(item, soainfo, istable, opt);
+
+% Build schema and header
+schema = buildschema(soainfo, opt);
+
+% Build count/dimension string
+if (~istable && exist('isnd', 'var') && isnd)
+    % ND case: dimension array [d1 d2 ...]
+    countstr = '[';
+    for d = 1:length(origdim)
+        countstr = [countstr I_(int32(origdim(d)), opt)];
+    end
+    countstr = [countstr ']'];
+else
+    % 1D case: just count
+    countstr = I_(int32(nrecords), opt);
+end
+
 if (isrowmajor)
     header = ['[$' schema '#' countstr];
 else
@@ -626,104 +1088,133 @@ if (~isempty(name))
     header = [N_(decodevarname(name, opt.unpackhex), opt) header];
 end
 
-% Build payload - flatten item for iteration
-if ~istable
-    item = item(:);
+% Build payload
+[payload, deferred] = soapayload(item, soainfo, istable, isrowmajor, opt);
+
+txt = [header payload deferred{:}];
+
+%% -------------------------------------------------------------------------
+function bytes = intbytes(data, otype, opt)
+% Convert integer data to bytes with proper type and endianness
+switch otype
+    case 'U'
+        data = uint8(data);
+    case 'u'
+        data = uint16(data);
+    case 'm'
+        data = uint32(data);
+    otherwise
+        data = uint64(data);
+end
+if (opt.flipendian_)
+    data = swapbytes(data);
+end
+bytes = char(typecast(data(:)', 'uint8'));
+
+%% -------------------------------------------------------------------------
+function [offsetdata, strbuf] = buildoffsettable(coldata, offsettype, opt)
+% Build offset table and string buffer
+nrecords = length(coldata);
+offsets = zeros(1, nrecords + 1);
+strbuf = '';
+for r = 1:nrecords
+    offsets(r) = length(strbuf);
+    strbuf = [strbuf coldata{r}];
+end
+offsets(nrecords + 1) = length(strbuf);
+offsetdata = intbytes(offsets, offsettype, opt);
+
+%% -------------------------------------------------------------------------
+function typename = typeformarker(marker)
+% Get type name for integer marker
+switch marker
+    case 'U'
+        typename = 'uint8';
+    case 'u'
+        typename = 'uint16';
+    case 'm'
+        typename = 'uint32';
+    otherwise
+        typename = 'uint64';
 end
 
-payloadparts = cell(1, nfields);
-for f = 1:nfields
-    if (istable)
-        coldata = item{:, names{f}};
-        coldata = cast(coldata(:), types{f});
-    else
-        coldata = arrayfun(@(x) cast(x.(names{f}), types{f}), item(:));
-    end
-    if (strcmp(types{f}, 'logical'))
-        boolchars = repmat('F', 1, nrecords);
-        boolchars(coldata ~= 0) = 'T';
-        payloadparts{f} = boolchars;
-    else
-        if (opt.flipendian_)
-            coldata = swapbytes(coldata);
+%% -------------------------------------------------------------------------
+function [basetype, marker] = findmintype(data, opt)
+% Find minimum precision type for numeric data
+basetype = '';
+marker = '';
+
+if (all(isfinite(data)) && all(data == floor(data)))
+    minval = min(data);
+    maxval = max(data);
+    ranges = {[0 255], [0 65535], [0 4294967295], [0 18446744073709551615], ...
+              [-128 127], [-32768 32767], [-2147483648 2147483647], [-9223372036854775808 9223372036854775807]};
+    itypes = {'uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16', 'int32', 'int64'};
+    for i = 1:length(itypes)
+        idx = find(ismember(opt.IType_, itypes{i}), 1);
+        if (~isempty(idx) && minval >= ranges{i}(1) && maxval <= ranges{i}(2))
+            basetype = itypes{i};
+            marker = opt.IM_(idx);
+            return
         end
-        payloadparts{f} = char(typecast(coldata(:)', 'uint8'));
     end
 end
 
-if (isrowmajor)
-    % Interleave: reshape each column and concatenate horizontally
-    bytesizes = cellfun(@(t) opt.type2byte_.(t), types);
-    totalbytes = sum(bytesizes) * nrecords;
-    payload = char(zeros(1, totalbytes));
-    pos = 1;
-    for r = 1:nrecords
-        for f = 1:nfields
-            bsize = bytesizes(f);
-            payload(pos:pos + bsize - 1) = payloadparts{f}((r - 1) * bsize + 1:r * bsize);
-            pos = pos + bsize;
-        end
+idx = find(ismember(opt.FType_, 'single'), 1);
+if (~isempty(idx))
+    sdata = single(data);
+    if (all(double(sdata) == data | (isnan(data) & isnan(sdata)) | (isinf(data) & isinf(sdata) & sign(data) == sign(sdata))))
+        basetype = 'single';
+        marker = opt.FM_(idx);
+        return
     end
-else
-    payload = [payloadparts{:}];
 end
 
-txt = [header payload];
+idx = find(ismember(opt.FType_, 'double'), 1);
+if (~isempty(idx))
+    basetype = 'double';
+    marker = opt.FM_(idx);
+end
 
 %% -------------------------------------------------------------------------
 function txt = map2ubjson(name, item, level, opt)
 txt = '';
-itemtype = isa(item, 'containers.Map');
-dim = size(item);
-
 if (isa(item, 'dictionary'))
-    itemtype = 2;
     dim = item.numEntries;
-end
-if (itemtype == 0)
-    error('input is not a containers.Map or dictionary class');
+else
+    dim = size(item);
 end
 
 names = keys(item);
 val = values(item);
-
 if (~iscell(names))
     names = num2cell(names, ndims(names));
 end
-
 if (~iscell(val))
     val = num2cell(val, ndims(val));
 end
 
 Omarker = opt.OM_;
-
-if (~strcmp(Omarker{1}, '{'))
+om0 = Omarker{1};
+if (~strcmp(om0, '{'))
     om0 = Imsgpk_(length(names), 222, 128, opt);
-else
-    om0 = Omarker{1};
 end
 
-% Performance optimization: use cell array to accumulate parts
 parts = cell(1, dim(1) + 3);
-partIdx = 0;
-
+partIdx = 1;
 if (~isempty(name))
-    partIdx = partIdx + 1;
     parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) om0];
 else
-    partIdx = partIdx + 1;
     parts{partIdx} = om0;
 end
 for i = 1:dim(1)
     if (~isempty(names{i}))
         partIdx = partIdx + 1;
-        parts{partIdx} = obj2ubjson(names{i}, val{i}, ...
-                                    level + (dim(1) > 1), opt);
+        parts{partIdx} = obj2ubjson(names{i}, val{i}, level + (dim(1) > 1), opt);
     end
 end
 partIdx = partIdx + 1;
 parts{partIdx} = Omarker{2};
-
 txt = [parts{1:partIdx}];
 
 if (isa(txt, 'string') && length(txt) > 1)
@@ -740,16 +1231,13 @@ item = reshape(item, max(size(item), [1 0]));
 len = size(item, 1);
 Amarker = opt.AM_;
 
-if (~strcmp(Amarker{1}, '['))
+am0 = Amarker{1};
+if (~strcmp(am0, '['))
     am0 = Imsgpk_(len, 220, 144, opt);
-else
-    am0 = Amarker{1};
 end
 
-% Performance optimization: fast path for single string (most common case)
 if (len == 1)
-    val = item(1, :);
-    sval = S_(val, opt);
+    sval = S_(item(1, :), opt);
     if (~isempty(name))
         txt = [N_(decodevarname(name, opt.unpackhex), opt), sval];
     else
@@ -758,15 +1246,11 @@ if (len == 1)
     return
 end
 
-% Multiple strings: use cell array to accumulate parts
-parts = cell(1, len + 3);
-partIdx = 0;
-
+parts = cell(1, len + 2);
+partIdx = 1;
 if (~isempty(name))
-    partIdx = partIdx + 1;
     parts{partIdx} = [N_(decodevarname(name, opt.unpackhex), opt) am0];
 else
-    partIdx = partIdx + 1;
     parts{partIdx} = am0;
 end
 for e = 1:len
@@ -775,7 +1259,6 @@ for e = 1:len
 end
 partIdx = partIdx + 1;
 parts{partIdx} = Amarker{2};
-
 txt = [parts{1:partIdx}];
 
 %% -------------------------------------------------------------------------
@@ -787,7 +1270,6 @@ end
 dozip = opt.compression;
 zipsize = opt.compressarraysize;
 format = opt.formatversion;
-
 Zmarker = opt.ZM_;
 FTmarker = opt.FTM_;
 Imarker = opt.IM_;
@@ -798,42 +1280,37 @@ ismsgpack = opt.messagepack;
 if (ismsgpack)
     isnest = 1;
 end
+
 if (~opt.nosubstruct_ && ((length(size(item)) > 2 && isnest == 0) || ...
                           issparse(item) || ~isreal(item) || opt.arraytostruct || ...
                           (~isempty(dozip) && numel(item) > zipsize)))
     cid = I_(uint32(max(size(item))), opt);
     if (isempty(name))
         txt = [Omarker{1} N_('_ArrayType_', opt), S_(class(item), opt), N_('_ArraySize_', opt), I_a(size(item), cid(1), opt)];
+    elseif (isempty(item))
+        txt = [N_(decodevarname(name, opt.unpackhex), opt), Zmarker];
+        return
     else
-        if (isempty(item))
-            txt = [N_(decodevarname(name, opt.unpackhex), opt), Zmarker];
-            return
-        else
-            txt = [N_(decodevarname(name, opt.unpackhex), opt), Omarker{1}, N_('_ArrayType_', opt), S_(class(item), opt), N_('_ArraySize_', opt), I_a(size(item), cid(1), opt)];
-        end
+        txt = [N_(decodevarname(name, opt.unpackhex), opt), Omarker{1}, N_('_ArrayType_', opt), S_(class(item), opt), N_('_ArraySize_', opt), I_a(size(item), cid(1), opt)];
     end
     childcount = 2;
 else
     if (isempty(name))
         txt = matdata2ubjson(item, level + 1, opt);
+    elseif (numel(item) == 1 && opt.singletarray == 0)
+        txt = [N_(decodevarname(name, opt.unpackhex), opt) char(matdata2ubjson(item, level + 1, opt))];
     else
-        if (numel(item) == 1 && opt.singletarray == 0)
-            numtxt = matdata2ubjson(item, level + 1, opt);
-            txt = [N_(decodevarname(name, opt.unpackhex), opt) char(numtxt)];
-        else
-            txt = [N_(decodevarname(name, opt.unpackhex), opt), char(matdata2ubjson(item, level + 1, opt))];
-        end
+        txt = [N_(decodevarname(name, opt.unpackhex), opt), char(matdata2ubjson(item, level + 1, opt))];
     end
     return
 end
+
 if (issparse(item))
     [ix, iy] = find(item);
     data = full(item(find(item)));
     if (~isreal(item))
         data = [real(data(:)), imag(data(:))];
         if (size(item, 1) == 1)
-            % Kludge to have data's 'transposedness' match item's.
-            % (Necessary for complex row vector handling below.)
             data = data';
         end
         txt = [txt, N_('_ArrayIsComplex_', opt), FTmarker(2)];
@@ -841,14 +1318,14 @@ if (issparse(item))
     end
     txt = [txt, N_('_ArrayIsSparse_', opt), FTmarker(2)];
     childcount = childcount + 1;
+    if (size(item, 1) == 1)
+        fulldata = [iy(:), data'];
+    elseif (size(item, 2) == 1)
+        fulldata = [ix, data];
+    else
+        fulldata = [ix, iy, data];
+    end
     if (~isempty(dozip) && numel(data * 2) > zipsize)
-        if (size(item, 1) == 1)
-            fulldata = [iy(:), data'];
-        elseif (size(item, 2) == 1)
-            fulldata = [ix, data];
-        else
-            fulldata = [ix, iy, data];
-        end
         cid = I_(uint32(max(size(fulldata))), opt);
         txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), opt)];
         txt = [txt, N_('_ArrayZipType_', opt), S_(dozip, opt)];
@@ -856,21 +1333,13 @@ if (issparse(item))
         txt = [txt, N_('_ArrayZipData_', opt), I_a(compfun(typecast(fulldata(:), 'uint8')), Imarker(1), opt)];
         childcount = childcount + 3;
     else
-        if (size(item, 1) == 1)
-            fulldata = [iy(:), data'];
-        elseif (size(item, 2) == 1)
-            fulldata = [ix, data];
-        else
-            fulldata = [ix, iy, data];
-        end
         if (ismsgpack)
             cid = I_(uint32(max(size(fulldata))), opt);
             txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), opt)];
             childcount = childcount + 1;
         end
         opt.ArrayToStruct = 0;
-        txt = [txt, N_('_ArrayData_', opt), ...
-               cell2ubjson('', num2cell(fulldata', 2)', level + 2, opt)];
+        txt = [txt, N_('_ArrayData_', opt), cell2ubjson('', num2cell(fulldata', 2)', level + 2, opt)];
         childcount = childcount + 1;
     end
 else
@@ -891,12 +1360,12 @@ else
         cid = I_(uint32(max(size(fulldata))), opt);
         txt = [txt, N_('_ArrayZipSize_', opt), I_a(size(fulldata), cid(1), opt)];
         txt = [txt, N_('_ArrayZipType_', opt), S_(dozip, opt)];
-        encodeparam = {};
         if (~isempty(regexp(dozip, '^blosc2', 'once')))
             compfun = @blosc2encode;
             encodeparam = {dozip, 'nthread', jsonopt('nthread', 1, opt), 'shuffle', jsonopt('shuffle', 1, opt), 'typesize', jsonopt('typesize', length(typecast(fulldata(1), 'uint8')), opt)};
         else
             compfun = str2func([dozip 'encode']);
+            encodeparam = {};
         end
         txt = [txt, N_('_ArrayZipData_', opt), I_a(compfun(typecast(fulldata(:), 'uint8'), encodeparam{:}), Imarker(1), opt)];
         childcount = childcount + 3;
@@ -907,13 +1376,11 @@ else
             childcount = childcount + 1;
         end
         if (isreal(item))
-            txt = [txt, N_('_ArrayData_', opt), ...
-                   matdata2ubjson(item(:)', level + 2, opt)];
+            txt = [txt, N_('_ArrayData_', opt), matdata2ubjson(item(:)', level + 2, opt)];
             childcount = childcount + 1;
         else
             txt = [txt, N_('_ArrayIsComplex_', opt), FTmarker(2)];
-            txt = [txt, N_('_ArrayData_', opt), ...
-                   matdata2ubjson([real(item(:)) imag(item(:))]', level + 2, opt)];
+            txt = [txt, N_('_ArrayData_', opt), matdata2ubjson([real(item(:)) imag(item(:))]', level + 2, opt)];
             childcount = childcount + 2;
         end
     end
@@ -928,9 +1395,8 @@ txt = [txt, Omarker{2}];
 
 %% -------------------------------------------------------------------------
 function txt = matlabtable2ubjson(name, item, level, opt)
-
 if (opt.formatversion >= 4 && ~opt.messagepack && ~opt.ubjson && size(item, 1) > 1)
-    [cansoa, soainfo] = cantableencodeassoa(item, opt);
+    [cansoa, soainfo] = table2soa(item, opt);
     if (cansoa)
         txt = data2soa(name, item, soainfo, opt);
         return
@@ -947,85 +1413,6 @@ else
     temp = struct(name, struct());
     temp.(name) = st;
     txt = map2ubjson(name, temp.(name), level, opt);
-end
-
-%% -------------------------------------------------------------------------
-function [cansoa, soainfo] = cantableencodeassoa(item, opt)
-% Check if table can be encoded as SOA with auto type detection
-cansoa = false;
-soainfo = struct('names', {{}}, 'nrecords', 0, 'types', {{}}, 'markers', {{}});
-
-varnames = item.Properties.VariableNames;
-ncols = length(varnames);
-nrows = size(item, 1);
-
-if (nrows <= 1 || ncols == 0)
-    return
-end
-
-types = cell(1, ncols);
-markers = cell(1, ncols);
-
-for c = 1:ncols
-    coldata = item{:, c};
-    if (~isvector(coldata) || ~(isnumeric(coldata) || islogical(coldata)))
-        return
-    end
-
-    if (islogical(coldata))
-        types{c} = 'logical';
-        markers{c} = 'T';
-    else
-        [types{c}, markers{c}] = findmintype(double(coldata(:)), opt);
-        if (isempty(types{c}))
-            return
-        end
-    end
-end
-
-soainfo.names = varnames;
-soainfo.nrecords = nrows;
-soainfo.types = types;
-soainfo.markers = markers;
-cansoa = true;
-
-%% -------------------------------------------------------------------------
-function [basetype, marker] = findmintype(data, opt)
-% Find minimum precision type for numeric data
-basetype = '';
-marker = '';
-
-isallint = all(isfinite(data)) && all(data == floor(data));
-if (isallint)
-    minval = min(data);
-    maxval = max(data);
-    ranges = {[0 255], [0 65535], [0 4294967295], [0 18446744073709551615], ...
-              [-128 127], [-32768 32767], [-2147483648 2147483647], [-9223372036854775808 9223372036854775807]};
-    itypes = {'uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16', 'int32', 'int64'};
-    for i = 1:length(itypes)
-        idx = find(ismember(opt.IType_, itypes{i}));
-        if (~isempty(idx) && minval >= ranges{i}(1) && maxval <= ranges{i}(2))
-            basetype = itypes{i};
-            marker = opt.IM_(idx);
-            return
-        end
-    end
-end
-
-idx = find(ismember(opt.FType_, 'single'));
-if (~isempty(idx))
-    sdata = single(data);
-    if (all(double(sdata) == data | (isnan(data) & isnan(sdata)) | (isinf(data) & isinf(sdata) & sign(data) == sign(sdata))))
-        basetype = 'single';
-        marker = opt.FM_(idx);
-        return
-    end
-end
-
-idx = find(ismember(opt.FType_, 'double'));
-if (~isempty(idx))
-    basetype = 'double';
-    marker = opt.FM_(idx);
 end
 
 %% -------------------------------------------------------------------------
@@ -1061,18 +1448,16 @@ FTmarker = opt.FTM_;
 Imarker = opt.IM_;
 Fmarker = opt.FM_;
 Amarker = opt.AM_;
-
 isnest = opt.nestarray;
 ismsgpack = opt.messagepack;
 format = opt.formatversion;
-isnum2cell = opt.num2cell_;
 
 if (ismsgpack)
     isnest = 1;
 end
 
 if (~isvector(mat) && isnest == 1)
-    if (format > 1.9 && isnum2cell == 0)
+    if (format > 1.9 && opt.num2cell_ == 0)
         mat = permute(mat, ndims(mat):-1:1);
     end
     opt.num2cell_ = 1;
@@ -1084,9 +1469,9 @@ if (isa(mat, 'integer') || isinteger(mat) || (~opt.keeptype && isfloat(mat) && a
     elseif (~ismsgpack || size(mat, 1) == 1)
         if (opt.keeptype)
             itype = class(mat);
-            idx = find(ismember(opt.IType_, itype));
+            idx = find(ismember(opt.IType_, itype), 1);
             if (isempty(idx))
-                idx = find(ismember(opt.IType_, itype(2:end)));
+                idx = find(ismember(opt.IType_, itype(2:end)), 1);
             end
             type = Imarker(idx);
             if (numel(mat) == 1)
@@ -1128,20 +1513,17 @@ if (isa(mat, 'integer') || isinteger(mat) || (~opt.keeptype && isfloat(mat) && a
         txt = cell2ubjson('', num2cell(mat, 2), level, opt);
     end
 elseif (islogical(mat))
-    logicalval = FTmarker;
     if (numel(mat) == 1)
-        txt = logicalval(mat + 1);
+        txt = FTmarker(mat + 1);
+    elseif (~isvector(mat) && isnest == 1)
+        txt = cell2ubjson('', num2cell(uint8(mat), 1), level, opt);
     else
-        if (~isvector(mat) && isnest == 1)
-            txt = cell2ubjson('', num2cell(uint8(mat), 1), level, opt);
-        else
-            rowmat = permute(mat, ndims(mat):-1:1);
-            txt = I_a(uint8(rowmat(:)), Imarker(1), size(mat), opt);
-        end
+        rowmat = permute(mat, ndims(mat):-1:1);
+        txt = I_a(uint8(rowmat(:)), Imarker(1), size(mat), opt);
     end
 else
     am0 = Amarker{1};
-    if (Amarker{1} ~= '[')
+    if (am0 ~= '[')
         am0 = char(145);
     end
     if (numel(mat) == 1)
@@ -1150,21 +1532,18 @@ else
         else
             txt = D_(mat, opt);
         end
+    elseif (~isvector(mat) && isnest == 1)
+        txt = cell2ubjson('', num2cell(mat, 1), level, opt);
     else
-        if (~isvector(mat) && isnest == 1)
-            txt = cell2ubjson('', num2cell(mat, 1), level, opt);
-        else
-            rowmat = permute(mat, ndims(mat):-1:1);
-            txt = D_a(rowmat(:), Fmarker(isa(rowmat, 'double') + 2), size(mat), opt);
-        end
+        rowmat = permute(mat, ndims(mat):-1:1);
+        txt = D_a(rowmat(:), Fmarker(isa(rowmat, 'double') + 2), size(mat), opt);
     end
 end
 
 %% -------------------------------------------------------------------------
 function val = N_(str, opt)
-ismsgpack = opt.messagepack;
 str = char(str);
-if (~ismsgpack)
+if (~opt.messagepack)
     val = [I_(int32(length(str)), opt) str];
 else
     val = S_(str, opt);
@@ -1172,21 +1551,16 @@ end
 
 %% -------------------------------------------------------------------------
 function val = S_(str, opt)
-ismsgpack = opt.messagepack;
-isdebug = opt.debug;
-Smarker = opt.SM_;
 if (length(str) == 1)
-    if (isdebug)
-        val = [Smarker(1) sprintf('<%d>', str)];
+    if (opt.debug)
+        val = [opt.SM_(1) sprintf('<%d>', str)];
     else
-        val = [Smarker(1) str];
+        val = [opt.SM_(1) str];
     end
+elseif (opt.messagepack)
+    val = [Imsgpk_(length(str), 218, 160, opt) str];
 else
-    if (ismsgpack)
-        val = [Imsgpk_(length(str), 218, 160, opt) str];
-    else
-        val = ['S' I_(int32(length(str)), opt) str];
-    end
+    val = ['S' I_(int32(length(str)), opt) str];
 end
 
 %% -------------------------------------------------------------------------
@@ -1218,13 +1592,13 @@ doswap = opt.flipendian_;
 
 if (isfield(opt, 'inttype_'))
     idx = opt.inttype_;
+    casted = cast(num, cid{idx});
+    if (doswap)
+        casted = swapbytes(casted);
+    end
     if (isdebug)
         val = [Imarker(idx) sprintf('<%.0f>', num)];
     else
-        casted = cast(num, cid{idx});
-        if (doswap)
-            casted = swapbytes(casted);
-        end
         val = [Imarker(idx) char(typecast(casted, 'uint8'))];
     end
     return
@@ -1245,12 +1619,12 @@ numval = double(num);
 for i = 1:length(cid)
     casted = cast(numval, cid{i});
     if (double(casted) == numval)
+        if (doswap)
+            casted = swapbytes(casted);
+        end
         if (isdebug)
             val = [Imarker(i) sprintf('<%.0f>', num)];
         else
-            if (doswap)
-                casted = swapbytes(casted);
-            end
             val = [Imarker(i) char(typecast(casted, 'uint8'))];
         end
         return
@@ -1267,8 +1641,7 @@ function val = D_(num, opt)
 if (~isfloat(num))
     error('input is not a float');
 end
-isdebug = opt.debug;
-if (isdebug)
+if (opt.debug)
     output = sprintf('<%g>', num);
 else
     output = data2byte(endiancheck(num, opt), 'uint8');
@@ -1295,26 +1668,21 @@ if (Imarker(1) ~= 'U' && type <= 127)
     type = char(204);
 end
 id = find(ismember(Imarker, type));
-
 if (id == 0)
     error('unsupported integer array');
 end
-
-% based on Mo UBJSON specs, all integer types are stored in big endian format
 
 cid = opt.IType_;
 data = data2byte(endiancheck(cast(num, cid{id}), opt), 'uint8');
 blen = opt.IByte_(id);
 
-isnest = opt.nestarray;
-isdebug = opt.debug;
-if (isdebug)
+if (opt.debug)
     output = sprintf('<%g>', num);
 else
     output = data(:);
 end
 
-if (isnest == 0 && numel(num) > 1 && Imarker(1) == 'U')
+if (opt.nestarray == 0 && numel(num) > 1 && Imarker(1) == 'U')
     if (nargin >= 4 && ~isstruct(dim) && (length(dim) == 1 || (length(dim) >= 2 && prod(dim) ~= dim(2))))
         cid = I_(uint32(max(dim)), opt);
         data = ['$' type '#' I_a(dim, cid(1), opt) output(:)'];
@@ -1328,7 +1696,7 @@ else
         Amarker = {char(hex2dec('dd')), ''};
         am0 = Imsgpk_(numel(num), 220, 144, opt);
     end
-    if (isdebug)
+    if (opt.debug)
         data = sprintf([type '<%g>'], num);
     else
         data = reshape(data, blen, numel(data) / blen);
@@ -1344,7 +1712,6 @@ Fmarker = opt.FM_;
 Amarker = opt.AM_;
 
 id = find(ismember(Fmarker, type));
-
 if (id == 0)
     error('unsupported float array');
 end
@@ -1352,15 +1719,13 @@ end
 data = data2byte(endiancheck(cast(num, opt.FType_{id}), opt), 'uint8');
 blen = opt.FByte_(id);
 
-isnest = opt.nestarray;
-isdebug = opt.debug;
-if (isdebug)
+if (opt.debug)
     output = sprintf('<%g>', num);
 else
     output = data(:);
 end
 
-if (isnest == 0 && numel(num) > 1 && Fmarker(end) == 'D')
+if (opt.nestarray == 0 && numel(num) > 1 && Fmarker(end) == 'D')
     if (nargin >= 4 && (length(dim) == 1 || (length(dim) >= 2 && prod(dim) ~= dim(2))))
         cid = I_(uint32(max(dim)), opt);
         data = ['$' type '#' I_a(dim, cid(1), opt) output(:)'];
@@ -1374,7 +1739,7 @@ else
         Amarker = {char(hex2dec('dd')), ''};
         am0 = Imsgpk_(numel(num), 220, 144, opt);
     end
-    if (isdebug)
+    if (opt.debug)
         data = sprintf([type '<%g>'], num);
     else
         data = reshape(data, blen, length(data) / blen);

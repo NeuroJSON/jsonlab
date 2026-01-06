@@ -433,10 +433,12 @@ if (ismember('bjsoa', tests) && hasContainersMap)
                  '{U<1>xU<1>U<1>yU<2>}', 'debug', 1);
     test_jsonlab('struct array no SOA - non-scalar field', @savebj, ...
                  struct('x', {[1, 2], [3, 4]}, 'y', {5, 6}), ...
-                 '[{U<1>x[$U#U<2><1><2>U<1>yU<5>}{U<1>x[$U#U<2><3><4>U<1>yU<6>}]', 'debug', 1);
+                 '[{U<1>x[$U#U<2><1><2>U<1>yU<5>}{U<1>x[$U#U<2><3><4>U<1>yU<6>}]', ...
+                 'debug', 1, 'FormatVersion', 1.9);
     test_jsonlab('struct array no SOA - string field', @savebj, ...
                  struct('x', {1, 2}, 'y', {'a', 'b'}), ...
-                 '[{U<1>xU<1>U<1>yC<97>}{U<1>xU<2>U<1>yC<98>}]', 'debug', 1);
+                 '[{U<1>xU<1>U<1>yC<97>}{U<1>xU<2>U<1>yC<98>}]', ...
+                 'debug', 1, 'FormatVersion', 1.9);
 
     % formatversion < 4 should not use SOA
     test_jsonlab('struct array no SOA - formatversion 2', @savebj, ...
@@ -507,7 +509,7 @@ if (ismember('bjsoa', tests) && hasContainersMap)
     % ND array count tests - should output ND dimensions [U<dim1>U<dim2>]
     test_jsonlab('struct array SOA 2D count', @savebj, ...
                  reshape(struct('x', num2cell(uint8('ABCDEF')), 'y', num2cell(uint8('GHIJKL'))), [2, 3]), ...
-                 '{${U<1>xUU<1>yU}#[U<2>U<3>]ABCDEFGHIJKL', 'debug', 1);
+                 '{${U<1>xUU<1>yU}#[U<2>U<3>]ACEBDFGIKHJL', 'debug', 1);
 
     % roundtrip tests - verify loadbj can read back SOA data
     s1 = struct('x', {uint8('A'), uint8('B'), uint8('C')}, 'y', {uint8('D'), uint8('E'), uint8('F')});
@@ -540,6 +542,321 @@ if (ismember('bjsoa', tests) && hasContainersMap)
         t1 = table(uint8('AB')', uint8('CD')', [true; false], 'VariableNames', {'x', 'id', 'flag'});
         s1 = struct('x', {uint8('A'); uint8('B')}, 'id', {uint8('C'); uint8('D')}, 'flag', {true; false});
         test_jsonlab('Table SOA roundtrip', @savejson, ...
+                     isequaln(s1, loadbj(savebj('', t1))), '[true]');
+    end
+end
+
+%%
+if (ismember('bjsoastr', tests) && hasContainersMap)
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test Binary JSON SOA String Encoding functions\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % ===== Fixed-length string tests =====
+
+    % Fixed string col-major - all same length
+    test_jsonlab('SOA fixed string col-major same len', @savebj, ...
+                 struct('code', {'ABCDE', 'FGHIJ', '12345'}), ...
+                 '{${U<4>codeSU<5>}#U<3>ABCDEFGHIJ12345', 'debug', 1);
+
+    % Fixed string col-major - different lengths (padded with nulls)
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, 'name', {'ABC', 'DE', 'F'});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA fixed string col-major diff len', @savebj, s1, bjd, 'debug', 1);
+
+    % Fixed string row-major
+    test_jsonlab('SOA fixed string row-major', @savebj, ...
+                 struct('code', {'AB', 'CD'}), ...
+                 '[${U<4>codeSU<2>}#U<2>ABCD', 'debug', 1, 'soaformat', 'row');
+
+    % Fixed string mixed with numeric
+    s1 = struct('id', {uint8(1), uint8(2)}, 'tag', {'Hi', 'Lo'});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA fixed string with numeric', @savebj, s1, bjd, 'debug', 1);
+
+    % Fixed string with empty (padded)
+    s1 = struct('id', {uint8(1), uint8(2)}, 'tag', {'Hi', ''});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA fixed string with empty', @savebj, s1, bjd, 'debug', 1);
+
+    % ===== Dictionary-based string tests =====
+
+    % Dict string col-major - repeated values
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3), uint8(4)}, ...
+                'status', {'active', 'inactive', 'active', 'active'});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA dict string col-major', @savebj, s1, bjd, 'debug', 1);
+
+    % Dict string row-major
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, 'type', {'A', 'B', 'A'});
+    bjd = savebj('', s1, 'debug', 1, 'soaformat', 'row');
+    test_jsonlab('SOA dict string row-major', @savebj, s1, bjd, 'debug', 1, 'soaformat', 'row');
+
+    % Dict string with 3 unique values
+    s1 = struct('color', {'red', 'green', 'blue', 'red', 'green', 'blue'});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA dict string 3 values', @savebj, s1, bjd, 'debug', 1);
+
+    % Dict string all same value
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, 'tag', {'X', 'X', 'X'});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA dict string all same', @savebj, s1, bjd, 'debug', 1);
+
+    % Dict string mixed with logical
+    s1 = struct('flag', {true, false, true}, 'cat', {'yes', 'no', 'yes'});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA dict string with logical', @savebj, s1, bjd, 'debug', 1);
+
+    % ===== Offset-table-based string tests =====
+
+    % Offset string col-major
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, ...
+                'desc', {'short', 'a very long description', 'mid'});
+    bjd = savebj('', s1, 'debug', 1, 'soathreshold', 0);
+    test_jsonlab('SOA offset string col-major', @savebj, s1, bjd, 'debug', 1, 'soathreshold', 0);
+
+    % Offset string row-major
+    s1 = struct('id', {uint8(1), uint8(2)}, 'text', {'Hello', 'World'});
+    bjd = savebj('', s1, 'debug', 1, 'soaformat', 'row', 'soathreshold', 0);
+    test_jsonlab('SOA offset string row-major', @savebj, s1, bjd, 'debug', 1, 'soaformat', 'row', 'soathreshold', 0);
+
+    % Offset string with empty strings
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, 'note', {'abc', '', 'de'});
+    bjd = savebj('', s1, 'debug', 1, 'soathreshold', 0);
+    test_jsonlab('SOA offset string with empty', @savebj, s1, bjd, 'debug', 1, 'soathreshold', 0);
+
+    % ===== Fixed array tests =====
+
+    % Fixed array double
+    s1 = struct('pos', {[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA fixed array double', @savebj, s1, bjd, 'debug', 1);
+
+    % Fixed array + fixed string
+    s1 = struct('pos', {[1.0, 2.0], [3.0, 4.0]}, 'tag', {'AB', 'CD'});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA fixed array + fixed string', @savebj, s1, bjd, 'debug', 1);
+
+    % Fixed array uint8 + dict string
+    s1 = struct('val', {uint8(1), uint8(2), uint8(3)}, ...
+                'vec', {uint8([1, 2]), uint8([3, 4]), uint8([5, 6])}, ...
+                'cat', {'A', 'B', 'A'});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA fixed array + dict string', @savebj, s1, bjd, 'debug', 1);
+
+    % ===== Nested struct with string tests =====
+
+    s1 = struct('id', {uint8(1), uint8(2)}, ...
+                'info', {struct('name', 'AB', 'val', uint8(10)), ...
+                         struct('name', 'CD', 'val', uint8(20))});
+    bjd = savebj('', s1, 'debug', 1);
+    test_jsonlab('SOA nested struct with string', @savebj, s1, bjd, 'debug', 1);
+
+    % ===== Roundtrip tests =====
+
+    % Fixed string roundtrip - same length strings
+    s1 = struct('code', {'ABC', 'DEF', 'GHI'});
+    test_jsonlab('SOA fixed string roundtrip same len', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Fixed string roundtrip - different length strings (padded)
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, 'name', {'ABC', 'DE', 'F'});
+    test_jsonlab('SOA fixed string roundtrip diff len', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Fixed string with empty roundtrip
+    s1 = struct('id', {uint8(1), uint8(2)}, 'tag', {'Hi', ''});
+    s1_decoded = loadbj(savebj('', s1));
+    match = (numel(s1_decoded) == numel(s1(:)));
+    for ii = 1:numel(s1)
+        if ~match
+            break
+        end
+        match = match && (s1(ii).id == s1_decoded(ii).id);
+        match = match && strcmp(s1(ii).tag, s1_decoded(ii).tag);
+    end
+    test_jsonlab('SOA fixed string with empty roundtrip', @savejson, match, '[true]');
+
+    % Fixed string row-major roundtrip - simplest case first
+    s1 = struct('name', {'AB', 'CD'});
+    s1_decoded = loadbj(savebj('', s1, 'soaformat', 'row'));
+    match = (numel(s1_decoded) == numel(s1(:)));
+    for ii = 1:numel(s1)
+        if ~match
+            break
+        end
+        match = match && strcmp(s1(ii).name, s1_decoded(ii).name);
+    end
+    test_jsonlab('SOA fixed string row-major simple roundtrip', @savejson, match, '[true]');
+
+    % Fixed string row-major with numeric
+    s1 = struct('id', {uint8(1), uint8(2)}, 'name', {'AB', 'CD'});
+    s1_decoded = loadbj(savebj('', s1, 'soaformat', 'row'));
+    match = (numel(s1_decoded) == numel(s1(:)));
+    for ii = 1:numel(s1)
+        if ~match
+            break
+        end
+        match = match && (s1(ii).id == s1_decoded(ii).id);
+        match = match && strcmp(s1(ii).name, s1_decoded(ii).name);
+    end
+    test_jsonlab('SOA fixed string row-major roundtrip', @savejson, match, '[true]');
+
+    % Dict string roundtrip - repeated values
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3), uint8(4)}, ...
+                'status', {'active', 'pending', 'active', 'pending'});
+    test_jsonlab('SOA dict string roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Dict string with 3 unique values roundtrip
+    s1 = struct('color', {'red', 'green', 'blue', 'red', 'green', 'blue'});
+    test_jsonlab('SOA dict string 3 values roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Dict string all same value roundtrip
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, 'tag', {'X', 'X', 'X'});
+    test_jsonlab('SOA dict string all same roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Dict string mixed with logical roundtrip
+    s1 = struct('flag', {true, false, true}, 'cat', {'yes', 'no', 'yes'});
+    test_jsonlab('SOA dict string with logical roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Dict string row-major roundtrip
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, 'type', {'A', 'B', 'A'});
+    test_jsonlab('SOA dict string row-major roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1, 'soaformat', 'row'))), '[true]');
+
+    % Offset string roundtrip
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, ...
+                'desc', {'short', 'a very long description', 'mid'});
+    test_jsonlab('SOA offset string roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1, 'soathreshold', 0))), '[true]');
+
+    % Offset string with empty strings roundtrip
+    s1 = struct('id', {uint8(1), uint8(2), uint8(3)}, 'note', {'abc', '', 'de'});
+    s1_decoded = loadbj(savebj('', s1, 'soathreshold', 0));
+    match = (numel(s1_decoded) == numel(s1(:)));
+    for ii = 1:numel(s1)
+        if ~match
+            break
+        end
+        match = match && (s1(ii).id == s1_decoded(ii).id);
+        match = match && strcmp(s1(ii).note, s1_decoded(ii).note);
+    end
+    test_jsonlab('SOA offset string with empty roundtrip', @savejson, match, '[true]');
+
+    % Offset string row-major roundtrip
+    s1 = struct('id', {uint8(1), uint8(2)}, 'text', {'Hello', 'World'});
+    s1_decoded = loadbj(savebj('', s1, 'soaformat', 'row', 'soathreshold', 0));
+    match = (numel(s1_decoded) == numel(s1(:)));
+    for ii = 1:numel(s1)
+        if ~match
+            break
+        end
+        match = match && (s1(ii).id == s1_decoded(ii).id);
+        match = match && strcmp(s1(ii).text, s1_decoded(ii).text);
+    end
+    test_jsonlab('SOA offset string row-major roundtrip', @savejson, match, '[true]');
+
+    % Fixed array roundtrip
+    s1 = struct('pos', {[1.5, 2.5, 3.5], [4.5, 5.5, 6.5]});
+    test_jsonlab('SOA fixed array double roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Fixed array uint8 roundtrip
+    s1 = struct('rgb', {uint8([255, 0, 0]), uint8([0, 255, 0]), uint8([0, 0, 255])});
+    test_jsonlab('SOA fixed array uint8 roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Fixed array with scalar field roundtrip
+    s1 = struct('id', {uint8(1), uint8(2)}, 'vec', {[1.0, 2.0], [3.0, 4.0]});
+    test_jsonlab('SOA fixed array with scalar roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Fixed array logical roundtrip
+    s1 = struct('flags', {[true, false, true], [false, true, false]});
+    test_jsonlab('SOA fixed array logical roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Fixed array + fixed string roundtrip
+    s1 = struct('pos', {[1.0, 2.0], [3.0, 4.0]}, 'tag', {'AB', 'CD'});
+    test_jsonlab('SOA fixed array + fixed string roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Fixed array + dict string roundtrip
+    s1 = struct('val', {uint8(1), uint8(2), uint8(3)}, ...
+                'vec', {uint8([1, 2]), uint8([3, 4]), uint8([5, 6])}, ...
+                'cat', {'A', 'B', 'A'});
+    test_jsonlab('SOA fixed array + dict string roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Nested struct with numeric fields roundtrip
+    s1 = struct('id', {uint8(1), uint8(2)}, ...
+                'info', {struct('x', uint8(10), 'y', uint8(20)), ...
+                         struct('x', uint8(30), 'y', uint8(40))});
+    test_jsonlab('SOA nested struct numeric roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Nested struct with string roundtrip
+    s1 = struct('id', {uint8(1), uint8(2)}, ...
+                'info', {struct('name', 'AB', 'val', uint8(10)), ...
+                         struct('name', 'CD', 'val', uint8(20))});
+    test_jsonlab('SOA nested struct with string roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % ===== Edge cases =====
+
+    % Single character strings roundtrip
+    s1 = struct('id', {uint8(1), uint8(2)}, 'c', {'A', 'B'});
+    test_jsonlab('SOA single char string roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % All fields are strings roundtrip
+    s1 = struct('a', {'X', 'Y'}, 'b', {'AA', 'BB'}, 'c', {'111', '222'});
+    test_jsonlab('SOA all string fields roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % 2D struct array with strings roundtrip
+    s1 = reshape(struct('id', num2cell(uint8('ABCDEF')), ...
+                        'tag', {'t1', 't2', 't3', 't4', 't5', 't6'}), [2, 3]);
+    s1_decoded = loadbj(savebj('', s1));
+    match = isequal(size(s1), size(s1_decoded));
+    for ii = 1:numel(s1)
+        if ~match
+            break
+        end
+        match = match && (s1(ii).id == s1_decoded(ii).id);
+        match = match && strcmp(s1(ii).tag, s1_decoded(ii).tag);
+    end
+    test_jsonlab('SOA 2D with string roundtrip', @savejson, match, '[true]');
+
+    % Large dict (8 unique values) roundtrip
+    colors = {'red', 'green', 'blue', 'yellow', 'cyan', 'magenta', 'black', 'white'};
+    s1 = struct('id', num2cell(uint8(1:16)), 'color', colors(mod(0:15, 8) + 1));
+    test_jsonlab('SOA dict string 8 values roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1))), '[true]');
+
+    % Very long string (offset encoding) roundtrip
+    longstr = repmat('x', 1, 500);
+    s1 = struct('id', {uint8(1), uint8(2)}, 'data', {longstr, 'short'});
+    test_jsonlab('SOA long string roundtrip', @savejson, ...
+                 isequaln(s1(:), loadbj(savebj('', s1, 'soathreshold', 0))), '[true]');
+
+    % ===== Table with string columns =====
+    if (exist('istable'))
+        % Table with string column - becomes struct array after load
+        t1 = table(uint8('ABC')', {'XX'; 'YY'; 'ZZ'}, 'VariableNames', {'id', 'code'});
+        s1 = struct('id', {uint8('A'); uint8('B'); uint8('C')}, 'code', {'XX'; 'YY'; 'ZZ'});
+        test_jsonlab('Table SOA with string roundtrip', @savejson, ...
+                     isequaln(s1, loadbj(savebj('', t1))), '[true]');
+
+        % Table with repeated strings (dict encoding)
+        t1 = table(uint8((1:4)'), {'on'; 'off'; 'on'; 'on'}, 'VariableNames', {'id', 'state'});
+        s1 = struct('id', {uint8(1); uint8(2); uint8(3); uint8(4)}, ...
+                    'state', {'on'; 'off'; 'on'; 'on'});
+        test_jsonlab('Table SOA dict string roundtrip', @savejson, ...
                      isequaln(s1, loadbj(savebj('', t1))), '[true]');
     end
 end
