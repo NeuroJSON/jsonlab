@@ -135,7 +135,7 @@ opt.flipendian_ = (systemendian ~= upper(jsonopt('Endian', 'L', opt)));
 % Types: 'iUIulmLMhdD' -> indices 1-11
 opt.typemap_ = zeros(256, 2, 'uint8');
 typechars = 'iUIulmLMhdD';
-bytelen =   [1, 1, 2, 2, 4, 4, 8, 8, 2, 4, 8];
+bytelen = [1, 1, 2, 2, 4, 4, 8, 8, 2, 4, 8];
 for i = 1:11
     opt.typemap_(uint8(typechars(i)), :) = [i, bytelen(i)];
 end
@@ -164,11 +164,7 @@ pos = 1;
 jsoncount = 1;
 
 while pos <= inputlen
-    cc = inputstr(pos);
-    while cc == 'N'
-        pos = pos + 1;
-        cc = inputstr(pos);
-    end
+    [cc, pos] = skip_markers(pos, opt);
     switch cc
         case '{'
             if needmmap
@@ -225,7 +221,7 @@ if (jsonopt('JDataDecode', 1, varargin{:}) == 1)
     try
         data = jdatadecode(data, 'Base64', 0, 'Recursive', 1, varargin{:});
     catch ME
-        warning(['Failed to decode embedded JData annotations, '...
+        warning(['Failed to decode embedded JData annotations, ' ...
                  'return raw JSON data\n\njdatadecode error: %s\n%s\nCall stack:\n%s\n'], ...
                 ME.identifier, ME.message, char(savejson('', ME.stack)));
     end
@@ -235,7 +231,64 @@ if opt.mmaponly
 end
 
 %% -------------------------------------------------------------------------
-%% helper functions
+%% shared helper functions
+%% -------------------------------------------------------------------------
+
+function [cc, pos] = skip_markers(pos, opt)
+% Skip N markers and return current character
+inputstr = opt.inputstr_;
+cc = inputstr(pos);
+while cc == 'N'
+    pos = pos + 1;
+    cc = inputstr(pos);
+end
+
+%% -------------------------------------------------------------------------
+
+function [bytelen, pos] = parse_length(pos, opt)
+% Parse length value (common pattern in parse_name and parseStr)
+inputstr = opt.inputstr_;
+if inputstr(pos) == 'U'
+    bytelen = double(uint8(inputstr(pos + 1)));
+    pos = pos + 2;
+else
+    [val, pos] = parse_number(pos, opt);
+    bytelen = double(val);
+end
+
+%% -------------------------------------------------------------------------
+
+function [cid, bytelen] = gettypeinfo(typemarker, opt)
+% Get type string and byte length for a type marker
+info = opt.typemap_(uint8(typemarker), :);
+cid = opt.typestr_{info(1)};
+bytelen = double(info(2));
+
+%% -------------------------------------------------------------------------
+
+function data = swapbytes_array(data, bytelen, count, doswap)
+% Swap bytes for multi-byte types if needed
+if doswap && bytelen > 1
+    data = reshape(data, bytelen, count);
+    data = data(bytelen:-1:1, :);
+    data = data(:);
+end
+
+%% -------------------------------------------------------------------------
+
+function object = assign_field_values(object, jpath, values, count)
+% Assign values to struct array field by path
+iscellval = iscell(values);
+for i = 1:count
+    if iscellval
+        object(i) = setfield_by_path(object(i), jpath, values{i});
+    else
+        object(i) = setfield_by_path(object(i), jpath, values(i));
+    end
+end
+
+%% -------------------------------------------------------------------------
+%% main parser functions
 %% -------------------------------------------------------------------------
 
 function [data, adv] = parse_block(pos, type, count, opt)
@@ -263,13 +316,10 @@ if (count >= 0 && ~isempty(type))
         return
     end
 end
-cid = opt.typestr_{opt.typemap_(uint8(type), 1)};
-len = double(opt.typemap_(uint8(type), 2));
+[cid, len] = gettypeinfo(type, opt);
 datastr = inputstr(pos:pos + len * count - 1);
 newdata = uint8(datastr);
-if opt.flipendian_
-    newdata = swapbytes(typecast(newdata, cid));
-end
+newdata = swapbytes_array(newdata, len, count, opt.flipendian_);
 data = typecast(newdata, cid);
 adv = double(len * count);
 
@@ -297,11 +347,7 @@ if pos > inputlen
     return
 end
 
-cc = inputstr(pos);
-while cc == 'N'
-    pos = pos + 1;
-    cc = inputstr(pos);
-end
+[cc, pos] = skip_markers(pos, opt);
 
 if cc == '$'
     type = inputstr(pos + 1);
@@ -313,21 +359,13 @@ if cc == '$'
     end
 
     pos = pos + 2;
-    cc = inputstr(pos);
-    while cc == 'N'
-        pos = pos + 1;
-        cc = inputstr(pos);
-    end
+    [cc, pos] = skip_markers(pos, opt);
 end
 
 if cc == '#'
     pos = pos + 1;
     if pos <= inputlen
-        cc = inputstr(pos);
-        while cc == 'N'
-            pos = pos + 1;
-            cc = inputstr(pos);
-        end
+        [cc, pos] = skip_markers(pos, opt);
     end
     if cc == '['
         if (isfield(opt, 'noembedding_') && opt.noembedding_ == 1)
@@ -345,11 +383,7 @@ if cc == '#'
         count = double(val);
     end
     if pos <= inputlen
-        cc = inputstr(pos);
-        while cc == 'N'
-            pos = pos + 1;
-            cc = inputstr(pos);
-        end
+        [cc, pos] = skip_markers(pos, opt);
     end
 end
 
@@ -367,7 +401,7 @@ if ~isempty(type)
         return
     else
         endpos = match_bracket(inputstr, pos);
-        len = double(opt.typemap_(uint8(type), 2));
+        [~, len] = gettypeinfo(type, opt);
         count = (endpos - pos) / len;
         [object, adv] = parse_block(pos, type, count, opt);
         pos = pos + adv;
@@ -394,11 +428,7 @@ if cc ~= ']'
         if pos > inputlen
             break
         end
-        cc = inputstr(pos);
-        while cc == 'N'
-            pos = pos + 1;
-            cc = inputstr(pos);
-        end
+        [cc, pos] = skip_markers(pos, opt);
         if cc == ']' || (count > 0 && length(object) >= count)
             break
         end
@@ -437,21 +467,10 @@ end
 %% -------------------------------------------------------------------------
 
 function [str, pos] = parse_name(pos, opt)
-inputstr = opt.inputstr_;
-typecode = inputstr(pos);
-
-% Fast path for uint8 length (most common case)
-if typecode == 'U'
-    bytelen = double(uint8(inputstr(pos + 1)));
-    pos = pos + 2;
-else
-    [val, pos] = parse_number(pos, opt);
-    bytelen = double(val);
-end
-
+[bytelen, pos] = parse_length(pos, opt);
 endpos = pos + bytelen - 1;
 if opt.inputlen_ >= endpos
-    str = inputstr(pos:endpos);
+    str = opt.inputstr_(pos:endpos);
     pos = endpos + 1;
 else
     error_pos('End of file while expecting end of name', opt, pos);
@@ -483,14 +502,7 @@ if type == 'C' || type == 'B'
 end
 
 % S or H type: read length
-typecode = inputstr(pos);
-if typecode == 'U'
-    bytelen = double(uint8(inputstr(pos + 1)));
-    pos = pos + 2;
-else
-    [val, pos] = parse_number(pos, opt);
-    bytelen = double(val);
-end
+[bytelen, pos] = parse_length(pos, opt);
 
 if opt.inschema_
     % Schema mode: fixed-length string S <int> <len>
@@ -514,7 +526,7 @@ inputstr = opt.inputstr_;
 typecode = inputstr(pos);
 pos = pos + 1;
 
-% Fast path for most common types (avoid table lookup and typecast overhead)
+% Fast path for most common types
 if typecode == 'U'  % uint8 - most common for string lengths
     num = uint8(inputstr(pos));
     pos = pos + 1;
@@ -542,15 +554,13 @@ elseif typecode == 'l'  % int32
 end
 
 % General path for less common types
-typeinfo = opt.typemap_(uint8(typecode), :);
-if typeinfo(1) == 0
+[cid, len] = gettypeinfo(typecode, opt);
+if len == 0
     error_pos('expecting a number at position %d', opt, pos - 1);
 end
-len = double(typeinfo(2));
-cid = opt.typestr_{typeinfo(1)};
 newdata = uint8(inputstr(pos:pos + len - 1));
-if opt.flipendian_
-    newdata = swapbytes(typecast(newdata, cid));
+if opt.flipendian_ && len > 1
+    newdata = newdata(len:-1:1);
 end
 num = typecast(newdata, cid);
 pos = pos + len;
@@ -568,11 +578,7 @@ inputstr = opt.inputstr_;
 if length(type) == 1
     cc = type;
 else
-    cc = inputstr(pos);
-    while cc == 'N'
-        pos = pos + 1;
-        cc = inputstr(pos);
-    end
+    [cc, pos] = skip_markers(pos, opt);
 end
 
 switch cc
@@ -604,8 +610,7 @@ switch cc
     case {'i', 'U', 'I', 'u', 'l', 'm', 'L', 'M', 'h', 'd', 'D'}
         if opt.inschema_
             % Schema mode: record type info, skip payload
-            len = double(opt.typemap_(uint8(cc), 2));
-            cid = opt.typestr_{opt.typemap_(uint8(cc), 1)};
+            [cid, len] = gettypeinfo(cc, opt);
             opt.schemammap_{end + 1} = {opt.jsonpath_, struct('t', cc, 'b', len, 'd', cast([], cid))};
             val = [];
             pos = pos + 1;  % skip type marker only
@@ -775,11 +780,7 @@ if pos > inputlen
     return
 end
 
-cc = inputstr(pos);
-while cc == 'N'
-    pos = pos + 1;
-    cc = inputstr(pos);
-end
+[cc, pos] = skip_markers(pos, opt);
 
 if cc == '$'
     type = inputstr(pos + 1);
@@ -791,11 +792,7 @@ if cc == '$'
     end
 
     pos = pos + 2;
-    cc = inputstr(pos);
-    while cc == 'N'
-        pos = pos + 1;
-        cc = inputstr(pos);
-    end
+    [cc, pos] = skip_markers(pos, opt);
 end
 
 if cc == '#'
@@ -803,11 +800,7 @@ if cc == '#'
     [val, pos] = parse_number(pos, opt);
     count = double(val);
     if pos <= inputlen
-        cc = inputstr(pos);
-        while cc == 'N'
-            pos = pos + 1;
-            cc = inputstr(pos);
-        end
+        [cc, pos] = skip_markers(pos, opt);
     end
 end
 
@@ -861,11 +854,7 @@ if cc ~= '}'
         if pos > inputlen
             break
         end
-        cc = inputstr(pos);
-        while cc == 'N'
-            pos = pos + 1;
-            cc = inputstr(pos);
-        end
+        [cc, pos] = skip_markers(pos, opt);
         if (count >= 0 && num >= count) || cc == '}'
             break
         end
@@ -876,6 +865,8 @@ if count == -1
     pos = pos + 1;  % skip '}'
 end
 
+%% -------------------------------------------------------------------------
+%% SoA parsing functions
 %% -------------------------------------------------------------------------
 
 function [object, pos] = parse_soa(pos, layout, opt)
@@ -967,6 +958,7 @@ if length(dim) > 1
 end
 
 %% -------------------------------------------------------------------------
+
 function object = soa_payload_to_struct(schema, schemammap, payload, count, recordbytes, layout, opt)
 % Convert payload to struct array
 
@@ -993,15 +985,7 @@ if strcmp(layout, 'column')
             fdata = [];
         end
         values = decode_soa_column(fdata, finfo, count, opt);
-
-        for i = 1:count
-            if iscell(values)
-                object(i) = setfield_by_path(object(i), jpath, values{i});
-            else
-                object(i) = setfield_by_path(object(i), jpath, values(i));
-            end
-        end
-
+        object = assign_field_values(object, jpath, values, count);
         bytepos = bytepos + nbytes;
     end
 else
@@ -1033,22 +1017,17 @@ else
             end
             values = decode_soa_column(fdata, finfo, count, opt);
         end
-
-        for i = 1:count
-            if iscell(values)
-                object(i) = setfield_by_path(object(i), jpath, values{i});
-            else
-                object(i) = setfield_by_path(object(i), jpath, values(i));
-            end
-        end
+        object = assign_field_values(object, jpath, values, count);
     end
 end
+
+%% -------------------------------------------------------------------------
 
 function obj = setfield_by_path(obj, jpath, value)
 % Set field value using JSONPath-like path (e.g., '$.field' or '$.parent.child')
 if length(jpath) >= 2 && strcmp(jpath(1:2), '$.')
     jpath = jpath(3:end);
-elseif length(jpath) >= 1 && jpath(1) == '$'
+elseif ~isempty(jpath) && jpath(1) == '$'
     jpath = jpath(2:end);
 end
 
@@ -1067,6 +1046,9 @@ else
 end
 
 %% -------------------------------------------------------------------------
+%% SoA decoding functions
+%% -------------------------------------------------------------------------
+
 function values = decode_soa_column(fdata, finfo, count, opt)
 % Decode contiguous field data to array of values
 
@@ -1079,130 +1061,104 @@ if nbytes == 0
     return
 end
 
-% Handle fixed array type
+% Fixed array type
 if strcmp(typemarker, 'array')
-    arraymmap = finfo.d;
-    values = cell(count, 1);
-    elemcount = length(arraymmap);
-    for i = 1:count
-        recstart = (i - 1) * nbytes;
-        arrval = [];
-        elemoffset = 0;
-        for e = 1:elemcount
-            einfo = arraymmap{e}{2};
-            ebytes = einfo.b;
-            edata = fdata(recstart + elemoffset + 1:recstart + elemoffset + ebytes);
-            if length(einfo.t) == 1 && any(einfo.t == 'iUIulmLMhdD')
-                ecid = class(einfo.d);
-                if opt.flipendian_ && ebytes > 1
-                    edata = edata(end:-1:1);
-                end
-                elem = typecast(edata, ecid);
-            elseif length(einfo.t) == 1 && (einfo.t == 'T' || einfo.t == 'F')
-                elem = (edata(1) == uint8('T'));
-            else
-                elem = double(edata);
-            end
-            arrval = [arrval, elem];
-            elemoffset = elemoffset + ebytes;
-        end
-        values{i} = arrval;
-    end
+    values = decode_fixed_array(fdata, finfo.d, count, nbytes, opt);
     return
 end
 
-if length(typemarker) ~= 1
-    values = cell(count, 1);
-    return
-end
-
+% Boolean
 if typemarker == 'T' || typemarker == 'F'
     values = (fdata == uint8('T'));
+    return
+end
 
-elseif any(typemarker == 'iUIulmLMhdD') && (~isfield(finfo, 'enc') || isempty(finfo.enc))
+% Numeric
+if any(typemarker == 'iUIulmLMhdD')
     cid = class(finfo.d);
-    if opt.flipendian_ && nbytes > 1
-        fdata = reshape(fdata, nbytes, count);
-        fdata = fdata(end:-1:1, :);
-        fdata = fdata(:);
-    end
+    fdata = swapbytes_array(fdata, nbytes, count, opt.flipendian_);
     values = typecast(fdata, cid);
+    return
+end
 
-elseif typemarker == 'S' || typemarker == 'H'
-    enc = '';
-    if isfield(finfo, 'enc')
-        enc = finfo.enc;
+% String (S or H)
+enc = '';
+if isfield(finfo, 'enc')
+    enc = finfo.enc;
+end
+
+if isempty(enc) || strcmp(enc, 'fixed')
+    values = decode_fixed_string(fdata, nbytes, count);
+elseif strcmp(enc, 'dict')
+    [cid, idxbytes] = gettypeinfo(finfo.idxtype, opt);
+    fdata = swapbytes_array(fdata, idxbytes, count, opt.flipendian_);
+    values = finfo.dict(double(typecast(fdata, cid)) + 1)';
+else  % offset
+    values = decode_offset_string(fdata, finfo, count, opt);
+end
+
+%% -------------------------------------------------------------------------
+
+function values = decode_fixed_array(fdata, arraymmap, count, nbytes, opt)
+% Decode fixed-size array field
+values = cell(count, 1);
+elemcount = length(arraymmap);
+for i = 1:count
+    arrval = [];
+    pos = (i - 1) * nbytes + 1;
+    for e = 1:elemcount
+        einfo = arraymmap{e}{2};
+        ebytes = einfo.b;
+        edata = fdata(pos:pos + ebytes - 1);
+        pos = pos + ebytes;
+        etype = einfo.t;
+        if any(etype == 'iUIulmLMhdD')
+            if opt.flipendian_ && ebytes > 1
+                edata = edata(ebytes:-1:1);
+            end
+            arrval = [arrval, typecast(edata, class(einfo.d))];
+        else  % T or F
+            arrval = [arrval, edata(1) == uint8('T')];
+        end
     end
+    values{i} = arrval;
+end
 
-    if strcmp(enc, 'fixed') || isempty(enc)
-        % Fixed-length string
-        values = cell(count, 1);
-        for i = 1:count
-            startpos = (i - 1) * nbytes + 1;
-            endpos = startpos + nbytes - 1;
-            str = char(fdata(startpos:endpos));
-            % Remove trailing nulls
-            nullpos = find(str == 0, 1);
-            if ~isempty(nullpos)
-                str = str(1:nullpos - 1);
-            end
-            % FIX: Ensure row vector and proper empty string
-            if isempty(str)
-                values{i} = '';  % This creates 0x0 char
-            else
-                values{i} = str(:)';  % Ensure row vector
-            end
-        end
+%% -------------------------------------------------------------------------
 
-    elseif strcmp(enc, 'dict')
-        idxtype = finfo.idxtype;
-        idxbytes = double(opt.typemap_(uint8(idxtype), 2));
-        cid = opt.typestr_{opt.typemap_(uint8(idxtype), 1)};
-        if opt.flipendian_ && idxbytes > 1
-            fdata = reshape(fdata, idxbytes, count);
-            fdata = fdata(end:-1:1, :);
-            fdata = fdata(:);
-        end
-        indices = double(typecast(fdata, cid)) + 1;
-        values = finfo.dict(indices)';
-
-    elseif strcmp(enc, 'offset')
-        offsets = finfo.offsets;
-        strbuf = finfo.strbuf;
-
-        % Parse record indices from fdata
-        idxtype = finfo.idxtype;
-        idxbytes = double(opt.typemap_(uint8(idxtype), 2));
-        cid = opt.typestr_{opt.typemap_(uint8(idxtype), 1)};
-
-        if opt.flipendian_ && idxbytes > 1
-            fdata = reshape(fdata, idxbytes, count);
-            fdata = fdata(end:-1:1, :);
-            fdata = fdata(:);
-        end
-        recindices = double(typecast(fdata, cid));  % 0-based
-
-        values = cell(count, 1);
-        for i = 1:count
-            idx = recindices(i);  % 0-based record index
-            startpos = offsets(idx + 1) + 1;  % +1 for 0-based to 1-based
-            endpos = offsets(idx + 2);
-            if endpos >= startpos
-                str = strbuf(startpos:endpos);
-                values{i} = str(:)';  % FIX: Ensure row vector
-            else
-                values{i} = '';  % FIX: Proper empty string (0x0)
-            end
-        end
+function values = decode_fixed_string(fdata, nbytes, count)
+% Decode fixed-length string field
+values = cell(count, 1);
+strmat = char(reshape(fdata, nbytes, count)');
+for i = 1:count
+    str = strmat(i, :);
+    nullpos = find(str == 0, 1);
+    if isempty(nullpos)
+        values{i} = str;
+    elseif nullpos == 1
+        values{i} = '';  % Return proper 0x0 empty string
     else
-        values = cell(count, 1);
+        values{i} = str(1:nullpos - 1);
     end
+end
 
-elseif typemarker == 'C' || typemarker == 'B'
-    values = cell(count, 1);
-    for i = 1:count
-        values{i} = char(fdata(i));
+%% -------------------------------------------------------------------------
+
+function values = decode_offset_string(fdata, finfo, count, opt)
+% Decode offset-table string field
+[cid, idxbytes] = gettypeinfo(finfo.idxtype, opt);
+fdata = swapbytes_array(fdata, idxbytes, count, opt.flipendian_);
+recindices = double(typecast(fdata, cid));
+offsets = finfo.offsets;
+strbuf = finfo.strbuf;
+values = cell(count, 1);
+for i = 1:count
+    idx = recindices(i);
+    spos = offsets(idx + 1) + 1;
+    epos = offsets(idx + 2);
+    if epos >= spos
+        values{i} = strbuf(spos:epos);
+    else
+        values{i} = '';
     end
-else
-    values = cell(count, 1);
 end

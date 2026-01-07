@@ -195,7 +195,7 @@ opt.ubjson = bitand(jsonopt('UBJSON', 0, opt), ~opt.messagepack);
 opt.keeptype = jsonopt('KeepType', 0, opt);
 opt.nosubstruct_ = 0;
 opt.soaformat = lower(jsonopt('SoAFormat', 'col', opt));
-opt.soathreshold = jsonopt('SoAStringThreshold', 0.5, opt);
+opt.soathreshold = jsonopt('SoAThreshold', 0.5, opt);
 opt.unpackhex = jsonopt('UnpackHex', 1, opt);
 opt.type2byte_ = struct('uint8', 1, 'int8', 1, 'int16', 2, 'uint16', 2, ...
                         'int32', 4, 'uint32', 4, 'int64', 8, 'uint64', 8, 'single', 4, 'double', 8, 'logical', 1);
@@ -532,11 +532,9 @@ for f = 1:nfields
 
     % Find first non-empty value to determine type
     val1 = [];
-    val1idx = 0;
     for r = 1:nrecords
         if (~isempty(allvals{r}))
             val1 = allvals{r};
-            val1idx = r;
             break
         end
     end
@@ -722,47 +720,47 @@ cansoa = true;
 
 %% -------------------------------------------------------------------------
 function [strtype, marker, meta] = soastrtype(allstrings, opt)
-% Determine string encoding type
 nrecords = length(allstrings);
 meta = struct('fixedlen', 0, 'dict', {{}}, 'offsettype', '');
 
-% Ensure all are char (convert [] to '')
+% Ensure all are char
 for i = 1:nrecords
     if isempty(allstrings{i}) || ~ischar(allstrings{i})
         allstrings{i} = '';
     end
 end
 
-uniquestrings = unique(allstrings);
+[nunique, idx] = unique(allstrings, 'first');
+uniquestrings = allstrings(sort(idx));
 nunique = length(uniquestrings);
 lens = cellfun(@length, allstrings);
 maxlen = max([lens, 0]);
+force_offset = (opt.soathreshold == 0);
 
-if (nunique / nrecords <= opt.soathreshold && nunique <= 65535)
-    % Dictionary encoding
+% Dictionary encoding
+if nunique / nrecords <= opt.soathreshold && nunique <= 65535 && ~force_offset
     strtype = 'dictstring';
     meta.dict = uniquestrings;
+    meta.offsettype = mininttype(nunique);
     marker = ['[$S#' I_(int32(nunique), opt)];
     for i = 1:nunique
-        marker = [marker 'S' I_(int32(length(uniquestrings{i})), opt) uniquestrings{i}];
+        marker = [marker I_(int32(length(uniquestrings{i})), opt) uniquestrings{i}];
     end
-    meta.offsettype = mininttype(nunique);
-elseif (maxlen <= 255 && maxlen > 0)
-    % Fixed-length encoding (only if maxlen > 0)
-    strtype = 'fixedstring';
-    meta.fixedlen = maxlen;
-    marker = ['S' I_(int32(maxlen), opt)];
-elseif (maxlen == 0)
-    % All strings are empty - use fixed length of 1 with null padding
-    strtype = 'fixedstring';
-    meta.fixedlen = 1;
-    marker = ['S' I_(int32(1), opt)];
-else
-    % Offset-table encoding
-    strtype = 'offsetstring';
-    meta.offsettype = mininttype(sum(lens));
-    marker = ['[$' meta.offsettype ']'];
+    return
 end
+
+% Fixed-length encoding
+if maxlen <= 255 && ~force_offset
+    strtype = 'fixedstring';
+    meta.fixedlen = max(maxlen, 1);  % minimum 1 for all-empty case
+    marker = ['S' I_(int32(meta.fixedlen), opt)];
+    return
+end
+
+% Offset-table encoding
+strtype = 'offsetstring';
+meta.offsettype = mininttype(sum(lens));
+marker = ['[$' meta.offsettype ']'];
 
 %% -------------------------------------------------------------------------
 function [payload, deferred] = soapayload(item, soainfo, istable, isrowmajor, opt)
@@ -782,7 +780,11 @@ for f = 1:nfields
         coldata = item{:, names{f}};
         if (~iscell(coldata))
             if (isnumeric(coldata) || islogical(coldata))
-                coldata = num2cell(coldata);
+                if strcmp(types{f}, 'fixedarray')
+                    coldata = num2cell(coldata, 2);  % Keep rows together
+                else
+                    coldata = num2cell(coldata);
+                end
             else
                 coldata = cellstr(coldata);
             end
@@ -811,11 +813,11 @@ for f = 1:nfields
                 bools(mat ~= 0) = 'T';
                 payloadparts{f} = reshape(bools', 1, []);
             else
-                mat = cast(mat', am.type);
+                mat = cast(mat, am.type);  % Remove the transpose here
                 if (opt.flipendian_)
                     mat = swapbytes(mat);
                 end
-                payloadparts{f} = char(typecast(mat(:)', 'uint8'));
+                payloadparts{f} = char(typecast(reshape(mat', 1, []), 'uint8'));  % Transpose and flatten in one step
             end
 
         case 'fixedstring'
@@ -844,7 +846,11 @@ for f = 1:nfields
             deferred{end + 1} = [offsetdata strbuf];
 
         case 'substruct'
-            [subpayload, subdeferred] = soapayload([coldata{:}]', substruct{f}, false, false, opt);
+            subdata = [coldata{:}]';
+            % Pass the same isrowmajor value to nested struct
+            % - Column-major outer -> column-major nested (for direct storage)
+            % - Row-major outer -> row-major nested (for interleave to work)
+            [subpayload, subdeferred] = soapayload(subdata, substruct{f}, false, isrowmajor, opt);
             payloadparts{f} = subpayload;
             deferred = [deferred subdeferred];
 
@@ -865,31 +871,24 @@ end
 
 %% -------------------------------------------------------------------------
 function coldata = fillempties(coldata, typename, arraymeta)
-% Replace [] with appropriate default value based on type
-if (nargin < 3)
+if nargin < 3
     arraymeta = [];
 end
 for i = 1:length(coldata)
-    val = coldata{i};
-    needsfix = isempty(val);
-    if needsfix
+    if isempty(coldata{i})
         switch typename
             case 'logical'
                 coldata{i} = false;
             case 'fixedarray'
-                if (strcmp(arraymeta.type, 'logical'))
+                if strcmp(arraymeta.type, 'logical')
                     coldata{i} = false(1, arraymeta.size);
                 else
                     coldata{i} = zeros(1, arraymeta.size, arraymeta.type);
                 end
             case {'fixedstring', 'dictstring', 'offsetstring', 'string'}
                 coldata{i} = '';
-            otherwise  % numeric
-                if (contains(typename, 'int'))
-                    coldata{i} = 0;
-                else
-                    coldata{i} = NaN;
-                end
+            otherwise
+                coldata{i} = 0;  % integers and floats default to 0
         end
     end
 end
@@ -898,29 +897,8 @@ end
 function payload = interleave(payloadparts, types, strmeta, substruct, arraymeta, nrecords, opt)
 nfields = length(types);
 bytesizes = zeros(1, nfields);
-
 for f = 1:nfields
-    switch types{f}
-        case 'logical'
-            bytesizes(f) = 1;
-        case 'fixedarray'
-            am = arraymeta{f};
-            if (strcmp(am.type, 'logical'))
-                bytesizes(f) = am.size;
-            else
-                bytesizes(f) = am.size * opt.type2byte_.(am.type);
-            end
-        case 'fixedstring'
-            bytesizes(f) = strmeta{f}.fixedlen;
-        case 'dictstring'
-            bytesizes(f) = opt.type2byte_.(typeformarker(strmeta{f}.offsettype));
-        case 'offsetstring'
-            bytesizes(f) = opt.type2byte_.(typeformarker(strmeta{f}.offsettype));
-        case 'substruct'
-            bytesizes(f) = calcstructsize(substruct{f}, opt);
-        otherwise
-            bytesizes(f) = opt.type2byte_.(types{f});
-    end
+    bytesizes(f) = getfieldbytes(types{f}, strmeta{f}, substruct{f}, arraymeta{f}, opt);
 end
 
 totalbytes = sum(bytesizes) * nrecords;
@@ -932,39 +910,40 @@ for r = 1:nrecords
         bsize = bytesizes(f);
         if bsize > 0
             srcstart = (r - 1) * bsize + 1;
-            srcend = srcstart + bsize - 1;
-            payload(pos:pos + bsize - 1) = payloadparts{f}(srcstart:srcend);
+            payload(pos:pos + bsize - 1) = payloadparts{f}(srcstart:srcstart + bsize - 1);
             pos = pos + bsize;
         end
     end
 end
 
 %% -------------------------------------------------------------------------
+function nbytes = getfieldbytes(typename, strmeta, substruct, arraymeta, opt)
+switch typename
+    case 'logical'
+        nbytes = 1;
+    case 'fixedarray'
+        am = arraymeta;
+        if strcmp(am.type, 'logical')
+            nbytes = am.size;
+        else
+            nbytes = am.size * opt.type2byte_.(am.type);
+        end
+    case 'fixedstring'
+        nbytes = strmeta.fixedlen;
+    case {'dictstring', 'offsetstring'}
+        nbytes = opt.type2byte_.(typeformarker(strmeta.offsettype));
+    case 'substruct'
+        nbytes = calcstructsize(substruct, opt);
+    otherwise
+        nbytes = opt.type2byte_.(typename);
+end
+
+%% -------------------------------------------------------------------------
 function nbytes = calcstructsize(soainfo, opt)
-% Calculate byte size of one record in embedded struct
 nbytes = 0;
 for f = 1:length(soainfo.types)
-    switch soainfo.types{f}
-        case 'logical'
-            nbytes = nbytes + 1;
-        case 'fixedarray'
-            am = soainfo.arraymeta{f};
-            if (strcmp(am.type, 'logical'))
-                nbytes = nbytes + am.size;
-            else
-                nbytes = nbytes + am.size * opt.type2byte_.(am.type);
-            end
-        case 'fixedstring'
-            nbytes = nbytes + soainfo.strmeta{f}.fixedlen;
-        case 'dictstring'
-            nbytes = nbytes + opt.type2byte_.(typeformarker(soainfo.strmeta{f}.offsettype));
-        case 'offsetstring'
-            nbytes = nbytes + opt.type2byte_.(typeformarker(soainfo.strmeta{f}.offsettype));
-        case 'substruct'
-            nbytes = nbytes + calcstructsize(soainfo.substruct{f}, opt);
-        otherwise
-            nbytes = nbytes + opt.type2byte_.(soainfo.types{f});
-    end
+    nbytes = nbytes + getfieldbytes(soainfo.types{f}, soainfo.strmeta{f}, ...
+                                    soainfo.substruct{f}, soainfo.arraymeta{f}, opt);
 end
 
 %% -------------------------------------------------------------------------
@@ -1113,29 +1092,19 @@ bytes = char(typecast(data(:)', 'uint8'));
 
 %% -------------------------------------------------------------------------
 function [offsetdata, strbuf] = buildoffsettable(coldata, offsettype, opt)
-% Build offset table and string buffer
 nrecords = length(coldata);
-offsets = zeros(1, nrecords + 1);
-strbuf = '';
-for r = 1:nrecords
-    offsets(r) = length(strbuf);
-    strbuf = [strbuf coldata{r}];
-end
-offsets(nrecords + 1) = length(strbuf);
+lens = cellfun(@length, coldata);
+offsets = [0, cumsum(lens)];
+strbuf = [coldata{:}];
 offsetdata = intbytes(offsets, offsettype, opt);
 
 %% -------------------------------------------------------------------------
 function typename = typeformarker(marker)
-% Get type name for integer marker
-switch marker
-    case 'U'
-        typename = 'uint8';
-    case 'u'
-        typename = 'uint16';
-    case 'm'
-        typename = 'uint32';
-    otherwise
-        typename = 'uint64';
+types = struct('U', 'uint8', 'u', 'uint16', 'm', 'uint32', 'M', 'uint64');
+if isfield(types, marker)
+    typename = types.(marker);
+else
+    typename = 'uint64';
 end
 
 %% -------------------------------------------------------------------------
