@@ -107,10 +107,8 @@ elseif (all(fname < 128) && ~isempty(regexpi(fname, '^\s*(http|https|ftp|file):/
     else
         inputstr = urlread(fname);
     end
-elseif (~isempty(fname) && any(fname(1) == '[{SCBHiUIulmLMhdDTFZN'))
-    inputstr = fname;
 else
-    error('input file does not exist or buffer is invalid');
+    inputstr = fname;
 end
 
 inputlen = length(inputstr);
@@ -192,7 +190,7 @@ while pos <= inputlen
             else
                 [data{jsoncount}, pos] = parse_array(pos, opt);
             end
-        case {'S', 'C', 'B', 'H', 'i', 'U', 'I', 'u', 'l', 'm', 'L', 'M', 'h', 'd', 'D', 'T', 'F', 'Z', 'N'}
+        case {'S', 'C', 'B', 'H', 'i', 'U', 'I', 'u', 'l', 'm', 'L', 'M', 'h', 'd', 'D', 'T', 'F', 'Z', 'N', 'E'}
             [data{jsoncount}, pos] = parse_value(pos, [], opt);
         otherwise
             error_pos('Root level structure must start with a valid marker "{[SCBHiUIulmLMhdDTFZN"', opt, pos);
@@ -639,6 +637,8 @@ switch cc
         end
         val = [];
         pos = pos + 1;
+    case 'E'
+        [val, pos] = parse_extension(pos, opt);
     otherwise
         error_pos('Value expected at position %d', opt, pos);
 end
@@ -1161,4 +1161,74 @@ for i = 1:count
     else
         values{i} = '';
     end
+end
+
+%% -------------------------------------------------------------------------
+
+function [val, pos] = parse_extension(pos, opt)
+% Parse BJData Extension: [E][type-id][byte-length][payload]
+pos = pos + 1;
+[typeid, pos] = parse_number(pos, opt);
+[bytelen, pos] = parse_number(pos, opt);
+typeid = double(typeid);
+bytelen = double(bytelen);
+
+if bytelen > 0
+    payload = uint8(opt.inputstr_(pos:pos + bytelen - 1));
+    pos = pos + bytelen;
+else
+    payload = uint8([]);
+end
+
+% Swap bytes for Little-Endian (UUID excluded - Big-Endian per RFC 4122)
+doswap = opt.flipendian_ && typeid ~= 10;
+sw = @(d) d(end:-1:1);  % byte reversal helper
+
+switch typeid
+    case 1  % epoch_s: uint32
+        if doswap
+            payload = sw(payload);
+        end
+        val = datetime(double(typecast(payload, 'uint32')), 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+    case {2, 6}  % epoch_us, datetime_us: int64
+        if doswap
+            payload = sw(payload);
+        end
+        val = datetime(double(typecast(payload, 'int64')) / 1e6, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+    case 3  % epoch_ns: int64 + uint32
+        if doswap
+            payload = [sw(payload(1:8)), sw(payload(9:12))];
+        end
+        val = datetime(double(typecast(payload(1:8), 'int64')) + double(typecast(payload(9:12), 'uint32')) / 1e9, ...
+                       'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+    case 4  % date: int16 + 2*uint8
+        if doswap
+            payload(1:2) = sw(payload(1:2));
+        end
+        val = datetime(double(typecast(payload(1:2), 'int16')), double(payload(3)), double(payload(4)));
+    case 5  % time_s: 3*uint8 + reserved
+        val = duration(double(payload(1)), double(payload(2)), double(payload(3)));
+    case 7  % timedelta_us: int64
+        if doswap
+            payload = sw(payload);
+        end
+        val = duration(0, 0, double(typecast(payload, 'int64')) / 1e6);
+    case 8  % complex64: 2*float32
+        if doswap
+            payload = [sw(payload(1:4)), sw(payload(5:8))];
+        end
+        p = typecast(payload, 'single');
+        val = complex(double(p(1)), double(p(2)));
+    case 9  % complex128: 2*float64
+        if doswap
+            payload = [sw(payload(1:8)), sw(payload(9:16))];
+        end
+        p = typecast(payload, 'double');
+        val = complex(p(1), p(2));
+    case 10 % uuid: 16 bytes Big-Endian
+        h = lower(reshape(dec2hex(payload, 2)', 1, []));
+        val = jdict([h(1:8) '-' h(9:12) '-' h(13:16) '-' h(17:20) '-' h(21:32)], ...
+                    'schema', struct('type', 'string', 'format', 'uuid'));
+    otherwise % unknown extension
+        val = jdict(payload, 'schema', struct('type', 'bytes', 'exttype', int32(typeid)));
 end

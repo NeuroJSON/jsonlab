@@ -3,7 +3,7 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test
 %   or
 % run_jsonlab_test(tests)
-% run_jsonlab_test({'js','jso','bj','bjo','bjsoa','bjsoastr','bjsoaadv','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray','schema','jdictadv','schemaadv'})
+% run_jsonlab_test({'js','jso','bj','bjo','bjsoa','bjsoastr','bjsoaadv','bjext','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray','schema','jdictadv','schemaadv'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -19,6 +19,7 @@ function run_jsonlab_test(tests)
 %         'bjsoa': test savebj/loadbj handling of structure-of-array (bjdata draft 4)
 %         'bjsoastr': structure-of-array (bjdata draft 4) variable length string
 %         'bjsoaadv': advanced structure-of-array (bjdata draft 4) tests
+%         'bjext': bjdata extension types
 %         'jmap': test jsonmmap features in loadjson
 %         'bmap': test jsonmmap features in loadbj
 %         'jpath': test jsonpath
@@ -749,49 +750,6 @@ end
 % Verified against BJData Draft-4 Specification
 %% =========================================================================
 
-%% PART 1: VERIFICATION OF EXISTING TESTS
-%% =========================================================================
-%
-% BJSOA TESTS - All verified CORRECT per spec:
-% - Column-major uses {$ marker, row-major uses [$
-% - Schema: {<name_len><name><type>...}
-% - Payload follows schema field order
-% - 2D arrays use [dim1 dim2] count format
-%
-% BJSOASTR TESTS - Issues found:
-%
-% 1. "SOA fixed string col-major same len" - CORRECT
-%    Schema: {U<4>codeSU<5>} means field "code" (4 chars), fixed string len 5
-%
-% 2. "SOA fixed string col-major diff len" - CORRECT
-%    Null padding for shorter strings
-%
-% 3. "SOA dict string col-major" - CORRECT
-%    Dictionary: [$S#U<2>U<6>activeU<8>inactive means 2 strings in dict
-%    Indices are uint8 (U) since dict size <= 255
-%
-% 4. "SOA fixed string with logical (ratio > threshold)" - CORRECT
-%    2/3 = 0.67 > 0.5 threshold, uses fixed-length
-%    Payload: TFT + "yes" + "no\0" + "yes" = "TFTyesno\0yes"
-%
-% 5. "SOA offset string col-major" - VERIFY OFFSET TABLE FORMAT
-%    Per spec: offset table has N+1 entries [0, end1, end2, ..., endN]
-%    For 3 strings: "short"(5), "a very long description"(23), "mid"(3)
-%    Offsets: [0, 5, 28, 31] - 4 values for 3 records - CORRECT
-%
-% 6. "SOA scalar double (typecast)" - CORRECT
-%    typecast(uint8('ABCDEFGH'),'double') = 1 double, marker is D not [DDD]
-%
-% 7. "SOA fixed array uint8 2-elem" - CORRECT
-%    uint8('ab') = [97,98] is 2-element array, marker is [UU]
-%
-% 8. "SOA nested struct with string (col-major)" - CORRECT
-%    Column-major nested: outer fields first, inner fields recursively column-major
-%    id(A,B) + info.name(AB,CD) + info.val(X,Y) = ABABCDXY
-
-%% PART 2: MISSING EDGE CASES - ADDITIONAL TESTS
-%% =========================================================================
-
 if (ismember('bjsoaadv', tests) && hasContainersMap)
     fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
     fprintf('Additional SOA Tests - Edge Cases and loadbj verification\n');
@@ -1289,6 +1247,115 @@ if (ismember('bjsoaadv', tests) && hasContainersMap)
     test_jsonlab('SOA fixed array payload', @savebj, ...
                  struct('arr', {uint8('ABC'), uint8('DEF')}), ...
                  '{${U<3>arr[UUU]}#U<2>ABCDEF', 'debug', 1);
+
+end
+
+%%
+if (ismember('bjext', tests))
+    % complex128 (type 9): 2x float64
+    test_jsonlab('complex128 scalar', @savebj, 3.0 + 4.0i, ...
+                 '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><1><1>U<16>_ArrayIsComplex_TU<11>_ArrayData_[$U#[$U#U<2><2><1><3><4>}', 'debug', 1);
+
+    % complex128 array
+    test_jsonlab('complex128 array', @savebj, [1 + 2i, 3 + 4i], ...
+                 '{U<11>_ArrayType_SU<6>doubleU<11>_ArraySize_[$U#U<2><1><2>U<16>_ArrayIsComplex_TU<11>_ArrayData_[$U#[$U#U<2><2><2><1><3><2><4>}', 'debug', 1);
+
+    % complex64 (type 8): 2x float32
+    test_jsonlab('complex64 scalar', @savebj, single(3.0 + 4.0i), ...
+                 '{U<11>_ArrayType_SU<6>singleU<11>_ArraySize_[$U#U<2><1><1>U<16>_ArrayIsComplex_TU<11>_ArrayData_[$U#[$U#U<2><2><1><3><4>}', 'debug', 1);
+
+    % complex64 array
+    test_jsonlab('complex64 array', @savebj, single([1 + 2i, 3 + 4i]), ...
+                 '{U<11>_ArrayType_SU<6>singleU<11>_ArraySize_[$U#U<2><1><2>U<16>_ArrayIsComplex_TU<11>_ArrayData_[$U#[$U#U<2><2><2><1><3><2><4>}', 'debug', 1);
+
+    % uuid (type 10): 16 bytes Big-Endian
+    test_jsonlab('uuid', @savebj, struct('uuid', '550e8400-e29b-41d4-a716-446655440000', ...
+                                         'x0x5F_schema_', struct('type', 'string', 'format', 'uuid')), ...
+                 ['EU<10>U<16>' char([85 14 132 0 226 155 65 212 167 22 68 102 85 68 0 0])], 'debug', 1);
+
+    % unknown extension round-trip (type 200)
+    test_jsonlab('raw extension', @savebj, struct('x0x5F_ByteData_', uint8([1, 2, 3, 4]), 'x0x5F_ExtType_', int32(200)), ...
+                 ['Em' char([200 0 0 0]) 'm' char([4 0 0 0 1 2 3 4])], 'debug', 1);
+
+    if exist('datetime', 'class')
+        % datetime - epoch_s (type 1): uint32 seconds since epoch
+        test_jsonlab('datetime epoch_s', @savebj, datetime(1705315800, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC'), ...
+                     ['EU<1>U<4>' char(typecast(uint32(1705315800), 'uint8'))], 'debug', 1);
+
+        % datetime - epoch_us (type 2): int64 microseconds, for negative or >uint32 range
+        test_jsonlab('datetime epoch_us negative', @savebj, datetime(-1000, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC'), ...
+                     ['EU<2>U<8>' char(typecast(int64(-1000000000), 'uint8'))], 'debug', 1);
+
+        % datetime - date only (type 4): int16 year + uint8 month + uint8 day
+        test_jsonlab('datetime date only', @savebj, datetime(2024, 1, 15), ...
+                     ['EU<4>U<4>' char([typecast(int16(2024), 'uint8') 1 15])], 'debug', 1);
+
+        % datetime - datetime_us (type 6): int64 microseconds with sub-second precision
+        test_jsonlab('datetime with subsec', @savebj, datetime(1705315800.123456, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC'), ...
+                     ['EU<6>U<8>' char(typecast(int64(1705315800123456), 'uint8'))], 'debug', 1);
+
+        % datetime array
+        test_jsonlab('datetime array', @savebj, [datetime(2024, 1, 15), datetime(2024, 1, 16)], ...
+                     ['[EU<4>U<4>' char([typecast(int16(2024), 'uint8') 1 15]) ...
+                      'EU<4>U<4>' char([typecast(int16(2024), 'uint8') 1 16]) ']'], 'debug', 1);
+
+        % datetime NaT -> null
+        test_jsonlab('datetime NaT', @savebj, NaT, 'Z', 'debug', 1);
+    end
+
+    if exist('duration', 'class')
+        % duration - timedelta_us (type 7): int64 microseconds
+        test_jsonlab('duration simple', @savebj, duration(1, 30, 45), ...
+                     ['EU<7>U<8>' char(typecast(int64(5445000000), 'uint8'))], 'debug', 1);
+
+        % duration with subsec
+        test_jsonlab('duration subsec', @savebj, duration(0, 0, 1.5), ...
+                     ['EU<7>U<8>' char(typecast(int64(1500000), 'uint8'))], 'debug', 1);
+
+        % duration array
+        test_jsonlab('duration array', @savebj, [duration(1, 0, 0), duration(2, 0, 0)], ...
+                     ['[EU<7>U<8>' char(typecast(int64(3600000000), 'uint8')) ...
+                      'EU<7>U<8>' char(typecast(int64(7200000000), 'uint8')) ']'], 'debug', 1);
+
+        % duration NaN -> null
+        test_jsonlab('duration NaN', @savebj, duration(NaN, NaN, NaN), 'Z', 'debug', 1);
+    end
+
+    if exist('datetime', 'class') && exist('duration', 'class')
+        % struct containing extension types
+        test_jsonlab('struct with extensions', @savebj, struct('dt', datetime(2024, 1, 15), 'dur', duration(1, 0, 0)), ...
+                     ['{U<2>dtEU<4>U<4>' char([typecast(int16(2024), 'uint8') 1 15]) ...
+                      'U<3>durEU<7>U<8>' char(typecast(int64(3600000000), 'uint8')) '}'], 'debug', 1);
+    end
+
+    %% =========================================================================
+    %% ROUND-TRIP TESTS - Extension Types
+    %% =========================================================================
+
+    % uuid round-trip
+    % u = struct('uuid', '550e8400-e29b-41d4-a716-446655440000', ...
+    %            'x0x5F_schema_', struct('type', 'string', 'format', 'uuid'));
+    % test_jsonlab('uuid round-trip', @(x) strcmp(loadbj(savebj('',x)).uuid, x.uuid), u, true);
+
+    % raw extension round-trip
+    % raw = struct('x0x5F_ByteData_', uint8([1,2,3,4]), 'x0x5F_ExtType_', int32(200));
+    % test_jsonlab('raw ext round-trip', @(x) isequal(loadbj(savebj('',x)).x0x5F_ByteData_, x.x0x5F_ByteData_), raw, true);
+
+    if exist('datetime', 'class')
+        % datetime round-trips
+        dt = datetime(1705315800.123456, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+        test_jsonlab('datetime round-trip', @(x) abs(posixtime(loadbj(savebj('', x))) - posixtime(x)) < 1e-6, dt, true);
+
+        d = datetime(2024, 1, 15);
+        test_jsonlab('date round-trip', @(x) isequal([year(x) month(x) day(x)], ...
+                                                     [year(loadbj(savebj('', x))) month(loadbj(savebj('', x))) day(loadbj(savebj('', x)))]), d, true);
+    end
+
+    if exist('duration', 'class')
+        % duration round-trips
+        dur = duration(5, 30, 15.5);
+        test_jsonlab('duration round-trip', @(x) abs(seconds(loadbj(savebj('', x))) - seconds(x)) < 1e-6, dur, true);
+    end
 
 end
 

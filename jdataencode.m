@@ -45,6 +45,7 @@ function jdata = jdataencode(data, varargin)
 %                  toeplitz, and use _ArrayShape_ to encode the matrix
 %         MapAsStruct: [0|1] if set to 1, convert containers.Map into
 %                  struct; otherwise, keep it as map
+%         DateTime: [1|0] if set to 1, convert datetime to string
 %         Compression: ['zlib'|'gzip','lzma','lz4','lz4hc'] - use zlib method
 %                  to compress data array
 %         CompressArraySize: [300|int]: only to compress an array if the
@@ -93,6 +94,7 @@ opt.usearrayzipsize = jsonopt('UseArrayZipSize', 1, opt);
 opt.messagepack = jsonopt('MessagePack', 0, opt);
 opt.usearrayshape = jsonopt('UseArrayShape', 0, opt) && exist('bandwidth');
 opt.annotatearray = jsonopt('AnnotateArray', 0, opt);
+opt.datetime = jsonopt('DateTime', 1, opt);
 
 % Performance optimization: pre-compute prefixed field names to avoid
 % repeated string concatenation in hot loops
@@ -467,6 +469,10 @@ end
 
 %% -------------------------------------------------------------------------
 function newitem = matlabobject2jd(item, opt)
+if (~opt.datetime && (isa(item, 'datetime') || isa(item, 'duration')))
+    newitem = item;
+    return
+end
 try
     if numel(item) == 0 % empty object
         newitem = struct();

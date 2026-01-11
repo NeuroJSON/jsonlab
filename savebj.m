@@ -243,13 +243,13 @@ end
 skippreencode = false;
 if (opt.formatversion >= 4 && ~opt.messagepack && ~opt.ubjson)
     if (isa(obj, 'table') && size(obj, 1) > 1)
-        [cansoa, ~] = table2soa(obj, opt);
+        cansoa = table2soa(obj, opt);
         skippreencode = cansoa;
     end
 end
 
 if (~skippreencode && jsonopt('PreEncode', 1, opt))
-    obj = jdataencode(obj, 'Base64', 0, 'UseArrayZipSize', opt.messagepack, opt);
+    obj = jdataencode(obj, 'Base64', 0, 'UseArrayZipSize', opt.messagepack, 'DateTime', 0, opt);
 end
 
 dozip = opt.compression;
@@ -321,6 +321,12 @@ elseif (isstruct(item))
     txt = struct2ubjson(name, item, level, opt);
 elseif (isnumeric(item) || islogical(item))
     txt = mat2ubjson(name, item, level, opt);
+elseif (isa(item, 'datetime'))
+    txt = ext2ubjson(name, item, 'datetime', opt);
+elseif (isa(item, 'duration'))
+    txt = ext2ubjson(name, item, 'duration', opt);
+elseif (isa(item, 'jdict'))
+    txt = jdict2ubjson(name, item, level, opt);
 elseif (ischar(item))
     if (numel(item) >= opt.compressstringsize)
         txt = mat2ubjson(name, item, level, opt);
@@ -339,6 +345,8 @@ elseif (isa(item, 'graph') || isa(item, 'digraph'))
     txt = struct2ubjson(name, jdataencode(item), level, opt);
 elseif (isobject(item))
     txt = matlabobject2ubjson(name, item, level, opt);
+elseif (~isreal(item) && isnumeric(item))
+    txt = ext2ubjson(name, item, 'complex', opt);
 else
     txt = any2ubjson(name, item, level, opt);
 end
@@ -1743,4 +1751,131 @@ if (opt.flipendian_)
     newdata = swapbytes(data);
 else
     newdata = data;
+end
+
+%% -------------------------------------------------------------------------
+function txt = ext2ubjson(name, item, dtype, opt)
+% Unified extension encoder for datetime, duration, complex
+if opt.messagepack || opt.ubjson
+    switch dtype
+        case 'datetime'
+            txt = str2ubjson(name, char(item), 0, opt);
+        case 'duration'
+            txt = mat2ubjson(name, seconds(item), 0, opt);
+        case 'complex'
+            txt = struct2ubjson(name, struct('re', real(item), 'im', imag(item)), 0, opt);
+    end
+    return
+end
+
+if numel(item) > 1
+    parts = cell(1, numel(item) + 2);
+    parts{1} = opt.AM_{1};
+    for i = 1:numel(item)
+        parts{i + 1} = encode_ext_scalar(item(i), dtype, opt);
+    end
+    parts{end} = opt.AM_{2};
+    txt = [parts{:}];
+else
+    txt = encode_ext_scalar(item, dtype, opt);
+end
+if ~isempty(name)
+    txt = [N_(decodevarname(name, opt.unpackhex), opt) txt];
+end
+
+%% -------------------------------------------------------------------------
+function txt = encode_ext_scalar(val, dtype, opt)
+% Unified encoder for datetime, duration, complex scalars
+% Returns 'Z' for NaT/NaN, otherwise [E][typeid][len][payload]
+switch dtype
+    case 'datetime'
+        if isnat(val)
+            txt = opt.ZM_;
+            return
+        end
+        tz = val.TimeZone;
+        if isempty(tz)
+            val.TimeZone = 'UTC';
+        end
+        pt = posixtime(val);
+        hasTime = hour(val) || minute(val) || second(val);
+        if ~hasTime && isempty(tz)
+            typeid = 4;
+            payload = [typecast(int16(year(val)), 'uint8'), uint8([month(val), day(val)])];
+        elseif mod(second(val), 1) ~= 0 || pt < 0 || pt > 4294967295
+            typeid = 6;
+            payload = typecast(int64(round(pt * 1e6)), 'uint8');
+        else
+            typeid = 1;
+            payload = typecast(uint32(pt), 'uint8');
+        end
+    case 'duration'
+        if isnan(val)
+            txt = opt.ZM_;
+            return
+        end
+        typeid = 7;
+        payload = typecast(int64(round(seconds(val) * 1e6)), 'uint8');
+    case 'complex'
+        if isa(val, 'single')
+            typeid = 8;
+            payload = [typecast(single(real(val)), 'uint8'), typecast(single(imag(val)), 'uint8')];
+        else
+            typeid = 9;
+            payload = [typecast(double(real(val)), 'uint8'), typecast(double(imag(val)), 'uint8')];
+        end
+end
+% Apply endian swap based on typeid
+if opt.flipendian_
+    n = length(payload);
+    if typeid == 4  % date: only swap first 2 bytes (int16)
+        payload(1:2) = payload(2:-1:1);
+    elseif typeid == 8  % complex64: swap two 4-byte floats
+        payload = [payload(4:-1:1), payload(8:-1:5)];
+    elseif typeid == 9  % complex128: swap two 8-byte floats
+        payload = [payload(8:-1:1), payload(16:-1:9)];
+    elseif n > 1  % all others: simple reversal
+        payload = payload(n:-1:1);
+    end
+end
+txt = ['E' I_(uint8(typeid), opt) I_(uint8(length(payload)), opt) char(payload)];
+
+%% -------------------------------------------------------------------------
+function txt = jdict2ubjson(name, item, level, opt)
+% Handle jdict objects - check schema for special types
+if ~isa(item, 'jdict')
+    txt = struct2ubjson(name, item, level, opt);
+    return
+end
+s = item.schema;
+if item.getattr('$', '') && strcmp(s.format, 'uuid')
+    % UUID string
+    if opt.messagepack || opt.ubjson
+        txt = str2ubjson(name, char(item), level, opt);
+        return
+    end
+    uuidstr = char(item);
+    hexstr = strrep(uuidstr, '-', '');
+    payload = uint8(zeros(1, 16));
+    for i = 1:16
+        payload(i) = hex2dec(hexstr(2 * i - 1:2 * i));
+    end
+    txt = ['E' I_(uint8(10), opt) I_(uint8(16), opt) char(payload)];
+    if ~isempty(name)
+        txt = [N_(decodevarname(name, opt.unpackhex), opt) txt];
+    end
+elseif isfield(s, 'type') && strcmp(s.type, 'bytes')
+    % Raw extension bytes
+    payload = uint8(item.data);
+    typeid = uint32(0);
+    if isfield(s, 'exttype')
+        typeid = uint32(s.exttype);
+    end
+    txt = ['E' I_(typeid, opt) I_(uint32(length(payload)), opt) char(payload)];
+    if ~isempty(name)
+        txt = [N_(decodevarname(name, opt.unpackhex), opt) txt];
+    end
+else
+    % Generic jdict - encode as struct
+    txt = struct2ubjson(name, struct(item), level, opt);
 end
