@@ -249,7 +249,7 @@ if (opt.formatversion >= 4 && ~opt.messagepack && ~opt.ubjson)
 end
 
 if (~skippreencode && jsonopt('PreEncode', 1, opt))
-    obj = jdataencode(obj, 'Base64', 0, 'UseArrayZipSize', opt.messagepack, 'DateTime', 0, opt);
+    obj = jdataencode(obj, 'Base64', 0, 'UseArrayZipSize', opt.messagepack, 'DateTime', (opt.formatversion < 4), opt);
 end
 
 dozip = opt.compression;
@@ -325,8 +325,12 @@ elseif (isa(item, 'datetime'))
     txt = ext2ubjson(name, item, 'datetime', opt);
 elseif (isa(item, 'duration'))
     txt = ext2ubjson(name, item, 'duration', opt);
-elseif (isa(item, 'jdict') && ~isempty(item{'kind'}))
-    txt = jdict2ubjson(name, item, level, opt);
+elseif (isa(item, 'jdict'))
+    if (~isempty(item{'kind'}))
+        txt = jdict2ubjson(name, item, level, opt);
+    else
+        txt = obj2ubjson(name, item(), level, opt);
+    end
 elseif (ischar(item))
     if (numel(item) >= opt.compressstringsize)
         txt = mat2ubjson(name, item, level, opt);
@@ -1855,11 +1859,15 @@ if ~isempty(datakind) && strcmp(datakind, 'uuid')
         return
     end
     d = item.v();
-    shifts = uint64([24 16 8 0 8 0 8 0 8 0 40 32 24 16 8 0]);
-    vals = uint64([d.time_low d.time_low d.time_low d.time_low ...
-                   d.time_mid d.time_mid d.time_high d.time_high ...
-                   d.clock_seq d.clock_seq d.node d.node d.node d.node d.node d.node]);
-    payload = uint8(bitand(bitshift(vals, -shifts), 255));
+    payload = uint8([ ...
+                     bitshift(d.time_low, -24), bitand(bitshift(d.time_low, -16), 255), ...
+                     bitand(bitshift(d.time_low, -8), 255), bitand(d.time_low, 255), ...
+                     bitshift(d.time_mid, -8), bitand(d.time_mid, 255), ...
+                     bitshift(d.time_high, -8), bitand(d.time_high, 255), ...
+                     bitshift(d.clock_seq, -8), bitand(d.clock_seq, 255), ...
+                     bitshift(d.node, -40), bitand(bitshift(d.node, -32), 255), ...
+                     bitand(bitshift(d.node, -24), 255), bitand(bitshift(d.node, -16), 255), ...
+                     bitand(bitshift(d.node, -8), 255), bitand(d.node, 255)]);
     txt = ['E' I_(uint8(10), opt) I_(uint8(16), opt) char(payload)];
     if ~isempty(name)
         txt = [N_(decodevarname(name, opt.unpackhex), opt) txt];
@@ -1868,8 +1876,9 @@ elseif ~isempty(datakind) && strcmp(datakind, 'bytes')
     % Raw extension bytes
     payload = uint8(item.v());
     typeid = uint32(0);
-    if isfield(s, 'exttype')
-        typeid = uint32(s.exttype);
+    exttype = item{'exttype'};
+    if ~isempty(exttype)
+        typeid = uint32(exttype);
     end
     txt = ['E' I_(typeid, opt) I_(uint32(length(payload)), opt) char(payload)];
     if ~isempty(name)

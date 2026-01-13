@@ -121,11 +121,13 @@ jdata = obj2jd(data, opt);
 
 %% -------------------------------------------------------------------------
 function newitem = obj2jd(item, opt)
-
+newitem = item;
 if (iscell(item))
     newitem = cell2jd(item, opt);
 elseif (isa(item, 'jdict'))
-    newitem = obj2jd(item(), opt);
+    if (isempty(item{'kind'}))
+        newitem = obj2jd(item(), opt);
+    end
 elseif (isstruct(item))
     newitem = struct2jd(item, opt);
 elseif (isnumeric(item) || islogical(item) || isa(item, 'timeseries'))
@@ -144,11 +146,9 @@ elseif (isa(item, 'digraph') || isa(item, 'graph'))
     newitem = graph2jd(item, opt);
 elseif (isobject(item))
     newitem = matlabobject2jd(item, opt);
-else
-    newitem = item;
 end
 
-if (isa(item, 'jdict'))  % apply attribute
+if (isa(item, 'jdict') && isempty(item{'kind'}))  % apply attribute
     attrpath = item.getattr();
     if (isempty(attrpath))
         return
