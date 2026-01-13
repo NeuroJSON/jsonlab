@@ -178,6 +178,7 @@ classdef jdict < handle
             obj.schema = [];
             obj.currentpath__ = char(36);
             obj.root__ = obj;
+            kindval = '';
             if (nargin >= 1)
                 if (~isempty(varargin))
                     allflags = [varargin(1:2:end); varargin(2:2:end)];
@@ -187,6 +188,9 @@ classdef jdict < handle
                     end
                     if (isfield(obj.flags__, 'schema'))
                         obj.schema = obj.flags__.schema;
+                    end
+                    if (isfield(obj.flags__, 'kind'))
+                        kindval = obj.flags__.kind;
                     end
                 end
                 if (ischar(val) && ~isempty(regexpi(val, '^https*://', 'once')))
@@ -206,6 +210,16 @@ classdef jdict < handle
                 else
                     obj.data = val;
                 end
+            end
+            % apply kind schema
+            if ~isempty(kindval)
+                kindschema = getkindschema_(kindval);
+                if ~isempty(kindschema)
+                    obj.setschema(kindschema);
+                elseif isempty(obj.schema)
+                    error('Unknown kind "%s" and no schema defined. Use: uuid, date, time, datetime, ipv4, ipv6, email, uri, posint, nonnegative', kindval);
+                end
+                obj.setattr(char(36), 'kind', kindval);
             end
         end
 
@@ -237,9 +251,18 @@ classdef jdict < handle
             trackpath = obj.currentpath__;
 
             if (oplen == 1 && strcmp(idxkey(1).type, '()') && isempty(idxkey(1).subs))
+                kindval = obj.getattr(char(36), 'kind');
+                if ~isempty(kindval) && isstruct(val)
+                    formatted = formatkind_(kindval, val);
+                    if ~isempty(formatted)
+                        varargout{1} = formatted;
+                        return
+                    end
+                end
                 varargout{1} = val;
                 return
             end
+
             i = 1;
             while i <= oplen
                 idx = idxkey(i);
@@ -509,6 +532,15 @@ classdef jdict < handle
                 fieldname = idxkey(1).subs;
                 % Skip if JSONPath
                 if (isempty(fieldname) || fieldname(1) ~= char(36))
+                    % validate if kind is set
+                    kindval = obj.getattr(char(36), 'kind');
+                    if ~isempty(obj.schema) && ~isempty(kindval)
+                        targetpath = [obj.currentpath__ '.' esckey_(fieldname)];
+                        tempobj = jdict();
+                        tempobj.schema = obj.schema;
+                        tempobj.currentpath__ = targetpath;
+                        le(tempobj, otherobj);
+                    end
                     if (isempty(obj.data))
                         obj.data = struct();
                     end
@@ -536,6 +568,15 @@ classdef jdict < handle
 
             % Fast path: single numeric index like jd.(1) = value
             if (oplen == 1 && strcmp(idxkey(1).type, '.') && isnumeric(idxkey(1).subs))
+                % validate if kind is set
+                kindval = obj.getattr(char(36), 'kind');
+                if ~isempty(obj.schema) && ~isempty(kindval)
+                    targetpath = [obj.currentpath__ '[' num2str(idxkey(1).subs - 1) ']'];
+                    tempobj = jdict();
+                    tempobj.schema = obj.schema;
+                    tempobj.currentpath__ = targetpath;
+                    le(tempobj, otherobj);
+                end
                 newidx = idxkey(1).subs;
                 if isstruct(obj.data) && isstruct(otherobj)
                     fnames = fieldnames(obj.data);
@@ -658,8 +699,18 @@ classdef jdict < handle
                 end
             end
 
+            % check if kind-validation is needed
+            kindval = obj.getattr(char(36), 'kind');
+            needvalidate = ~isempty(obj.schema) && ~isempty(kindval);
+
             if (oplen >= 2 && ischar(idxkey(oplen - 1).subs) && strcmp(idxkey(oplen - 1).subs, 'v') && strcmp(idxkey(oplen).type, '()'))
                 % Handle .v(index) = value at any depth
+                if needvalidate
+                    tempobj = jdict();
+                    tempobj.schema = obj.schema;
+                    tempobj.currentpath__ = buildpath_(obj.currentpath__, idxkey, oplen);
+                    le(tempobj, otherobj);
+                end
                 nextsubs = idxkey(oplen).subs;
                 if iscell(nextsubs)
                     nextsubs = nextsubs{1};
@@ -674,9 +725,21 @@ classdef jdict < handle
                 end
                 opcell{oplen + 1} = opcell{oplen};
             elseif (obj.flags__.isoctave_) && (ismap_(obj.flags__, opcell{oplen}))
+                if needvalidate
+                    tempobj = jdict();
+                    tempobj.schema = obj.schema;
+                    tempobj.currentpath__ = buildpath_(obj.currentpath__, idxkey, oplen);
+                    le(tempobj, otherobj);
+                end
                 opcell{oplen}(idx.subs) = otherobj;
                 opcell{oplen + 1} = opcell{oplen};
             else
+                if needvalidate
+                    tempobj = jdict();
+                    tempobj.schema = obj.schema;
+                    tempobj.currentpath__ = buildpath_(obj.currentpath__, idxkey, oplen);
+                    le(tempobj, otherobj);
+                end
                 if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
                     opcell{oplen + 1} = obj.call_('jsonpath', opcell{oplen}, idx.subs, otherobj);
                 else
@@ -1207,4 +1270,115 @@ end
 % escape dots in key for JSONPath
 function escaped = esckey_(key)
     escaped = regexprep(key, '(?<=[^\\]|^)\.', '\\.');
+end
+
+% predefined schemas for known kinds
+function schema = getkindschema_(kind)
+    switch lower(kind)
+        case 'bytes'
+            schema = struct('type', 'array', 'items', struct('type', 'integer', 'minimum', 0, 'maximum', 255));
+        case 'uuid'
+            schema = struct('type', 'object', ...
+                            'properties', struct( ...
+                                                 'time_low', struct('type', 'integer', 'minimum', 0, 'maximum', 4294967295), ...       % 32-bit
+                                                 'time_mid', struct('type', 'integer', 'minimum', 0, 'maximum', 65535), ...            % 16-bit
+                                                 'time_high', struct('type', 'integer', 'minimum', 0, 'maximum', 65535), ...           % 16-bit
+                                                 'clock_seq', struct('type', 'integer', 'minimum', 0, 'maximum', 65535), ...           % 16-bit
+                                                 'node', struct('type', 'integer', 'minimum', 0, 'maximum', 281474976710655)), ...     % 48-bit
+                            'required', {{'time_low', 'time_mid', 'time_high', 'clock_seq', 'node'}});
+        case 'date'
+            schema = struct('type', 'object', ...
+                            'properties', struct( ...
+                                                 'year', struct('type', 'integer', 'minimum', 1, 'maximum', 9999), ...
+                                                 'month', struct('type', 'integer', 'minimum', 1, 'maximum', 12), ...
+                                                 'day', struct('type', 'integer', 'minimum', 1, 'maximum', 31)), ...
+                            'required', {{'year', 'month', 'day'}});
+        case 'time'
+            schema = struct('type', 'object', ...
+                            'properties', struct( ...
+                                                 'hour', struct('type', 'integer', 'minimum', 0, 'maximum', 23), ...
+                                                 'min', struct('type', 'integer', 'minimum', 0, 'maximum', 59), ...
+                                                 'sec', struct('type', 'number', 'minimum', 0, 'exclusiveMaximum', 60)), ...
+                            'required', {{'hour', 'min', 'sec'}});
+        case 'datetime'
+            schema = struct('type', 'object', ...
+                            'properties', struct( ...
+                                                 'year', struct('type', 'integer', 'minimum', 1, 'maximum', 9999), ...
+                                                 'month', struct('type', 'integer', 'minimum', 1, 'maximum', 12), ...
+                                                 'day', struct('type', 'integer', 'minimum', 1, 'maximum', 31), ...
+                                                 'hour', struct('type', 'integer', 'minimum', 0, 'maximum', 23), ...
+                                                 'min', struct('type', 'integer', 'minimum', 0, 'maximum', 59), ...
+                                                 'sec', struct('type', 'number', 'minimum', 0, 'exclusiveMaximum', 60)), ...
+                            'required', {{'year', 'month', 'day', 'hour', 'min', 'sec'}});
+        case 'email'
+            schema = struct('type', 'object', ...
+                            'properties', struct( ...
+                                                 'user', struct('type', 'string', 'minLength', 1), ...
+                                                 'domain', struct('type', 'string', 'pattern', '^[^@\s]+\.[^@\s]+$')), ...
+                            'required', {{'user', 'domain'}});
+        case 'uri'
+            schema = struct('type', 'object', ...
+                            'properties', struct( ...
+                                                 'scheme', struct('type', 'string', 'pattern', '^[a-zA-Z][a-zA-Z0-9+.-]*$'), ...
+                                                 'host', struct('type', 'string', 'minLength', 1), ...
+                                                 'port', struct('type', 'integer', 'minimum', 0, 'maximum', 65535), ...
+                                                 'path', struct('type', 'string'), ...
+                                                 'query', struct('type', 'string'), ...
+                                                 'fragment', struct('type', 'string')), ...
+                            'required', {{'scheme', 'host'}});
+        otherwise
+            schema = [];
+    end
+end
+
+% format kind data as string
+function str = formatkind_(kind, data)
+    str = [];
+    if ~isstruct(data)
+        return
+    end
+    try
+        switch lower(kind)
+            case 'bytes'
+                str = char(data);
+            case 'uuid'
+                str = sprintf('%08x-%04x-%04x-%04x-%012x', data.time_low, data.time_mid, data.time_high, data.clock_seq, data.node);
+            case 'date'
+                str = sprintf('%04d-%02d-%02d', data.year, data.month, data.day);
+            case 'time'
+                str = sprintf('%02d:%02d:%0*.*f', data.hour, data.min, 2 + (data.sec ~= floor(data.sec)) * 4, (data.sec ~= floor(data.sec)) * 3, data.sec);
+            case 'datetime'
+                str = sprintf('%04d-%02d-%02dT%02d:%02d:%0*.*f', data.year, data.month, data.day, data.hour, data.min, 2 + (data.sec ~= floor(data.sec)) * 4, (data.sec ~= floor(data.sec)) * 3, data.sec);
+            case 'email'
+                str = sprintf('%s@%s', data.user, data.domain);
+            case 'uri'
+                str = sprintf('%s://%s', data.scheme, data.host);
+                if isfield(data, 'port') && ~isempty(data.port)
+                    str = [str sprintf(':%d', data.port)];
+                end
+                if isfield(data, 'path')
+                    str = [str data.path];
+                end
+                if isfield(data, 'query') && ~isempty(data.query)
+                    str = [str '?' data.query];
+                end
+                if isfield(data, 'fragment') && ~isempty(data.fragment)
+                    str = [str '#' data.fragment];
+                end
+        end
+    catch
+    end
+end
+
+% build JSONPath from idxkey array
+function targetpath = buildpath_(basepath, idxkey, oplen)
+    targetpath = basepath;
+    for ii = 1:oplen
+        idx = idxkey(ii);
+        if strcmp(idx.type, '.') && ischar(idx.subs) && ~strcmp(idx.subs, 'v')
+            targetpath = [targetpath '.' esckey_(idx.subs)];
+        elseif strcmp(idx.type, '()') && ~isempty(idx.subs) && isnumeric(idx.subs{1})
+            targetpath = [targetpath '[' num2str(idx.subs{1} - 1) ']'];
+        end
+    end
 end

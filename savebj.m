@@ -325,7 +325,7 @@ elseif (isa(item, 'datetime'))
     txt = ext2ubjson(name, item, 'datetime', opt);
 elseif (isa(item, 'duration'))
     txt = ext2ubjson(name, item, 'duration', opt);
-elseif (isa(item, 'jdict'))
+elseif (isa(item, 'jdict') && ~isempty(item{'kind'}))
     txt = jdict2ubjson(name, item, level, opt);
 elseif (ischar(item))
     if (numel(item) >= opt.compressstringsize)
@@ -1803,7 +1803,7 @@ switch dtype
             typeid = 4;
             payload = [typecast(int16(year(val)), 'uint8'), uint8([month(val), day(val)])];
         elseif mod(second(val), 1) ~= 0 || pt < 0 || pt > 4294967295
-            typeid = 6;
+            typeid = 2;
             payload = typecast(int64(round(pt * 1e6)), 'uint8');
         else
             typeid = 1;
@@ -1847,26 +1847,26 @@ if ~isa(item, 'jdict')
     txt = struct2ubjson(name, item, level, opt);
     return
 end
-s = item.schema;
-if item.getattr('$', '') && strcmp(s.format, 'uuid')
+datakind = item{'kind'};
+if ~isempty(datakind) && strcmp(datakind, 'uuid')
     % UUID string
     if opt.messagepack || opt.ubjson
         txt = str2ubjson(name, char(item), level, opt);
         return
     end
-    uuidstr = char(item);
-    hexstr = strrep(uuidstr, '-', '');
-    payload = uint8(zeros(1, 16));
-    for i = 1:16
-        payload(i) = hex2dec(hexstr(2 * i - 1:2 * i));
-    end
+    d = item.v();
+    shifts = uint64([24 16 8 0 8 0 8 0 8 0 40 32 24 16 8 0]);
+    vals = uint64([d.time_low d.time_low d.time_low d.time_low ...
+                   d.time_mid d.time_mid d.time_high d.time_high ...
+                   d.clock_seq d.clock_seq d.node d.node d.node d.node d.node d.node]);
+    payload = uint8(bitand(bitshift(vals, -shifts), 255));
     txt = ['E' I_(uint8(10), opt) I_(uint8(16), opt) char(payload)];
     if ~isempty(name)
         txt = [N_(decodevarname(name, opt.unpackhex), opt) txt];
     end
-elseif isfield(s, 'type') && strcmp(s.type, 'bytes')
+elseif ~isempty(datakind) && strcmp(datakind, 'bytes')
     % Raw extension bytes
-    payload = uint8(item.data);
+    payload = uint8(item.v());
     typeid = uint32(0);
     if isfield(s, 'exttype')
         typeid = uint32(s.exttype);
@@ -1876,6 +1876,6 @@ elseif isfield(s, 'type') && strcmp(s.type, 'bytes')
         txt = [N_(decodevarname(name, opt.unpackhex), opt) txt];
     end
 else
-    % Generic jdict - encode as struct
-    txt = struct2ubjson(name, struct(item), level, opt);
+    % Generic jdict
+    txt = obj2ubjson(name, item.v(), level, opt);
 end

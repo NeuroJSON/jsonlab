@@ -125,7 +125,7 @@ function newitem = obj2jd(item, opt)
 if (iscell(item))
     newitem = cell2jd(item, opt);
 elseif (isa(item, 'jdict'))
-    newitem = obj2jd(item.v(), opt);
+    newitem = obj2jd(item(), opt);
 elseif (isstruct(item))
     newitem = struct2jd(item, opt);
 elseif (isnumeric(item) || islogical(item) || isa(item, 'timeseries'))

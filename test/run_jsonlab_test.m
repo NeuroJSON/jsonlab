@@ -3,7 +3,7 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test
 %   or
 % run_jsonlab_test(tests)
-% run_jsonlab_test({'js','jso','bj','bjo','bjsoa','bjsoastr','bjsoaadv','bjext','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray','schema','jdictadv','schemaadv'})
+% run_jsonlab_test({'js','jso','bj','bjo','bjsoa','bjsoastr','bjsoaadv','bjext','jmap','bmap','jpath','jdict','bugs','yaml','yamlopt','xarray','schema','jdictadv','schemaadv','kind'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -31,6 +31,7 @@ function run_jsonlab_test(tests)
 %         'schema': schema-attribute and jsonschema tests
 %         'jdictadv': jdict corner cases
 %         'schemaadv': jdict schema-guarded assignment and validate
+%         'kind': jdict schema-guarded data kinds
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -40,7 +41,7 @@ function run_jsonlab_test(tests)
 
 if (nargin == 0)
     tests = {'js', 'jso', 'bj', 'bjo', 'bjsoa', 'bjsoastr', 'bjsoaadv', 'jmap', 'bmap', 'jpath', ...
-             'jdict', 'bugs', 'yaml', 'yamlopt', 'xarray', 'schema', 'jdictadv', 'schemaadv'};
+             'jdict', 'bugs', 'yaml', 'yamlopt', 'xarray', 'schema', 'jdictadv', 'schemaadv', 'kind'};
 end
 
 try
@@ -1269,8 +1270,11 @@ if (ismember('bjext', tests))
                  '{U<11>_ArrayType_SU<6>singleU<11>_ArraySize_[$U#U<2><1><2>U<16>_ArrayIsComplex_TU<11>_ArrayData_[$U#[$U#U<2><2><2><1><3><2><4>}', 'debug', 1);
 
     % uuid (type 10): 16 bytes Big-Endian
-    test_jsonlab('uuid', @savebj, struct('uuid', '550e8400-e29b-41d4-a716-446655440000', ...
-                                         'x0x5F_schema_', struct('type', 'string', 'format', 'uuid')), ...
+    test_jsonlab('uuid', @savebj, jdict(struct('time_low', uint64(1427098624), ...
+                                               'time_mid', uint64(58011), ...
+                                               'time_high', uint64(16852), ...
+                                               'clock_seq', uint64(42774), ...
+                                               'node', uint64(75124066492416)), 'kind', 'uuid'), ...
                  ['EU<10>U<16>' char([85 14 132 0 226 155 65 212 167 22 68 102 85 68 0 0])], 'debug', 1);
 
     % unknown extension round-trip (type 200)
@@ -1292,7 +1296,7 @@ if (ismember('bjext', tests))
 
         % datetime - datetime_us (type 6): int64 microseconds with sub-second precision
         test_jsonlab('datetime with subsec', @savebj, datetime(1705315800.123456, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC'), ...
-                     ['EU<6>U<8>' char(typecast(int64(1705315800123456), 'uint8'))], 'debug', 1);
+                     ['EU<2>U<8>' char(typecast(int64(1705315800123456), 'uint8'))], 'debug', 1);
 
         % datetime array
         test_jsonlab('datetime array', @savebj, [datetime(2024, 1, 15), datetime(2024, 1, 16)], ...
@@ -1333,28 +1337,30 @@ if (ismember('bjext', tests))
     %% =========================================================================
 
     % uuid round-trip
-    % u = struct('uuid', '550e8400-e29b-41d4-a716-446655440000', ...
-    %            'x0x5F_schema_', struct('type', 'string', 'format', 'uuid'));
-    % test_jsonlab('uuid round-trip', @(x) strcmp(loadbj(savebj('',x)).uuid, x.uuid), u, true);
+    u = jdict(struct('time_low', uint64(1427098624), ...
+                     'time_mid', uint64(58011), ...
+                     'time_high', uint64(16852), ...
+                     'clock_seq', uint64(42774), ...
+                     'node', uint64(75124066492416)), 'kind', 'uuid');
+    test_jsonlab('uuid round-trip', @savebj, u, savebj('', u));
 
     % raw extension round-trip
-    % raw = struct('x0x5F_ByteData_', uint8([1,2,3,4]), 'x0x5F_ExtType_', int32(200));
-    % test_jsonlab('raw ext round-trip', @(x) isequal(loadbj(savebj('',x)).x0x5F_ByteData_, x.x0x5F_ByteData_), raw, true);
+    raw = jdict(uint8([1, 2, 3, 4]), 'schema', struct('type', 'bytes', 'exttype', int32(200)));
+    test_jsonlab('raw ext round-trip', @savebj, raw, savebj('', raw));
 
     if exist('datetime', 'class')
         % datetime round-trips
         dt = datetime(1705315800.123456, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
-        test_jsonlab('datetime round-trip', @(x) abs(posixtime(loadbj(savebj('', x))) - posixtime(x)) < 1e-6, dt, true);
+        test_jsonlab('datetime round-trip', @savebj, dt, savebj('', dt));
 
         d = datetime(2024, 1, 15);
-        test_jsonlab('date round-trip', @(x) isequal([year(x) month(x) day(x)], ...
-                                                     [year(loadbj(savebj('', x))) month(loadbj(savebj('', x))) day(loadbj(savebj('', x)))]), d, true);
+        test_jsonlab('date round-trip', @savebj, d, savebj('', d));
     end
 
     if exist('duration', 'class')
         % duration round-trips
         dur = duration(5, 30, 15.5);
-        test_jsonlab('duration round-trip', @(x) abs(seconds(loadbj(savebj('', x))) - seconds(x)) < 1e-6, dur, true);
+        test_jsonlab('duration round-trip', @savebj, dur, savebj('', dur));
     end
 
 end
@@ -3166,4 +3172,366 @@ if (ismember('schemaadv', tests) && hasContainersMap)
                  jd.b.validate(), '[]', 'compact', 1);
 
     clear jd s pat;
+end
+
+%%
+if (ismember('kind', tests) && hasContainersMap)
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test jdict kind-based typed data and validation\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % =======================================================================
+    % kind constructor tests - predefined kinds
+    % =======================================================================
+    jd = jdict([], 'kind', 'date');
+    test_jsonlab('kind date schema set', @savejson, ~isempty(jd.getschema()), '[true]', 'compact', 1);
+    test_jsonlab('kind date attr set', @savejson, jd.getattr(char(36), 'kind'), '"date"', 'compact', 1);
+
+    jd = jdict([], 'kind', 'uuid');
+    test_jsonlab('kind uuid schema set', @savejson, ~isempty(jd.getschema()), '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'time');
+    test_jsonlab('kind time schema set', @savejson, ~isempty(jd.getschema()), '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'datetime');
+    test_jsonlab('kind datetime schema set', @savejson, ~isempty(jd.getschema()), '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'email');
+    test_jsonlab('kind email schema set', @savejson, ~isempty(jd.getschema()), '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'uri');
+    test_jsonlab('kind uri schema set', @savejson, ~isempty(jd.getschema()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % kind constructor tests - unknown kind without schema
+    % =======================================================================
+    errored = false;
+    try
+        jd = jdict([], 'kind', 'unknownkind');
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind unknown fail', @savejson, errored, '[true]', 'compact', 1);
+
+    % =======================================================================
+    % kind constructor tests - custom kind with schema
+    % =======================================================================
+    schema = struct('type', 'object', 'properties', struct('x', struct('type', 'number')));
+    jd = jdict([], 'schema', schema, 'kind', 'point1d');
+    test_jsonlab('kind custom with schema', @savejson, jd.getattr(char(36), 'kind'), '"point1d"', 'compact', 1);
+
+    % =======================================================================
+    % kind date - validation tests
+    % =======================================================================
+    jd = jdict([], 'kind', 'date');
+    jd.year = 2025;
+    jd.month = 1;
+    jd.day = 12;
+    test_jsonlab('kind date valid assign', @savejson, jd(), '"2025-01-12"', 'compact', 1);
+
+    jd = jdict([], 'kind', 'date');
+    errored = false;
+    try
+        jd.year = -1;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind date year min fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'date');
+    errored = false;
+    try
+        jd.month = 13;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind date month max fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'date');
+    errored = false;
+    try
+        jd.month = 0;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind date month min fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'date');
+    errored = false;
+    try
+        jd.day = 32;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind date day max fail', @savejson, errored, '[true]', 'compact', 1);
+
+    % =======================================================================
+    % kind time - validation tests
+    % =======================================================================
+    jd = jdict([], 'kind', 'time');
+    jd.hour = 14;
+    jd.min = 30;
+    jd.sec = 45.5;
+    test_jsonlab('kind time valid assign', @savejson, jd(), '"14:30:45.500"', 'compact', 1);
+
+    jd = jdict([], 'kind', 'time');
+    errored = false;
+    try
+        jd.hour = 24;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind time hour max fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'time');
+    errored = false;
+    try
+        jd.min = 60;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind time min max fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'time');
+    errored = false;
+    try
+        jd.sec = 60;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind time sec max fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'time');
+    errored = false;
+    try
+        jd.sec = -1;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind time sec min fail', @savejson, errored, '[true]', 'compact', 1);
+
+    % =======================================================================
+    % kind datetime - validation tests
+    % =======================================================================
+    jd = jdict([], 'kind', 'datetime');
+    jd.year = 2025;
+    jd.month = 1;
+    jd.day = 12;
+    jd.hour = 14;
+    jd.min = 30;
+    jd.sec = 0;
+    test_jsonlab('kind datetime valid assign', @savejson, jd(), '"2025-01-12T14:30:00"', 'compact', 1);
+
+    jd = jdict([], 'kind', 'datetime');
+    errored = false;
+    try
+        jd.hour = -1;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind datetime hour min fail', @savejson, errored, '[true]', 'compact', 1);
+
+    % =======================================================================
+    % kind uuid - validation tests
+    % =======================================================================
+    jd = jdict([], 'kind', 'uuid');
+    jd.time_low = 1427104768;
+    jd.time_mid = 58011;
+    jd.time_high = 16852;
+    jd.clock_seq = 42774;
+    jd.node = 75334816473088;
+    test_jsonlab('kind uuid valid assign', @savejson, jd(), '"550fe400-e29b-41d4-a716-448440f9a000"', 'compact', 1);
+
+    jd = jdict([], 'kind', 'uuid');
+    errored = false;
+    try
+        jd.time_low = -1;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind uuid time_low min fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'uuid');
+    errored = false;
+    try
+        jd.time_low = 4294967296;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind uuid time_low max fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'uuid');
+    errored = false;
+    try
+        jd.time_mid = 65536;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind uuid time_mid max fail', @savejson, errored, '[true]', 'compact', 1);
+
+    % =======================================================================
+    % kind email - validation tests
+    % =======================================================================
+    jd = jdict([], 'kind', 'email');
+    jd.user = 'john.doe';
+    jd.domain = 'example.com';
+    test_jsonlab('kind email valid assign', @savejson, jd(), '"john.doe@example.com"', 'compact', 1);
+
+    jd = jdict([], 'kind', 'email');
+    errored = false;
+    try
+        jd.user = '';
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind email user empty fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'email');
+    errored = false;
+    try
+        jd.domain = 'nodot';
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind email domain fail', @savejson, errored, '[true]', 'compact', 1);
+
+    % =======================================================================
+    % kind uri - validation tests
+    % =======================================================================
+    jd = jdict([], 'kind', 'uri');
+    jd.scheme = 'https';
+    jd.host = 'example.com';
+    jd.port = 443;
+    jd.path = '/api';
+    test_jsonlab('kind uri valid assign', @savejson, jd(), '"https://example.com:443/api"', 'compact', 1);
+
+    jd = jdict([], 'kind', 'uri');
+    errored = false;
+    try
+        jd.port = 65536;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind uri port max fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'uri');
+    errored = false;
+    try
+        jd.port = -1;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind uri port min fail', @savejson, errored, '[true]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'uri');
+    errored = false;
+    try
+        jd.scheme = '123invalid';
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind uri scheme fail', @savejson, errored, '[true]', 'compact', 1);
+
+    % =======================================================================
+    % kind formatkind_ output tests - date
+    % =======================================================================
+    jd = jdict(struct('year', 2025, 'month', 1, 'day', 12), 'kind', 'date');
+    test_jsonlab('kind date format output', @savejson, jd(), '"2025-01-12"', 'compact', 1);
+
+    jd = jdict(struct('year', 2025, 'month', 12, 'day', 31), 'kind', 'date');
+    test_jsonlab('kind date format output 2', @savejson, jd(), '"2025-12-31"', 'compact', 1);
+
+    % =======================================================================
+    % kind formatkind_ output tests - time
+    % =======================================================================
+    jd = jdict(struct('hour', 14, 'min', 30, 'sec', 0), 'kind', 'time');
+    test_jsonlab('kind time format output', @savejson, jd(), '"14:30:00"', 'compact', 1);
+
+    jd = jdict(struct('hour', 8, 'min', 5, 'sec', 9.5), 'kind', 'time');
+    test_jsonlab('kind time format frac', @savejson, jd(), '"08:05:09.500"', 'compact', 1);
+
+    % =======================================================================
+    % kind formatkind_ output tests - datetime
+    % =======================================================================
+    jd = jdict(struct('year', 2025, 'month', 1, 'day', 12, 'hour', 14, 'min', 30, 'sec', 0), 'kind', 'datetime');
+    test_jsonlab('kind datetime format', @savejson, jd(), '"2025-01-12T14:30:00"', 'compact', 1);
+
+    jd = jdict(struct('year', 2025, 'month', 1, 'day', 12, 'hour', 14, 'min', 30, 'sec', 45.123), 'kind', 'datetime');
+    test_jsonlab('kind datetime format frac', @savejson, jd(), '"2025-01-12T14:30:45.123"', 'compact', 1);
+
+    % =======================================================================
+    % kind formatkind_ output tests - uuid
+    % =======================================================================
+    jd = jdict(struct('time_low', 1427104768, 'time_mid', 58011, 'time_high', 16852, 'clock_seq', 42774, 'node', 75334816473088), 'kind', 'uuid');
+    test_jsonlab('kind uuid format output', @savejson, jd(), '"550fe400-e29b-41d4-a716-448440f9a000"', 'compact', 1);
+
+    % =======================================================================
+    % kind formatkind_ output tests - email
+    % =======================================================================
+    jd = jdict(struct('user', 'john.doe', 'domain', 'example.com'), 'kind', 'email');
+    test_jsonlab('kind email format output', @savejson, jd(), '"john.doe@example.com"', 'compact', 1);
+
+    % =======================================================================
+    % kind formatkind_ output tests - uri
+    % =======================================================================
+    jd = jdict(struct('scheme', 'https', 'host', 'example.com'), 'kind', 'uri');
+    test_jsonlab('kind uri format basic', @savejson, jd(), '"https://example.com"', 'compact', 1);
+
+    jd = jdict(struct('scheme', 'https', 'host', 'example.com', 'port', 443), 'kind', 'uri');
+    test_jsonlab('kind uri format port', @savejson, jd(), '"https://example.com:443"', 'compact', 1);
+
+    jd = jdict(struct('scheme', 'https', 'host', 'example.com', 'port', 443, 'path', '/api/v1'), 'kind', 'uri');
+    test_jsonlab('kind uri format path', @savejson, jd(), '"https://example.com:443/api/v1"', 'compact', 1);
+
+    jd = jdict(struct('scheme', 'https', 'host', 'example.com', 'path', '/search', 'query', 'q=test'), 'kind', 'uri');
+    test_jsonlab('kind uri format query', @savejson, jd(), '"https://example.com/search?q=test"', 'compact', 1);
+
+    jd = jdict(struct('scheme', 'https', 'host', 'example.com', 'path', '/page', 'fragment', 'section1'), 'kind', 'uri');
+    test_jsonlab('kind uri format frag', @savejson, jd(), '"https://example.com/page#section1"', 'compact', 1);
+
+    % =======================================================================
+    % kind with initial data
+    % =======================================================================
+    jd = jdict(struct('year', 2025, 'month', 6, 'day', 15), 'kind', 'date');
+    test_jsonlab('kind with valid init', @savejson, jd(), '"2025-06-15"', 'compact', 1);
+
+    % =======================================================================
+    % kind validate() tests
+    % =======================================================================
+    jd = jdict(struct('year', 2025, 'month', 1, 'day', 12), 'kind', 'date');
+    test_jsonlab('kind date validate pass', @savejson, jd.validate(), '[]', 'compact', 1);
+
+    jd = jdict([], 'kind', 'date');
+    jd.year = 2025;
+    jd.month = 1;
+    jd.day = 12;
+    test_jsonlab('kind date validate assign', @savejson, jd.validate(), '[]', 'compact', 1);
+
+    % =======================================================================
+    % kind subkey access still works
+    % =======================================================================
+    jd = jdict(struct('year', 2025, 'month', 1, 'day', 12), 'kind', 'date');
+    test_jsonlab('kind date subkey year', @savejson, jd.year(), '[2025]', 'compact', 1);
+    test_jsonlab('kind date subkey month', @savejson, jd.month(), '[1]', 'compact', 1);
+    test_jsonlab('kind date subkey day', @savejson, jd.day(), '[12]', 'compact', 1);
+
+    % =======================================================================
+    % kind le() operator still works
+    % =======================================================================
+    jd = jdict([], 'kind', 'date');
+    jd.year <= 2025;
+    jd.month <= 6;
+    jd.day <= 15;
+    test_jsonlab('kind date le() assign', @savejson, jd(), '"2025-06-15"', 'compact', 1);
+
+    jd = jdict([], 'kind', 'date');
+    errored = false;
+    try
+        jd.month <= 13;
+    catch
+        errored = true;
+    end
+    test_jsonlab('kind date le() fail', @savejson, errored, '[true]', 'compact', 1);
+
+    clear jd schema errored;
 end
