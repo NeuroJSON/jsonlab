@@ -854,38 +854,56 @@ for i = 1:length(tokens)
     tok = tokens{i};
 
     % Resolve $ref if present
-    while isa(subschema, 'containers.Map') && isKey(subschema, '$ref')
-        subschema = resolveref(subschema('$ref'), schema);
-        if isempty(subschema)
-            return
+    if (isstruct(subschema))
+        while isfield(subschema, encodevarname('$ref'))
+            subschema = resolveref(subschema.(encodevarname('$ref')), schema);
+            if isempty(subschema)
+                return
+            end
+        end
+    else
+        while isKey(subschema, '$ref')
+            subschema = resolveref(subschema('$ref'), schema);
+            if isempty(subschema)
+                return
+            end
         end
     end
 
     if tok(1) == '['
         % Array index -> use items schema
-        if isa(subschema, 'containers.Map') && isKey(subschema, 'items')
+        if isstruct(subschema) && isfield(subschema, 'items')
+            subschema = subschema.items;
+            if iscell(subschema) && ~isempty(subschema)
+                subschema = subschema{1};
+            end
+        elseif (isa(subschema, 'containers.Map') || isa(subschema, 'dictionary')) && isKey(subschema, 'items')
             subschema = subschema('items');
             if iscell(subschema) && ~isempty(subschema)
                 subschema = subschema{1};
             end
         else
             subschema = [];
-            return
         end
     else
         % Property name (unescape \.)
         prop = strrep(tok, '\.', '.');
-        if isa(subschema, 'containers.Map') && isKey(subschema, 'properties')
+        if isstruct(subschema) && isfield(subschema, 'properties')
+            props = subschema.properties;
+            if isstruct(props) && isfield(props, prop)
+                subschema = props.(prop);
+            else
+                subschema = [];
+            end
+        elseif (isa(subschema, 'containers.Map') || isa(subschema, 'dictionary')) && isKey(subschema, 'properties')
             props = subschema('properties');
-            if isa(props, 'containers.Map') && isKey(props, prop)
+            if (isa(subschema, 'containers.Map') || isa(subschema, 'dictionary')) && isKey(props, prop)
                 subschema = props(prop);
             else
                 subschema = [];
-                return
             end
         else
             subschema = [];
-            return
         end
     end
 end
