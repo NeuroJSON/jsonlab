@@ -29,6 +29,8 @@
 %        jd.len() returns the length of the sub-keys
 %        jd.size() returns the dimension vector
 %        jd.isKey(key) tests if a string-based key exists in the data, or number-based key is within the data array length
+%        jd.isfield(key) same as isKey()
+%        jd.rmfield(key) remove key from a struct/containers.Map/dictionary
 %        jd{'attrname'} gets/sets attributes using curly bracket indexing; jd{'attrname'}=val only works in MATLAB; use setattr() in octave
 %        jd.setattr(jsonpath, attrname, value) sets attribute at any path
 %        jd.getattr(jsonpath, attrname) gets attribute from any path
@@ -81,6 +83,23 @@
 %        schema = jd.attr2schema('title', 'Nested Example') exports the
 %               schema-attributes as a JSON schema object
 %
+%    Built-in schema-guarded data "kind" (fixed-format struct)
+%        jd = jdict([], 'kind', 'date') forces the data to follow the date
+%                 built-in schema: which requires year/month/day with
+%                 positive integer values within a range;
+%        jd.year = 2026
+%        jd.day = 20
+%        jd.month = 12 : above are allowed, assigning values to a built-in
+%                 kind automatically performs schema-based validation
+%        jd.month = 13 : triggers an error Schema validation failed for "$.month": $: value > maximum;
+%        jd() shows the formatted date in string '2026-12-20'
+%        jd.v() shows a struct with year/day/month fields as raw data
+%
+%        jd = jdict([], 'kind', 'uuid') creates an UUID object with default values
+%        jd.keys() lists the UUID subfields
+%        jd() prints the UUID
+%
+%
 %    examples:
 %
 %        jd = jdict;
@@ -129,6 +148,15 @@
 %        schema = jd.attr2schema()
 %        jd.setschema(schema)
 %        err = jd.validate()
+%
+%        % schema-guarded data-kind ('uuid', 'date', 'time', 'datetime', 'bytes')
+%        jd = jdict([], 'kind', 'date')          % create a date using builtin-schema
+%        jd.keys()                               % show date fields ('day','month','year')
+%        jd.year = 2026                          % set the year, auto-verified by schema
+%        jd.month = 1                            % set the month
+%        jd.day = 20                             % set the day
+%        jd()                                    % show the current date
+%        %jd.month = 13                          % this raises a schema-validation error
 %
 %        % JSON Schema validation
 %        jd = jdict(struct('name','John','age',30));
@@ -187,7 +215,7 @@ classdef jdict < handle
                         obj.attr = obj.flags__.attr;
                     end
                     if (isfield(obj.flags__, 'schema'))
-                        obj.schema = obj.flags__.schema;
+                        obj.setschema(obj.flags__.schema);
                     end
                     if (isfield(obj.flags__, 'kind'))
                         kindval = obj.flags__.kind;
@@ -204,7 +232,7 @@ classdef jdict < handle
                 if (isa(val, 'jdict'))
                     obj.data = val.data;
                     obj.attr = val.attr;
-                    obj.schema = val.schema;
+                    obj.setschema(val.schema);
                     obj.currentpath__ = val.currentpath__;
                     obj.flags__ = val.flags__;
                 else
@@ -220,6 +248,9 @@ classdef jdict < handle
                     error('Unknown kind "%s" and no schema defined. Use: uuid, date, time, datetime, ipv4, ipv6, email, uri, posint, nonnegative', kindval);
                 end
                 obj.setattr(char(36), 'kind', kindval);
+                if (isempty(obj.data))
+                    obj.data = obj.call_('jsonschema', kindschema, [], 'generate', 'all');
+                end
             end
         end
 
@@ -288,7 +319,7 @@ classdef jdict < handle
                         if (~isempty(idxkey(i + 1).subs))
                             tempobj = jdict(val);
                             tempobj.attr = obj.attr;
-                            tempobj.schema = obj.schema;
+                            tempobj.setschema(obj.schema);
                             tempobj.currentpath__ = trackpath;
                             val = v(tempobj, idxkey(i + 1));
                         elseif (isa(val, 'jdict'))
@@ -297,7 +328,7 @@ classdef jdict < handle
                     else
                         tempobj = jdict(val);
                         tempobj.attr = obj.attr;
-                        tempobj.schema = obj.schema;
+                        tempobj.setschema(obj.schema);
                         tempobj.currentpath__ = trackpath;
                         if (obj.flags__.isoctave_ && regexp(OCTAVE_VERSION, '^5\.'))
                             val = membercall_(tempobj, idx.subs, idxkey(i + 1).subs{:});
@@ -307,7 +338,7 @@ classdef jdict < handle
                         end
                         if (i == oplen - 1 && ismember(idx.subs, {'isKey', 'tojson', 'getattr', 'getschema', 'setschema', 'validate', 'attr2schema'}))
                             if (strcmp(idx.subs, 'setschema'))
-                                obj.schema = tempobj.schema;
+                                obj.setschema(tempobj.schema);
                             end
                             varargout{1} = val;
                             return
@@ -317,7 +348,7 @@ classdef jdict < handle
                     if (i < oplen)
                         tempobj = jdict(val);
                         tempobj.attr = obj.attr;
-                        tempobj.schema = obj.schema;
+                        tempobj.setschema(obj.schema);
                         tempobj.currentpath__ = trackpath;
                         val = tempobj;
                     end
@@ -342,7 +373,7 @@ classdef jdict < handle
                             val = subsref(val, subsargs);
                             newobj = jdict(val);
                             newobj.attr = obj.attr;
-                            newobj.schema = obj.schema;
+                            newobj.setschema(obj.schema);
                             newobj.currentpath__ = trackpath;
                             newobj.root__ = obj.root__;
                             val = newobj;
@@ -420,7 +451,7 @@ classdef jdict < handle
                         newobj.attr(strrep(attrkeys{i}, trackpath, char(36))) = obj.attr(attrkeys{i});
                     end
                 end
-                newobj.schema = obj.schema;
+                newobj.setschema(obj.schema);
                 newobj.currentpath__ = trackpath;
                 newobj.root__ = obj.root__;
                 val = newobj;
@@ -527,17 +558,27 @@ classdef jdict < handle
                 end
             end
 
+            % validate if kind is set
+            kindval = '';
+            if (~isempty(obj.attr) && isKey(obj.attr, '$') && ~isempty(obj.attr('$')) && isKey(obj.attr('$'), 'kind'))
+                kindval = obj.attr('$');
+                kindval = kindval('kind');
+            end
+            % check if kind-validation is needed
+            needvalidate = (~isempty(obj.schema) && ~isempty(kindval));
+            if (needvalidate)
+                tempobj = jdict();
+                tempobj.setschema(obj.schema);
+                datapath = buildpath_(obj.currentpath__, idxkey, oplen);
+            end
+
             % Fast path: single-level assignment like jd.key = value
             if (oplen == 1 && strcmp(idxkey(1).type, '.') && ischar(idxkey(1).subs))
                 fieldname = idxkey(1).subs;
                 % Skip if JSONPath
                 if (isempty(fieldname) || fieldname(1) ~= char(36))
-                    % validate if kind is set
-                    kindval = obj.getattr(char(36), 'kind');
-                    if ~isempty(obj.schema) && ~isempty(kindval)
+                    if needvalidate
                         targetpath = [obj.currentpath__ '.' esckey_(fieldname)];
-                        tempobj = jdict();
-                        tempobj.schema = obj.schema;
                         tempobj.currentpath__ = targetpath;
                         le(tempobj, otherobj);
                     end
@@ -569,11 +610,8 @@ classdef jdict < handle
             % Fast path: single numeric index like jd.(1) = value
             if (oplen == 1 && strcmp(idxkey(1).type, '.') && isnumeric(idxkey(1).subs))
                 % validate if kind is set
-                kindval = obj.getattr(char(36), 'kind');
-                if ~isempty(obj.schema) && ~isempty(kindval)
+                if needvalidate
                     targetpath = [obj.currentpath__ '[' num2str(idxkey(1).subs - 1) ']'];
-                    tempobj = jdict();
-                    tempobj.schema = obj.schema;
                     tempobj.currentpath__ = targetpath;
                     le(tempobj, otherobj);
                 end
@@ -699,16 +737,10 @@ classdef jdict < handle
                 end
             end
 
-            % check if kind-validation is needed
-            kindval = obj.getattr(char(36), 'kind');
-            needvalidate = ~isempty(obj.schema) && ~isempty(kindval);
-
             if (oplen >= 2 && ischar(idxkey(oplen - 1).subs) && strcmp(idxkey(oplen - 1).subs, 'v') && strcmp(idxkey(oplen).type, '()'))
                 % Handle .v(index) = value at any depth
                 if needvalidate
-                    tempobj = jdict();
-                    tempobj.schema = obj.schema;
-                    tempobj.currentpath__ = buildpath_(obj.currentpath__, idxkey, oplen);
+                    tempobj.currentpath__ = datapath;
                     le(tempobj, otherobj);
                 end
                 nextsubs = idxkey(oplen).subs;
@@ -726,18 +758,14 @@ classdef jdict < handle
                 opcell{oplen + 1} = opcell{oplen};
             elseif (obj.flags__.isoctave_) && (ismap_(obj.flags__, opcell{oplen}))
                 if needvalidate
-                    tempobj = jdict();
-                    tempobj.schema = obj.schema;
-                    tempobj.currentpath__ = buildpath_(obj.currentpath__, idxkey, oplen);
+                    tempobj.currentpath__ = datapath;
                     le(tempobj, otherobj);
                 end
                 opcell{oplen}(idx.subs) = otherobj;
                 opcell{oplen + 1} = opcell{oplen};
             else
                 if needvalidate
-                    tempobj = jdict();
-                    tempobj.schema = obj.schema;
-                    tempobj.currentpath__ = buildpath_(obj.currentpath__, idxkey, oplen);
+                    tempobj.currentpath__ = datapath;
                     le(tempobj, otherobj);
                 end
                 if (ischar(idx.subs) && ~isempty(idx.subs) && idx.subs(1) == char(36))
@@ -839,6 +867,10 @@ classdef jdict < handle
             val = keys(obj);
         end
 
+        function val = isfield(obj, key)
+            val = isKey(obj, key);
+        end
+
         % test if a key or index exists
         function val = isKey(obj, key)
             % list subfields at the current level
@@ -848,6 +880,20 @@ classdef jdict < handle
                 val = isKey(obj.data, key);
             else
                 val = (key < length(obj.data));
+            end
+        end
+
+        % remove specified key or element
+        function val = rmfield(obj, key)
+            % list subfields at the current level
+            if (isstruct(obj.data))
+                val = rmfield(obj.data, key);
+            elseif (ismap_(obj.flags__, obj.data))
+                val = remove(obj.data, key);
+            elseif (iscell(obj.data))
+                obj.data = builtin('subsasgn', obj.data, struct('type', '{}', 'subs', {{key}}), []);
+            else
+                obj.data = builtin('subsasgn', obj.data, struct('type', '()', 'subs', {{key}}), []);
             end
         end
 
@@ -937,23 +983,23 @@ classdef jdict < handle
         end
 
         % set specified data attributes
-        function attr = setattr(obj, jsonpath, attrname, attrvalue)
+        function attr = setattr(obj, datapath, attrname, attrvalue)
             if (nargin == 3)
                 attrvalue = attrname;
-                attrname = jsonpath;
-                jsonpath = obj.currentpath__;
+                attrname = datapath;
+                datapath = obj.currentpath__;
             end
-            if (~isKey(obj.attr, jsonpath))
-                obj.attr(jsonpath) = containers.Map();
+            if (~isKey(obj.attr, datapath))
+                obj.attr(datapath) = containers.Map();
             end
-            attrmap = obj.attr(jsonpath);
+            attrmap = obj.attr(datapath);
             attrmap(attrname) = attrvalue;
-            obj.attr(jsonpath) = attrmap;
+            obj.attr(datapath) = attrmap;
             attr = obj.attr;
         end
 
         % return specified data attributes, if not specified, list all attributes
-        function val = getattr(obj, jsonpath, attrname)
+        function val = getattr(obj, datapath, attrname)
             val = [];
             if (nargin == 1)
                 if (~isKey(obj.attr, obj.currentpath__) && strcmp(obj.currentpath__, char(36)))
@@ -964,17 +1010,17 @@ classdef jdict < handle
                 return
             end
             if (nargin == 2)
-                if (~isempty(jsonpath) && jsonpath(1) ~= char(36))
-                    attrname = jsonpath;
-                    jsonpath = obj.currentpath__;
+                if (~isempty(datapath) && datapath(1) ~= char(36))
+                    attrname = datapath;
+                    datapath = obj.currentpath__;
                 else
                     attrname = '';
                 end
             end
-            if (~isKey(obj.attr, jsonpath))
+            if (~isKey(obj.attr, datapath))
                 return
             end
-            attrmap = obj.attr(jsonpath);
+            attrmap = obj.attr(datapath);
             if (isempty(attrname))
                 val = attrmap;
             elseif (isKey(attrmap, attrname))
