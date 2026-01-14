@@ -522,13 +522,15 @@ classdef jdict < handle
                             else
                                 onekey = idx.subs;
                             end
-                            escapedonekey = esckey_(onekey);
                             if (ischar(onekey) && ~isempty(onekey))
+                                escapedonekey = esckey_(onekey);
                                 if (onekey(1) ~= char(36))
                                     temppath = [temppath '.' escapedonekey];
                                 else
                                     temppath = escapedonekey;
                                 end
+                            elseif (isnumeric(onekey))
+                                temppath = [temppath '[' num2str(onekey - 1) ']'];
                             end
                         end
                     end
