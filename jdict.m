@@ -80,6 +80,15 @@
 %                'dependentSchemas', 'allOf', 'anyOf', 'oneOf', 'not',
 %                'if', 'then', 'else', 'title', 'description', 'examples',
 %                '$comment', '$ref', '$defs', 'definitions'
+%
+%                to enable validation of strongly-typed ND arrays, we also
+%                extended JSON schema add added the following 3 keywords
+%                  'binType': must be one of
+%                      'uint8','int8','uint8','int8','uint8','int8','uint8','int8','single','double','logical'
+%                  'minDims' and 'maxDims': sets the min/max dimension
+%                      vector (i.e. size(data)); when minDims/maxDims
+%                      contains a single integer, it expects data to be a
+%                      1D vector of a valid length
 %        schema = jd.attr2schema('title', 'Nested Example') exports the
 %               schema-attributes as a JSON schema object
 %
@@ -165,8 +174,17 @@
 %                                'age',struct('type','integer','minimum',0)),...
 %            'required',{{'name','age'}});
 %        jd.setschema(schema);
-%        err = jd.validate();        % validate data against schema
-%        jd.getschema('json')                   % get schema as JSON string
+%        err = jd.validate();         % validate data against schema
+%        jd.getschema('json')         % get schema as JSON string
+%
+%        jd = jdict;
+%        jd{':type'}='array';         % expects an array
+%        jd{':binType'}='uint8';      % expects a uint8 array
+%        jd{':minDims'}=2;            % expects a 1D uint8 array of min length of 2
+%        jd{':maxDims'}=6;            % expects a 1D uint8 array of max length of 6
+%        jd.setschema(jd.attr2schema());  % use ':keyword' attributes to create a schema
+%        jd <= uint8([1,2,3])         % this works
+%        %jd <= [1,2;3 4]              % 2D array fails dims and binType check
 %
 %        % loading complex data from REST-API
 %        jd = jdict('https://neurojson.io:7777/cotilab/NeuroCaptain_2025');
@@ -1092,7 +1110,7 @@ classdef jdict < handle
             allflags = [varargin(1:2:end); varargin(2:2:end)];
             opt = struct(allflags{:});
 
-            schemaKeywords = {'type', 'enum', 'const', 'default', ...
+            schemaKeywords = {'type', 'enum', 'const', 'default', 'binType', 'minDims', 'maxDims', ...
                               'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', ...
                               'minLength', 'maxLength', 'pattern', 'format', ...
                               'items', 'minItems', 'maxItems', 'uniqueItems', 'contains', 'prefixItems', ...

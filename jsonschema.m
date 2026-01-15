@@ -385,7 +385,7 @@ for dimtype = {'minDims', 'maxDims'}
         end
         if (length(dims) == 1)
             if (~isvector(data))
-                errors{end + 1} = sprintf('%s: length of dim is %d, violates %s %d', path, i, length(actualsize), dimtype{1}, length(dims));
+                errors{end + 1} = sprintf('%s: length of dim is %d, violates %s length of %d', path, length(actualsize), dimtype{1}, length(dims));
             else
                 actualsize = max(actualsize);
             end
