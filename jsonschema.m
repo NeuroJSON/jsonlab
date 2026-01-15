@@ -164,6 +164,15 @@ if isnumeric(data) && isscalar(data)
     end
 end
 
+% binary type and dimensions
+if isnumeric(data) || islogical(data)
+    [isvalid, errmsg] = validatebinary(data, schema, path);
+    if ~isvalid
+        valid = false;
+        errors = [errors errmsg];
+    end
+end
+
 % string
 if ischar(data) || isa(data, 'string')
     [isvalid, errmsg] = validatestring(char(data), schema, path);
@@ -344,6 +353,59 @@ if isKey(schema, 'multipleOf')
     if mult > 0 && abs(mod(data, mult)) > eps * abs(data)
         valid = false;
         errors{end + 1} = sprintf('%s: not multipleOf %g', path, mult);
+    end
+end
+
+%% -------------------------------------------------------------------------
+function [valid, errors] = validatebinary(data, schema, path)
+
+valid = true;
+errors = {};
+
+% binType validation
+if isKey(schema, 'binType')
+    bintype = schema('binType');
+    validtypes = {'uint8', 'int8', 'uint16', 'int16', 'uint32', 'int32', 'uint64', 'int64', 'single', 'double', 'logical'};
+    if ~ismember(bintype, validtypes)
+        valid = false;
+        errors{end + 1} = sprintf('%s: invalid binType "%s"', path, bintype);
+    elseif ~(isnumeric(data) || islogical(data)) || ~strcmp(class(data), bintype)
+        valid = false;
+        errors{end + 1} = sprintf('%s: expected %s, got %s', path, bintype, class(data));
+    end
+end
+
+% minDims/maxDims validation
+actualsize = size(data);
+for dimtype = {'minDims', 'maxDims'}
+    if isKey(schema, dimtype{1})
+        dims = schema(dimtype{1});
+        if iscell(dims)
+            dims = [dims{:}];
+        end
+        if (length(dims) == 1)
+            if (~isvector(data))
+                errors{end + 1} = sprintf('%s: length of dim is %d, violates %s %d', path, i, length(actualsize), dimtype{1}, length(dims));
+            else
+                actualsize = max(actualsize);
+            end
+        end
+        ismin = strcmp(dimtype{1}, 'minDims');
+        checklen = min(length(actualsize), length(dims));
+        if ismin
+            actualsize = [actualsize ones(1, max(0, length(dims) - length(actualsize)))];
+            checklen = length(dims);
+        end
+        for i = 1:checklen
+            if (ismin && actualsize(i) < dims(i)) || (~ismin && actualsize(i) > dims(i))
+                valid = false;
+                errors{end + 1} = sprintf('%s: dim %d is %d, violates %s %d', path, i, actualsize(i), dimtype{1}, dims(i));
+            end
+        end
+        if ~ismin && length(actualsize) > length(dims) && any(actualsize(length(dims) + 1:end) > 1)
+            valid = false;
+            errors{end + 1} = sprintf('%s: has %d dimensions, %s only specifies %d', path, ndims(data), dimtype{1}, length(dims));
+        end
     end
 end
 
@@ -662,6 +724,26 @@ elseif isKey(schema, 'properties') || isKey(schema, 'required')
     schematype = 'object';
 elseif isKey(schema, 'items')
     schematype = 'array';
+end
+
+% Handle binType with minDims
+if isKey(schema, 'binType')
+    bintype = schema('binType');
+    if isKey(schema, 'minDims')
+        dims = schema('minDims');
+        if iscell(dims)
+            dims = [dims{:}];
+        end
+    else
+        dims = 1;
+    end
+    switch bintype
+        case 'logical'
+            output = false(dims);
+        otherwise
+            output = zeros(dims, bintype);
+    end
+    return
 end
 
 switch schematype

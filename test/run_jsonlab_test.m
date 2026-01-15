@@ -2342,6 +2342,178 @@ if (ismember('schema', tests) && hasContainersMap)
     [valid, ~] = jsonschema(result, s);
     test_jsonlab('generated data validates', @savejson, valid, '[true]', 'compact', 1);
 
+    % =======================================================================
+    % binType validation
+    % =======================================================================
+    jd = jdict(uint8([1, 2, 3]));
+    jd.setschema(struct('binType', 'uint8'));
+    test_jsonlab('validate binType uint8 pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(double([1, 2, 3]));
+    jd.setschema(struct('binType', 'uint8'));
+    test_jsonlab('validate binType uint8 fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(int32([-100, 0, 100]));
+    jd.setschema(struct('binType', 'int32'));
+    test_jsonlab('validate binType int32 pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(int16([-100, 0, 100]));
+    jd.setschema(struct('binType', 'int32'));
+    test_jsonlab('validate binType int32 fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(single([1.5, 2.5, 3.5]));
+    jd.setschema(struct('binType', 'single'));
+    test_jsonlab('validate binType single pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(double([1.5, 2.5, 3.5]));
+    jd.setschema(struct('binType', 'single'));
+    test_jsonlab('validate binType single fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(true(2, 3));
+    jd.setschema(struct('binType', 'logical'));
+    test_jsonlab('validate binType logical pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(ones(2, 3));
+    jd.setschema(struct('binType', 'logical'));
+    test_jsonlab('validate binType logical fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % minDims validation
+    % =======================================================================
+    jd = jdict(zeros(3, 4));
+    jd.setschema(struct('minDims', [2, 3]));
+    test_jsonlab('validate minDims pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(zeros(1, 4));
+    jd.setschema(struct('minDims', [2, 3]));
+    test_jsonlab('validate minDims fail dim1', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(zeros(3, 2));
+    jd.setschema(struct('minDims', [2, 3]));
+    test_jsonlab('validate minDims fail dim2', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(1:10);
+    jd.setschema(struct('minDims', [5]));
+    test_jsonlab('validate minDims vector pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(1:3);
+    jd.setschema(struct('minDims', [5]));
+    test_jsonlab('validate minDims vector fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % maxDims validation
+    % =======================================================================
+    jd = jdict(zeros(5, 5));
+    jd.setschema(struct('maxDims', [10, 10]));
+    test_jsonlab('validate maxDims pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(zeros(15, 5));
+    jd.setschema(struct('maxDims', [10, 10]));
+    test_jsonlab('validate maxDims fail dim1', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(zeros(5, 15));
+    jd.setschema(struct('maxDims', [10, 10]));
+    test_jsonlab('validate maxDims fail dim2', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(1:50);
+    jd.setschema(struct('maxDims', [100]));
+    test_jsonlab('validate maxDims vector pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(1:150);
+    jd.setschema(struct('maxDims', [100]));
+    test_jsonlab('validate maxDims vector fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % combined minDims and maxDims
+    % =======================================================================
+    jd = jdict(zeros(5, 5));
+    jd.setschema(struct('minDims', [2, 2], 'maxDims', [10, 10]));
+    test_jsonlab('validate minDims+maxDims pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(zeros(1, 5));
+    jd.setschema(struct('minDims', [2, 2], 'maxDims', [10, 10]));
+    test_jsonlab('validate minDims+maxDims fail min', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(zeros(15, 5));
+    jd.setschema(struct('minDims', [2, 2], 'maxDims', [10, 10]));
+    test_jsonlab('validate minDims+maxDims fail max', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % combined binType and dims
+    % =======================================================================
+    jd = jdict(uint8(zeros(3, 4)));
+    jd.setschema(struct('binType', 'uint8', 'minDims', [2, 2], 'maxDims', [10, 10]));
+    test_jsonlab('validate binType+dims pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(double(zeros(3, 4)));
+    jd.setschema(struct('binType', 'uint8', 'minDims', [2, 2], 'maxDims', [10, 10]));
+    test_jsonlab('validate binType+dims fail type', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(uint8(zeros(1, 4)));
+    jd.setschema(struct('binType', 'uint8', 'minDims', [2, 2], 'maxDims', [10, 10]));
+    test_jsonlab('validate binType+dims fail min', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(uint8(zeros(15, 4)));
+    jd.setschema(struct('binType', 'uint8', 'minDims', [2, 2], 'maxDims', [10, 10]));
+    test_jsonlab('validate binType+dims fail max', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % binType/dims in nested object
+    % =======================================================================
+    jd = jdict(struct('image', uint8(zeros(10, 10)), 'mask', true(10, 10)));
+    jd.setschema(struct('type', 'object', 'properties', struct( ...
+                                                               'image', struct('binType', 'uint8', 'minDims', [5, 5]), ...
+                                                               'mask', struct('binType', 'logical', 'minDims', [5, 5]))));
+    test_jsonlab('validate nested binType pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(struct('image', double(zeros(10, 10)), 'mask', true(10, 10)));
+    jd.setschema(struct('type', 'object', 'properties', struct( ...
+                                                               'image', struct('binType', 'uint8', 'minDims', [5, 5]), ...
+                                                               'mask', struct('binType', 'logical', 'minDims', [5, 5]))));
+    test_jsonlab('validate nested binType fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(struct('image', uint8(zeros(10, 10)), 'mask', true(2, 2)));
+    jd.setschema(struct('type', 'object', 'properties', struct( ...
+                                                               'image', struct('binType', 'uint8', 'minDims', [5, 5]), ...
+                                                               'mask', struct('binType', 'logical', 'minDims', [5, 5]))));
+    test_jsonlab('validate nested minDims fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % binType/dims subkey validation
+    % =======================================================================
+    jd = jdict(struct('data', uint8(1:10)));
+    jd.setschema(struct('type', 'object', 'properties', struct( ...
+                                                               'data', struct('binType', 'uint8', 'maxDims', [20]))));
+    test_jsonlab('validate subkey binType pass', @savejson, isempty(jd.data.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(struct('data', uint8(1:30)));
+    jd.setschema(struct('type', 'object', 'properties', struct( ...
+                                                               'data', struct('binType', 'uint8', 'maxDims', [20]))));
+    test_jsonlab('validate subkey maxDims fail', @savejson, ~isempty(jd.data.validate()), '[true]', 'compact', 1);
+
+    % =======================================================================
+    % deeply nested binType/dims
+    % =======================================================================
+    jd = jdict(struct('level1', struct('level2', struct('arr', int16(zeros(4, 4))))));
+    jd.setschema(struct('type', 'object', 'properties', struct( ...
+                                                               'level1', struct('type', 'object', 'properties', struct( ...
+                                                                                                                       'level2', struct('type', 'object', 'properties', struct( ...
+                                                                                                                                                                               'arr', struct('binType', 'int16', 'minDims', [2, 2], 'maxDims', [10, 10]))))))));
+    test_jsonlab('validate deep nested pass', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(struct('level1', struct('level2', struct('arr', int32(zeros(4, 4))))));
+    jd.setschema(struct('type', 'object', 'properties', struct( ...
+                                                               'level1', struct('type', 'object', 'properties', struct( ...
+                                                                                                                       'level2', struct('type', 'object', 'properties', struct( ...
+                                                                                                                                                                               'arr', struct('binType', 'int16', 'minDims', [2, 2], 'maxDims', [10, 10]))))))));
+    test_jsonlab('validate deep nested type fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
+
+    jd = jdict(struct('level1', struct('level2', struct('arr', int16(zeros(1, 1))))));
+    jd.setschema(struct('type', 'object', 'properties', struct( ...
+                                                               'level1', struct('type', 'object', 'properties', struct( ...
+                                                                                                                       'level2', struct('type', 'object', 'properties', struct( ...
+                                                                                                                                                                               'arr', struct('binType', 'int16', 'minDims', [2, 2], 'maxDims', [10, 10]))))))));
+    test_jsonlab('validate deep nested dims fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
     clear jd s s2 schema result valid types strtests objtests;
 end
 
