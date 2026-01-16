@@ -386,7 +386,12 @@ classdef jdict < handle
                         if (~isempty(dimpos) && ~isempty(idxkey(i + 1).subs))
                             nddata = length(dims);
                             indices = repmat({':'}, 1, nddata);
-                            indices{dimpos(1)} = idxkey(i + 1).subs{1};
+                            coords = obj.getattr(trackpath, 'coords');
+                            if (~isempty(coords) && isstruct(coords) && isfield(coords, onekey))
+                                indices{dimpos(1)} = coordlookup_(coords.(onekey), idxkey(i + 1).subs{1}, onekey);
+                            else
+                                indices{dimpos(1)} = idxkey(i + 1).subs{1};
+                            end
                             subsargs = struct('type', '()', 'subs', {indices});
                             val = subsref(val, subsargs);
                             newobj = jdict(val);
@@ -1413,5 +1418,45 @@ function targetpath = buildpath_(basepath, idxkey, oplen)
         elseif strcmp(idx.type, '()') && ~isempty(idx.subs) && isnumeric(idx.subs{1})
             targetpath = [targetpath '[' num2str(idx.subs{1} - 1) ']'];
         end
+    end
+end
+
+% convert coord labels to indices (vectorized)
+function idx = coordlookup_(coords, sel, dim)
+    if isnumeric(coords) && isnumeric(sel)
+        [ok, idx] = ismember(sel, coords);
+        if ~all(ok)
+            error('Coord not found in "%s"', dim);
+        end
+    elseif isnumeric(sel)
+        idx = sel;
+    elseif iscell(sel)
+        idx = cellfun(@(v) findcoord_(coords, v, dim), sel);
+    elseif isstruct(sel) && isfield(sel, 'start')
+        s = 1;
+        e = length(coords);
+        if ~isempty(sel.start)
+            s = findcoord_(coords, sel.start, dim);
+        end
+        if isfield(sel, 'stop') && ~isempty(sel.stop)
+            e = findcoord_(coords, sel.stop, dim);
+        end
+        idx = s:e;
+    else
+        idx = findcoord_(coords, sel, dim);
+    end
+end
+
+% find single coord index
+function idx = findcoord_(coords, val, dim)
+    if isnumeric(coords)
+        idx = find(coords == val, 1);
+    elseif iscell(coords)
+        idx = find(cellfun(@(c) isequal(c, val), coords), 1);
+    else
+        idx = find(coords == val, 1);
+    end
+    if isempty(idx)
+        error('Coord "%s" not found in "%s"', mat2str(val), dim);
     end
 end

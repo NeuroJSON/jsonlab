@@ -1959,6 +1959,213 @@ if (ismember('xarray', tests) && hasContainersMap)
         jd8{'flag'} = true;
     end
     test_jsonlab('test multiple attributes different types', @savejson, {jd8{'dims'}, jd8{'units'}, jd8{'count'}, jd8{'flag'}}, '[["time","space"],"meters",42,true]', 'compact', 1);
+
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test jdict xarray-like coords\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    % Test 1: Root level string coords selection
+    jd1 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd1.setattr('dims', {'x', 'y'});
+        jd1.setattr('coords', struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}}));
+    else
+        jd1{'dims'} = {'x', 'y'};
+        jd1{'coords'} = struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}});
+    end
+    test_jsonlab('string coord single select x', @savejson, jd1.x('b').v(), '[2,5,8,11]', 'compact', 1);
+    test_jsonlab('string coord single select y', @savejson, jd1.y('r').v(), '[[7],[8],[9]]', 'compact', 1);
+
+    % Test 2: Root level numeric coords selection
+    jd2 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd2.setattr('dims', {'x', 'y'});
+        jd2.setattr('coords', struct('x', [10, 20, 30], 'y', [100, 200, 300, 400]));
+    else
+        jd2{'dims'} = {'x', 'y'};
+        jd2{'coords'} = struct('x', [10, 20, 30], 'y', [100, 200, 300, 400]);
+    end
+    test_jsonlab('numeric coord single select x', @savejson, jd2.x(20).v(), '[2,5,8,11]', 'compact', 1);
+    test_jsonlab('numeric coord single select y', @savejson, jd2.y(300).v(), '[[7],[8],[9]]', 'compact', 1);
+
+    % Test 3: Multiple string coords selection
+    jd3 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd3.setattr('dims', {'x', 'y'});
+        jd3.setattr('coords', struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}}));
+    else
+        jd3{'dims'} = {'x', 'y'};
+        jd3{'coords'} = struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}});
+    end
+    test_jsonlab('string coord multi select x', @savejson, jd3.x({'a', 'c'}).v(), '[[1,4,7,10],[3,6,9,12]]', 'compact', 1);
+    test_jsonlab('string coord multi select y', @savejson, jd3.y({'p', 's'}).v(), '[[1,10],[2,11],[3,12]]', 'compact', 1);
+
+    % Test 4: Multiple numeric coords selection
+    jd4 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd4.setattr('dims', {'x', 'y'});
+        jd4.setattr('coords', struct('x', [10, 20, 30], 'y', [100, 200, 300, 400]));
+    else
+        jd4{'dims'} = {'x', 'y'};
+        jd4{'coords'} = struct('x', [10, 20, 30], 'y', [100, 200, 300, 400]);
+    end
+    test_jsonlab('numeric coord multi select x', @savejson, jd4.x([10, 30]).v(), '[[1,4,7,10],[3,6,9,12]]', 'compact', 1);
+    test_jsonlab('numeric coord multi select y', @savejson, jd4.y([100, 400]).v(), '[[1,10],[2,11],[3,12]]', 'compact', 1);
+
+    % Test 5: Slice selection with struct
+    jd5 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd5.setattr('dims', {'x', 'y'});
+        jd5.setattr('coords', struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}}));
+    else
+        jd5{'dims'} = {'x', 'y'};
+        jd5{'coords'} = struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}});
+    end
+    test_jsonlab('string coord slice x', @savejson, jd5.x(struct('start', 'a', 'stop', 'b')).v(), '[[1,4,7,10],[2,5,8,11]]', 'compact', 1);
+    test_jsonlab('string coord slice y', @savejson, jd5.y(struct('start', 'q', 'stop', 's')).v(), '[[4,7,10],[5,8,11],[6,9,12]]', 'compact', 1);
+
+    % Test 6: Second level coords
+    jd6 = jdict(struct('data', reshape(1:12, [3, 4])));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd6.('data').setattr('dims', {'row', 'col'});
+        jd6.('data').setattr('coords', struct('row', {{'r1', 'r2', 'r3'}}, 'col', [1, 2, 3, 4]));
+    else
+        jd6.('data'){'dims'} = {'row', 'col'};
+        jd6.('data'){'coords'} = struct('row', {{'r1', 'r2', 'r3'}}, 'col', [1, 2, 3, 4]);
+    end
+    test_jsonlab('second level string coord', @savejson, jd6.('data').row('r2').v(), '[2,5,8,11]', 'compact', 1);
+    test_jsonlab('second level numeric coord', @savejson, jd6.('data').col(3).v(), '[[7],[8],[9]]', 'compact', 1);
+
+    % Test 7: Third level nested coords
+    jd7 = jdict(struct('level1', struct('level2', struct('arr', reshape(1:6, [2, 3])))));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd7.('level1').('level2').('arr').setattr('dims', {'i', 'j'});
+        jd7.('level1').('level2').('arr').setattr('coords', struct('i', {{'x', 'y'}}, 'j', {{'a', 'b', 'c'}}));
+    else
+        jd7.('level1').('level2').('arr'){'dims'} = {'i', 'j'};
+        jd7.('level1').('level2').('arr'){'coords'} = struct('i', {{'x', 'y'}}, 'j', {{'a', 'b', 'c'}});
+    end
+    test_jsonlab('third level coord select i', @savejson, jd7.('level1').('level2').('arr').i('y').v(), '[2,4,6]', 'compact', 1);
+    test_jsonlab('third level coord select j', @savejson, jd7.('level1').('level2').('arr').j('b').v(), '[[3],[4]]', 'compact', 1);
+
+    % Test 8: Sibling arrays with independent coords
+    jd8 = jdict(struct('exp1', reshape(1:6, [2, 3]), 'exp2', reshape(1:8, [2, 4])));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd8.('exp1').setattr('dims', {'t', 's'});
+        jd8.('exp1').setattr('coords', struct('t', {{'t1', 't2'}}, 's', {{'s1', 's2', 's3'}}));
+        jd8.('exp2').setattr('dims', {'x', 'y'});
+        jd8.('exp2').setattr('coords', struct('x', [0, 1], 'y', [10, 20, 30, 40]));
+    else
+        jd8.('exp1'){'dims'} = {'t', 's'};
+        jd8.('exp1'){'coords'} = struct('t', {{'t1', 't2'}}, 's', {{'s1', 's2', 's3'}});
+        jd8.('exp2'){'dims'} = {'x', 'y'};
+        jd8.('exp2'){'coords'} = struct('x', [0, 1], 'y', [10, 20, 30, 40]);
+    end
+    test_jsonlab('sibling coord select exp1', @savejson, jd8.('exp1').t('t2').v(), '[2,4,6]', 'compact', 1);
+    test_jsonlab('sibling coord select exp2', @savejson, jd8.('exp2').y(30).v(), '[[5],[6]]', 'compact', 1);
+
+    % Test 9: Direct index when coords defined (numeric index on string coords)
+    jd9 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd9.setattr('dims', {'x', 'y'});
+        jd9.setattr('coords', struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}}));
+    else
+        jd9{'dims'} = {'x', 'y'};
+        jd9{'coords'} = struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}});
+    end
+    test_jsonlab('direct index with string coords', @savejson, jd9.x(2).v(), '[2,5,8,11]', 'compact', 1);
+
+    % Test 10: Coords without dims should not break indexing
+    jd10 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd10.setattr('dims', {'x', 'y'});
+    else
+        jd10{'dims'} = {'x', 'y'};
+    end
+    test_jsonlab('dims without coords still works', @savejson, jd10.x(2).v(), '[2,5,8,11]', 'compact', 1);
+
+    % Test 11: 3D array coords
+    jd11 = jdict(reshape(1:24, [2, 3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd11.setattr('dims', {'x', 'y', 'z'});
+        jd11.setattr('coords', struct('x', {{'a', 'b'}}, 'y', [10, 20, 30], 'z', {{'p', 'q', 'r', 's'}}));
+    else
+        jd11{'dims'} = {'x', 'y', 'z'};
+        jd11{'coords'} = struct('x', {{'a', 'b'}}, 'y', [10, 20, 30], 'z', {{'p', 'q', 'r', 's'}});
+    end
+    test_jsonlab('3D coord select dim1', @savejson, jd11.x('b').v(), '{"_ArrayType_":"double","_ArraySize_":[1,3,4],"_ArrayData_":[2,8,14,20,4,10,16,22,6,12,18,24]}', 'compact', 1);
+    test_jsonlab('3D coord select dim2', @savejson, jd11.y(20).v(), '{"_ArrayType_":"double","_ArraySize_":[2,1,4],"_ArrayData_":[3,9,15,21,4,10,16,22]}', 'compact', 1);
+    test_jsonlab('3D coord select dim3', @savejson, jd11.z('r').v(), '[[13,15,17],[14,16,18]]', 'compact', 1);
+
+    % Test 12: getattr returns coords correctly
+    jd12 = jdict(rand(3, 4));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd12.setattr('dims', {'x', 'y'});
+        jd12.setattr('coords', struct('x', {{'a', 'b', 'c'}}, 'y', [1, 2, 3, 4]));
+    else
+        jd12{'dims'} = {'x', 'y'};
+        jd12{'coords'} = struct('x', {{'a', 'b', 'c'}}, 'y', [1, 2, 3, 4]);
+    end
+    test_jsonlab('getattr returns coords struct', @savejson, jd12{'coords'}, '{"x":["a","b","c"],"y":[1,2,3,4]}', 'compact', 1);
+
+    % Test 13: Cascade two single selections
+    jd13 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd13.setattr('dims', {'x', 'y'});
+        jd13.setattr('coords', struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}}));
+    else
+        jd13{'dims'} = {'x', 'y'};
+        jd13{'coords'} = struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}});
+    end
+    test_jsonlab('cascade x then y', @savejson, jd13.x('b').y('r').v(), '[8]', 'compact', 1);
+    test_jsonlab('cascade y then x', @savejson, jd13.y('q').x('c').v(), '[6]', 'compact', 1);
+
+    % Test 14: Cascade multi-select then single
+    jd14 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd14.setattr('dims', {'x', 'y'});
+        jd14.setattr('coords', struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}}));
+    else
+        jd14{'dims'} = {'x', 'y'};
+        jd14{'coords'} = struct('x', {{'a', 'b', 'c'}}, 'y', {{'p', 'q', 'r', 's'}});
+    end
+    test_jsonlab('cascade multi then single', @savejson, jd14.x({'a', 'c'}).y('s').v(), '[[10],[12]]', 'compact', 1);
+    test_jsonlab('cascade single then multi', @savejson, jd14.y('p').x({'a', 'b'}).v(), '[[1],[2]]', 'compact', 1);
+
+    % Test 15: Cascade with numeric coords
+    jd15 = jdict(reshape(1:12, [3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd15.setattr('dims', {'x', 'y'});
+        jd15.setattr('coords', struct('x', [10, 20, 30], 'y', [100, 200, 300, 400]));
+    else
+        jd15{'dims'} = {'x', 'y'};
+        jd15{'coords'} = struct('x', [10, 20, 30], 'y', [100, 200, 300, 400]);
+    end
+    test_jsonlab('cascade numeric coords', @savejson, jd15.x(20).y(300).v(), '[8]', 'compact', 1);
+    test_jsonlab('cascade numeric multi then single', @savejson, jd15.x([10, 30]).y(400).v(), '[[10],[12]]', 'compact', 1);
+
+    % Test 16: Cascade in nested struct
+    jd16 = jdict(struct('data', reshape(1:12, [3, 4])));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd16.('data').setattr('dims', {'row', 'col'});
+        jd16.('data').setattr('coords', struct('row', {{'r1', 'r2', 'r3'}}, 'col', {{'c1', 'c2', 'c3', 'c4'}}));
+    else
+        jd16.('data'){'dims'} = {'row', 'col'};
+        jd16.('data'){'coords'} = struct('row', {{'r1', 'r2', 'r3'}}, 'col', {{'c1', 'c2', 'c3', 'c4'}});
+    end
+    test_jsonlab('cascade in nested struct', @savejson, jd16.('data').row('r2').col('c3').v(), '[8]', 'compact', 1);
+
+    % Test 17: Cascade on 3D array
+    jd17 = jdict(reshape(1:24, [2, 3, 4]));
+    if (exist('OCTAVE_VERSION', 'builtin') ~= 0)
+        jd17.setattr('dims', {'x', 'y', 'z'});
+        jd17.setattr('coords', struct('x', {{'a', 'b'}}, 'y', {{'p', 'q', 'r'}}, 'z', {{'i', 'j', 'k', 'l'}}));
+    else
+        jd17{'dims'} = {'x', 'y', 'z'};
+        jd17{'coords'} = struct('x', {{'a', 'b'}}, 'y', {{'p', 'q', 'r'}}, 'z', {{'i', 'j', 'k', 'l'}});
+    end
+    test_jsonlab('3D cascade two dims', @savejson, jd17.x('b').z('k').v(), '[14,16,18]', 'compact', 1);
+    test_jsonlab('3D cascade all three dims', @savejson, jd17.x('a').y('q').z('j').v(), '[9]', 'compact', 1);
 end
 
 %%

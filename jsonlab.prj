@@ -123,6 +123,8 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/jsonset.m</file>
       <file>${PROJECT_ROOT}/loadbj.m</file>
       <file>${PROJECT_ROOT}/loadjd.m</file>
+      <file>${PROJECT_ROOT}/loadyaml.m</file>
+      <file>${PROJECT_ROOT}/saveyaml.m</file>
       <file>${PROJECT_ROOT}/loadjson.m</file>
       <file>${PROJECT_ROOT}/loadmsgpack.m</file>
       <file>${PROJECT_ROOT}/loadubjson.m</file>
