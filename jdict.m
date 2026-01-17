@@ -591,10 +591,13 @@ classdef jdict < handle
             end
             % check if kind-validation is needed
             needvalidate = (~isempty(obj.schema) && ~isempty(kindval));
+            % always compute datapath if schema exists (for casting)
+            if ~isempty(obj.schema)
+                datapath = buildpath_(obj.currentpath__, idxkey, oplen);
+            end
             if (needvalidate)
                 tempobj = jdict();
                 tempobj.setschema(obj.schema);
-                datapath = buildpath_(obj.currentpath__, idxkey, oplen);
             end
 
             % Fast path: single-level assignment like jd.key = value
@@ -602,8 +605,11 @@ classdef jdict < handle
                 fieldname = idxkey(1).subs;
                 % Skip if JSONPath
                 if (isempty(fieldname) || fieldname(1) ~= char(36))
+                    targetpath = [obj.currentpath__ '.' esckey_(fieldname)];
+                    if ~isempty(obj.schema)
+                        otherobj = castbintype_(otherobj, obj.schema, targetpath, obj);
+                    end
                     if needvalidate
-                        targetpath = [obj.currentpath__ '.' esckey_(fieldname)];
                         tempobj.currentpath__ = targetpath;
                         le(tempobj, otherobj);
                     end
@@ -635,8 +641,11 @@ classdef jdict < handle
             % Fast path: single numeric index like jd.(1) = value
             if (oplen == 1 && strcmp(idxkey(1).type, '.') && isnumeric(idxkey(1).subs))
                 % validate if kind is set
+                targetpath = [obj.currentpath__ '[' num2str(idxkey(1).subs - 1) ']'];
+                if ~isempty(obj.schema)
+                    otherobj = castbintype_(otherobj, obj.schema, targetpath, obj);
+                end
                 if needvalidate
-                    targetpath = [obj.currentpath__ '[' num2str(idxkey(1).subs - 1) ']'];
                     tempobj.currentpath__ = targetpath;
                     le(tempobj, otherobj);
                 end
@@ -764,6 +773,9 @@ classdef jdict < handle
 
             if (oplen >= 2 && ischar(idxkey(oplen - 1).subs) && strcmp(idxkey(oplen - 1).subs, 'v') && strcmp(idxkey(oplen).type, '()'))
                 % Handle .v(index) = value at any depth
+                if ~isempty(obj.schema)
+                    otherobj = castbintype_(otherobj, obj.schema, datapath, obj);
+                end
                 if needvalidate
                     tempobj.currentpath__ = datapath;
                     le(tempobj, otherobj);
@@ -782,6 +794,9 @@ classdef jdict < handle
                 end
                 opcell{oplen + 1} = opcell{oplen};
             elseif (obj.flags__.isoctave_) && (ismap_(obj.flags__, opcell{oplen}))
+                if ~isempty(obj.schema)
+                    otherobj = castbintype_(otherobj, obj.schema, datapath, obj);
+                end
                 if needvalidate
                     tempobj.currentpath__ = datapath;
                     le(tempobj, otherobj);
@@ -789,6 +804,9 @@ classdef jdict < handle
                 opcell{oplen}(idx.subs) = otherobj;
                 opcell{oplen + 1} = opcell{oplen};
             else
+                if ~isempty(obj.schema)
+                    otherobj = castbintype_(otherobj, obj.schema, datapath, obj);
+                end
                 if needvalidate
                     tempobj.currentpath__ = datapath;
                     le(tempobj, otherobj);
@@ -1458,5 +1476,28 @@ function idx = findcoord_(coords, val, dim)
     end
     if isempty(idx)
         error('Coord "%s" not found in "%s"', mat2str(val), dim);
+    end
+end
+
+% auto-coerce value to match binType in schema (for = assignment only)
+function val = castbintype_(val, schema, path, obj)
+    if isempty(schema)
+        return
+    end
+    try
+        subschema = obj.call_('jsonschema', schema, [], 'getsubschema', path);
+    catch
+        return
+    end
+    if isempty(subschema) || ~isa(subschema, 'containers.Map') || ~isKey(subschema, 'binType')
+        return
+    end
+    bintype = subschema('binType');
+    if isa(val, bintype)
+        return
+    end
+    try
+        val = cast(val, bintype);
+    catch
     end
 end
