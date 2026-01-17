@@ -23,8 +23,6 @@
 %    member functions:
 %        jd.('cell1').v(i) or jd.('array1').v(2:3) returns specified elements if the element is a cell or array
 %        jd.('key1').('subkey1').v() returns the underlying hierachical data at the specified subkeys
-%        jd.tojson() convers the underlying data to a JSON string
-%        jd.tojson('compression', 'zlib', ...) convers the data to a JSON string with savejson() options
 %        jd.keys() returns the sub-key names of the object - if it a struct, dictionary or containers.Map - or 1:length(data) if it is an array
 %        jd.len() returns the length of the sub-keys
 %        jd.size() returns the dimension vector
@@ -37,6 +35,10 @@
 %        jd.setschema(schema) sets a JSON Schema for validation (struct, JSON string, URL, or file path)
 %        jd.getschema() returns the current schema; jd.getschema('json') returns as JSON string
 %        jd.validate() validates data against schema; [valid, errors] = jd.validate() returns error details
+%        jd.tojson() convers the underlying data to a JSON string
+%        jd.fromjson(jsonstr) loading data by parsing a json string
+%        jd.tobuffer() convers the underlying data to a binary JSON buffer
+%        jd.frombuffer(binary) loading data by parsing a binary JSON buffer
 %
 %        if using matlab, the .v(...) method can be replaced by bare
 %        brackets .(...), but in octave, one must use .v(...)
@@ -329,7 +331,7 @@ classdef jdict < handle
 
                 if (strcmp(idx.type, '.') && isnumeric(idx.subs))
                     val = val(idx.subs);
-                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'isKey', 'keys', 'len', 'size', 'setattr', 'getattr', 'setschema', 'getschema', 'validate', 'attr2schema'}) && i < oplen && strcmp(idxkey(i + 1).type, '()'))
+                elseif ((strcmp(idx.type, '()') || strcmp(idx.type, '.')) && ischar(idx.subs) && ismember(idx.subs, {'tojson', 'fromjson', 'v', 'isKey', 'keys', 'len', 'size', 'setattr', 'getattr', 'setschema', 'getschema', 'validate', 'attr2schema', 'tobuffer', 'frombuffer', 'isfield', 'fieldnames', 'rmfield'}) && i < oplen && strcmp(idxkey(i + 1).type, '()'))
                     if (strcmp(idx.subs, 'v'))
                         if (iscell(val) && strcmp(idxkey(i + 1).type, '()'))
                             idxkey(i + 1).type = '{}';
@@ -348,13 +350,14 @@ classdef jdict < handle
                         tempobj.attr = obj.attr;
                         tempobj.setschema(obj.schema);
                         tempobj.currentpath__ = trackpath;
-                        if (obj.flags__.isoctave_ && regexp(OCTAVE_VERSION, '^5\.'))
+                        tempobj.root__ = obj.root__;
+                        if (obj.flags__.isoctave5_)
                             val = membercall_(tempobj, idx.subs, idxkey(i + 1).subs{:});
                         else
                             fhandle = str2func(idx.subs);
                             val = fhandle(tempobj, idxkey(i + 1).subs{:});
                         end
-                        if (i == oplen - 1 && ismember(idx.subs, {'isKey', 'tojson', 'getattr', 'getschema', 'setschema', 'validate', 'attr2schema'}))
+                        if (i == oplen - 1 && ismember(idx.subs, {'isKey', 'tojson', 'getattr', 'getschema', 'setschema', 'validate', 'attr2schema', 'isfield'}))
                             if (strcmp(idx.subs, 'setschema'))
                                 obj.setschema(tempobj.schema);
                             end
@@ -867,15 +870,26 @@ classdef jdict < handle
             obj.data = opcell{1};
         end
 
-        % export data to json, binary JSON, or other over a dozen formats
+        % export data to json
         function val = tojson(obj, varargin)
             % printing underlying data to compact-formed JSON string
-            val = obj.call_('savejd', '', obj, 'compact', 1, varargin{:});
+            val = obj.call_('savejson', '', obj, 'compact', 1, varargin{:});
         end
 
-        % load data from over a dozen data formats, including json and binary json
+        % load data from json
         function obj = fromjson(obj, fname, varargin)
-            obj.data = obj.call_('loadjd', fname, varargin{:});
+            obj.data = obj.call_('loadjson', fname, varargin{:});
+        end
+
+        % export data to binary JSON buffer
+        function val = tobuffer(obj, varargin)
+            % printing underlying data to compact-formed JSON string
+            val = obj.call_('savebj', '', obj, varargin{:});
+        end
+
+        % load data from binary JSON buffer
+        function obj = frombuffer(obj, fname, varargin)
+            obj.data = obj.call_('loadbj', fname, varargin{:});
         end
 
         function val = keys(obj)
@@ -909,17 +923,20 @@ classdef jdict < handle
         end
 
         % remove specified key or element
-        function val = rmfield(obj, key)
-            % list subfields at the current level
-            if (isstruct(obj.data))
-                val = rmfield(obj.data, key);
-            elseif (ismap_(obj.flags__, obj.data))
-                val = remove(obj.data, key);
-            elseif (iscell(obj.data))
-                obj.data = builtin('subsasgn', obj.data, struct('type', '{}', 'subs', {{key}}), []);
+        function obj = rmfield(obj, key)
+            currentpath = obj.currentpath__;
+            root = obj.root__;
+
+            % Build path to the key to delete
+            escapedkey = esckey_(key);
+            if strcmp(currentpath, char(36))
+                targetpath = [char(36) '.' escapedkey];
             else
-                obj.data = builtin('subsasgn', obj.data, struct('type', '()', 'subs', {{key}}), []);
+                targetpath = [currentpath '.' escapedkey];
             end
+
+            % Use jsonpath to delete from root's data
+            root.data = obj.call_('jsonpath', root.data, targetpath, jdict([], 'kind', '_deleted_', 'schema', struct('type', 'null')));
         end
 
         % return the number of subfields or array length
@@ -954,10 +971,6 @@ classdef jdict < handle
 
         function val = membercall_(obj, method, varargin)
             switch method
-                case 'tojson'
-                    val = tojson(obj);
-                case 'fromjson'
-                    val = fromjson(obj, varargin{:});
                 case 'v'
                     val = v(obj);
                 case 'isKey'
@@ -980,6 +993,20 @@ classdef jdict < handle
                     val = validate(obj, varargin{:});
                 case 'attr2schema'
                     val = attr2schema(obj, varargin{:});
+                case 'tojson'
+                    val = tojson(obj);
+                case 'fromjson'
+                    val = fromjson(obj, varargin{:});
+                case 'tobuffer'
+                    val = tobuffer(obj);
+                case 'frombuffer'
+                    val = frombuffer(obj, varargin{:});
+                case 'fieldnames'
+                    val = fieldnames(obj);
+                case 'isfield'
+                    val = isfield(obj, varargin{:});
+                case 'rmfield'
+                    val = rmfield(obj, varargin{:});
             end
         end
 
@@ -1001,8 +1028,8 @@ classdef jdict < handle
                         [varargout{1:nargout}] = jsondecode(webread(varargin{:}));
                     case 'savejson'
                         [varargout{1:nargout}] = jsonencode(varargin{:});
-                    case 'jsonpath'
-                        error('please install jsonlab (https://github.com/NeuroJSON/jsonlab) and set "BuiltinJSON" flag to 0');
+                    case {'jsonpath', 'jsonschema'}
+                        error('please install jsonlab (https://github.com/NeuroJSON/jsonlab)');
                 end
             end
         end
@@ -1319,6 +1346,7 @@ function flags = getflags_()
         cachedflags = struct();
         cachedflags.builtinjson = 0;
         cachedflags.isoctave_ = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+        cachedflags.isoctave5_ = (cachedflags.isoctave_ && regexp(OCTAVE_VERSION, '^5\.'));
         try
             containers.Map();
             cachedflags.hasmap_ = true;

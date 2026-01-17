@@ -204,11 +204,22 @@ elseif (nargout > 1)
 end
 
 function data = setfield_safe(data, fieldname, value)
-if isstruct(data)
-    data.(fieldname) = value;
-elseif isa(data, 'containers.Map') || isa(data, 'dictionary')
-    data(fieldname) = value;
+if (isa(value, 'jdict') && ~isempty(value{'kind'}) && strcmp(value{'kind'}, '_deleted_'))
+    if isstruct(data) && isfield(data, fieldname)
+        data = rmfield(data, fieldname);
+    elseif (isa(data, 'containers.Map') || isa(data, 'dictionary')) && isKey(data, fieldname)
+        data = remove(data, fieldname);
+    else
+        idx = struct('type', '.', 'subs', fieldname);
+        data = subsasgn(data, idx, []);
+    end
 else
-    idx = struct('type', '.', 'subs', fieldname);
-    data = subsasgn(data, idx, value);
+    if isstruct(data)
+        data.(fieldname) = value;
+    elseif isa(data, 'containers.Map') || isa(data, 'dictionary')
+        data(fieldname) = value;
+    else
+        idx = struct('type', '.', 'subs', fieldname);
+        data = subsasgn(data, idx, value);
+    end
 end

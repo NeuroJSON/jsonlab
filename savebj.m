@@ -90,7 +90,7 @@ function output = savebj(rootname, obj, varargin)
 %                         "_ArrayZipData_": the binary stream of
 %                            the compressed binary array data WITHOUT
 %                            'base64' encoding
-%          CompressArraySize [100|int]: only to compress an array if the total
+%          CompressArraySize [300|int]: only to compress an array if the total
 %                         element count is larger than this number.
 %          CompressStringSize [inf|int]: only to compress a string if the total
 %                         element count is larger than this number.
@@ -180,10 +180,10 @@ else
 end
 
 opt.isoctave = isoctavemesh;
-opt.compression = jsonopt('Compression', '', opt);
+opt.compression = jsonopt('Compression', 'zlib', opt);
 opt.nestarray = jsonopt('NestArray', 0, opt);
 opt.formatversion = jsonopt('FormatVersion', 4, opt);
-opt.compressarraysize = jsonopt('CompressArraySize', 100, opt);
+opt.compressarraysize = jsonopt('CompressArraySize', 300, opt);
 opt.compressstringsize = jsonopt('CompressStringSize', inf, opt);
 opt.singletcell = jsonopt('SingletCell', 1, opt);
 opt.singletarray = jsonopt('SingletArray', 0, opt);
