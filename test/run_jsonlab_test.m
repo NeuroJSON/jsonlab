@@ -2585,123 +2585,108 @@ if (ismember('schema', tests) && hasContainersMap)
     test_jsonlab('validate binType logical fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
 
     % =======================================================================
-    % binType auto-coercion on = vs strict <= validation
+    % binType auto-casting on <= operator
     % =======================================================================
 
-    % Test 1: = assignment auto-coerces double to uint8 (nested)
+    % Test 1: <= auto-cast double to uint8
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'uint8'))));
-    jd.arr = [1, 2, 3];  % double should be coerced to uint8
-    test_jsonlab('= coerces double to uint8', @savejson, isa(jd.arr.v(), 'uint8'), '[true]', 'compact', 1);
+    jd.arr <= [1, 2, 3];
+    test_jsonlab('<= casts double to uint8', @savejson, isa(jd.arr.v(), 'uint8'), '[true]', 'compact', 1);
 
-    % Test 2: = assignment auto-coerces double to int32
+    % Test 2: <= auto-cast double to int32
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'int32'))));
-    jd.arr = [-100, 0, 100];  % double should be coerced to int32
-    test_jsonlab('= coerces double to int32', @savejson, isa(jd.arr.v(), 'int32'), '[true]', 'compact', 1);
+    jd.arr <= [-100, 0, 100];
+    test_jsonlab('<= casts double to int32', @savejson, isa(jd.arr.v(), 'int32'), '[true]', 'compact', 1);
 
-    % Test 3: = assignment auto-coerces double to single
+    % Test 3: <= auto-cast double to single
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'single'))));
-    jd.arr = [1.5, 2.5, 3.5];  % double should be coerced to single
-    test_jsonlab('= coerces double to single', @savejson, isa(jd.arr.v(), 'single'), '[true]', 'compact', 1);
+    jd.arr <= [1.5, 2.5, 3.5];
+    test_jsonlab('<= casts double to single', @savejson, isa(jd.arr.v(), 'single'), '[true]', 'compact', 1);
 
-    % Test 4: = assignment auto-coerces to logical
+    % Test 4: <= auto-cast to logical
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'logical'))));
-    jd.arr = [1, 0, 1];  % double should be coerced to logical
-    test_jsonlab('= coerces double to logical', @savejson, isa(jd.arr.v(), 'logical'), '[true]', 'compact', 1);
+    jd.arr <= [1, 0, 1];
+    test_jsonlab('<= casts double to logical', @savejson, isa(jd.arr.v(), 'logical'), '[true]', 'compact', 1);
 
-    % Test 5: = assignment auto-coerces to uint16
+    % Test 5: <= auto-cast to uint16
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'uint16'))));
-    jd.arr = [100, 200, 300];
-    test_jsonlab('= coerces double to uint16', @savejson, isa(jd.arr.v(), 'uint16'), '[true]', 'compact', 1);
+    jd.arr <= [100, 200, 300];
+    test_jsonlab('<= casts double to uint16', @savejson, isa(jd.arr.v(), 'uint16'), '[true]', 'compact', 1);
 
-    % Test 6: = assignment auto-coerces to int64
+    % Test 6: <= auto-cast to int64
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'int64'))));
-    jd.arr = [1e10, -1e10];
-    test_jsonlab('= coerces double to int64', @savejson, isa(jd.arr.v(), 'int64'), '[true]', 'compact', 1);
+    jd.arr <= [1e10, -1e10];
+    test_jsonlab('<= casts double to int64', @savejson, isa(jd.arr.v(), 'int64'), '[true]', 'compact', 1);
 
-    % Test 7: <= with correct type passes
+    % Test 7: <= with already correct type passes
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'uint8'))));
-    try
-        jd.arr <= uint8([1, 2, 3]);
-        lepass = true;
-    catch
-        lepass = false;
-    end
-    test_jsonlab('<= with correct uint8 passes', @savejson, lepass, '[true]', 'compact', 1);
+    jd.arr <= uint8([1, 2, 3]);
+    test_jsonlab('<= with correct uint8 unchanged', @savejson, isequal(jd.arr.v(), uint8([1, 2, 3])), '[true]', 'compact', 1);
 
-    % Test 8: <= with wrong type fails
+    % Test 8: <= casts int8 to uint8
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'uint8'))));
-    try
-        jd.arr <= double([1, 2, 3]);  % should fail - no coercion on <=
-        lefail = false;
-    catch
-        lefail = true;
-    end
-    test_jsonlab('<= with double fails for uint8 schema', @savejson, lefail, '[true]', 'compact', 1);
+    jd.arr <= int8([1, 2, 3]);
+    test_jsonlab('<= casts int8 to uint8', @savejson, isa(jd.arr.v(), 'uint8'), '[true]', 'compact', 1);
 
-    % Test 9: <= with wrong type fails (int32)
-    jd = jdict(struct('arr', []));
-    jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'int32'))));
-    try
-        jd.arr <= double([1, 2, 3]);
-        lefail = false;
-    catch
-        lefail = true;
-    end
-    test_jsonlab('<= with double fails for int32 schema', @savejson, lefail, '[true]', 'compact', 1);
-
-    % Test 10: <= with wrong type fails (single)
-    jd = jdict(struct('arr', []));
-    jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'single'))));
-    try
-        jd.arr <= double([1.5, 2.5]);
-        lefail = false;
-    catch
-        lefail = true;
-    end
-    test_jsonlab('<= with double fails for single schema', @savejson, lefail, '[true]', 'compact', 1);
-
-    % Test 11: Correct type on = does not change value
-    jd = jdict(struct('arr', []));
-    jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'uint8'))));
-    jd.arr = uint8([5, 6, 7]);
-    test_jsonlab('= with correct type unchanged', @savejson, isequal(jd.arr.v(), uint8([5, 6, 7])), '[true]', 'compact', 1);
-
-    % Test 12: Combined binType and minDims - = coerces type
+    % Test 9: <= combined binType and minDims
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'int16', 'minDims', 3))));
-    jd.arr = [1, 2, 3, 4, 5];  % coerce to int16
-    test_jsonlab('= coerces with binType+minDims', @savejson, isa(jd.arr.v(), 'int16'), '[true]', 'compact', 1);
+    jd.arr <= [1, 2, 3, 4, 5];
+    test_jsonlab('<= casts with binType+minDims', @savejson, isa(jd.arr.v(), 'int16'), '[true]', 'compact', 1);
 
-    % Test 13: Combined binType and minDims - <= strict
+    % Test 10: <= fails minDims after casting
     jd = jdict(struct('arr', []));
-    jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'int16', 'minDims', 3))));
+    jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'int16', 'minDims', 10))));
     try
-        jd.arr <= int16([1, 2, 3, 4, 5]);  % correct type, valid dims
-        lepass = true;
+        jd.arr <= [1, 2, 3];  % casts to int16, but fails minDims
+        lefail = false;
     catch
-        lepass = false;
+        lefail = true;
     end
-    test_jsonlab('<= passes with correct type and dims', @savejson, lepass, '[true]', 'compact', 1);
+    test_jsonlab('<= casts then fails minDims', @savejson, lefail, '[true]', 'compact', 1);
 
-    % Test 14: Deep nested structure with binType
+    % Test 11: Deep nested structure with binType
     jd = jdict(struct('level1', struct('level2', struct('arr', []))));
     jd.setschema(struct('type', 'object', 'properties', struct('level1', struct('type', 'object', 'properties', struct('level2', struct('type', 'object', 'properties', struct('arr', struct('binType', 'uint8'))))))));
-    jd.level1.level2.arr = [10, 20, 30];
-    test_jsonlab('deep nested = coerces to uint8', @savejson, isa(jd.level1.level2.arr.v(), 'uint8'), '[true]', 'compact', 1);
+    jd.level1.level2.arr <= [10, 20, 30];
+    test_jsonlab('deep nested <= casts to uint8', @savejson, isa(jd.level1.level2.arr.v(), 'uint8'), '[true]', 'compact', 1);
 
-    % Test 15: = coerces int8 to uint8
+    % Test 12: = does NOT cast (stays double)
     jd = jdict(struct('arr', []));
     jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', 'uint8'))));
-    jd.arr = int8([1, 2, 3]);  % int8 should be coerced to uint8
-    test_jsonlab('= coerces int8 to uint8', @savejson, isa(jd.arr.v(), 'uint8'), '[true]', 'compact', 1);
+    jd.arr = [1, 2, 3];
+    test_jsonlab('= does not cast (stays double)', @savejson, isa(jd.arr.v(), 'double'), '[true]', 'compact', 1);
+
+    % Test 13: Root level <= casts
+    jd = jdict();
+    jd.setschema(struct('binType', 'uint8'));
+    jd <= [5, 6, 7];
+    test_jsonlab('root <= casts to uint8', @savejson, isa(jd.v(), 'uint8'), '[true]', 'compact', 1);
+
+    % Test 14: <= with 2D array casts
+    jd = jdict(struct('mat', []));
+    jd.setschema(struct('type', 'object', 'properties', struct('mat', struct('binType', 'single'))));
+    jd.mat <= [1, 2; 3, 4];
+    test_jsonlab('<= casts 2D to single', @savejson, isa(jd.mat.v(), 'single'), '[true]', 'compact', 1);
+
+    % Test 15: <= validates other schema rules after casting
+    jd = jdict(struct('val', []));
+    jd.setschema(struct('type', 'object', 'properties', struct('val', struct('type', 'integer', 'minimum', 0, 'maximum', 100))));
+    try
+        jd.val <= 150;  % should fail maximum check
+        lefail = false;
+    catch
+        lefail = true;
+    end
+    test_jsonlab('<= validates non-binType schema', @savejson, lefail, '[true]', 'compact', 1);
 
     % =======================================================================
     % minDims validation
