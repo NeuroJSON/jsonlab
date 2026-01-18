@@ -761,7 +761,11 @@ classdef jdict < handle
                 elseif (ismap_(obj.flags__, opcell{i}))
                     opcell{i + 1} = opcell{i}(idx.subs);
                 else
-                    opcell{i + 1} = subsref(opcell{i}, idx);
+                    try
+                        opcell{i + 1} = subsref(opcell{i}, idx);
+                    catch
+                        opcell{i + 1} = opcell{i};
+                    end
                 end
             end
 
@@ -772,16 +776,13 @@ classdef jdict < handle
                     le(tempobj, otherobj);
                 end
                 nextsubs = idxkey(oplen).subs;
-                if iscell(nextsubs)
-                    nextsubs = nextsubs{1};
-                end
                 if iscell(opcell{oplen})
-                    opcell{oplen}{nextsubs} = otherobj;
+                    opcell{oplen} = builtin('subsasgn', opcell{oplen}, struct('type', '{}', 'subs', nextsubs), otherobj);
                 elseif isstruct(opcell{oplen}) && isempty(fieldnames(opcell{oplen}))
                     % Empty struct with no fields - just replace
                     opcell{oplen} = otherobj;
                 else
-                    opcell{oplen}(nextsubs) = otherobj;
+                    opcell{oplen} = builtin('subsasgn', opcell{oplen}, struct('type', '()', 'subs', {nextsubs}), otherobj);
                 end
                 opcell{oplen + 1} = opcell{oplen};
             elseif (obj.flags__.isoctave_) && (ismap_(obj.flags__, opcell{oplen}))
@@ -878,7 +879,7 @@ classdef jdict < handle
 
         % load data from json
         function obj = fromjson(obj, fname, varargin)
-            obj.data = obj.call_('loadjson', fname, varargin{:});
+            obj.root__.data = obj.call_('loadjson', fname, varargin{:});
         end
 
         % export data to binary JSON buffer
@@ -889,7 +890,7 @@ classdef jdict < handle
 
         % load data from binary JSON buffer
         function obj = frombuffer(obj, fname, varargin)
-            obj.data = obj.call_('loadbj', fname, varargin{:});
+            obj.root__.data = obj.call_('loadbj', fname, varargin{:});
         end
 
         function val = keys(obj)
@@ -924,6 +925,14 @@ classdef jdict < handle
 
         % remove specified key or element
         function obj = rmfield(obj, key)
+            if ~isempty(obj.schema)
+                ps = obj.call_('jsonschema', obj.schema, [], 'getsubschema', obj.currentpath__);
+                if ~isempty(ps) && isa(ps, 'containers.Map') && isKey(ps, 'required')
+                    if ismember(key, ps('required'))
+                        error('Schema violation: cannot remove required field "%s"', key);
+                    end
+                end
+            end
             currentpath = obj.currentpath__;
             root = obj.root__;
 
@@ -962,6 +971,61 @@ classdef jdict < handle
             else
                 val = obj.data;
             end
+        end
+
+        % disp - Display compact summary of jdict object
+        function disp(obj)
+            if obj.flags__.isoctave_
+                hl = @(t) t;
+                ul = @(t) t;
+            else
+                hl = @(t) ['<strong>' t '</strong>'];
+                ul = @(t) ['<a href="">' t '</a>'];
+            end
+            fprintf('  %s', hl('jdict'));
+            kindval = obj.getattr('$', 'kind');
+            if ~isempty(kindval)
+                fprintf(' (kind: %s)', kindval);
+            end
+            fprintf('\n  %s\n', repmat('-', 1, 50));
+
+            % Data section
+            fprintf('  %s ', hl('Data:'));
+            dispdata_(obj.data, 2, obj.flags__.dispdepth, obj.flags__.displen, hl, ul);
+
+            % Attributes section
+            if ~isempty(obj.attr) && obj.attr.Count > 0
+                fprintf('\n  %s %d path(s)', hl('Attr:'), obj.attr.Count);
+                attrkeys = keys(obj.attr);
+                for i = 1:min(3, length(attrkeys))
+                    a = obj.attr(attrkeys{i});
+                    if isa(a, 'containers.Map')
+                        fprintf('\n    @[%s]: %s', attrkeys{i}, strjoin(keys(a), ', '));
+                    end
+                end
+                if length(attrkeys) > 3
+                    fprintf('\n    ... (+%d more)', length(attrkeys) - 3);
+                end
+                fprintf('\n');
+            end
+
+            % Schema section
+            if ~isempty(obj.schema) && isa(obj.schema, 'containers.Map')
+                fprintf('\n  %s ', hl('Schema:'));
+                if isKey(obj.schema, 'type')
+                    fprintf(' type=%s', obj.schema('type'));
+                end
+                if isKey(obj.schema, 'properties')
+                    p = obj.schema('properties');
+                    if isa(p, 'containers.Map')
+                        fprintf(', props={%s}', strjoin(keys(p), ','));
+                    elseif isstruct(p)
+                        fprintf(', props={%s}', strjoin(fieldnames(p), ','));
+                    end
+                end
+                fprintf('\n');
+            end
+            fprintf('\n');
         end
 
         % internal: insert new key if does not exist
@@ -1254,9 +1318,10 @@ classdef jdict < handle
         function result = le(obj, value)
             % validate against schema if defined
             if ~isempty(obj.schema)
-                subschema = obj.call_('jsonschema', obj.schema, [], ...
-                                      'getsubschema', obj.currentpath__);
-
+                [subschema, errs] = getsubschema_(obj.schema, obj.currentpath__);
+                if ~isempty(errs)
+                    error('Schema violation: %s', errs{1});
+                end
                 % if subschema found for this path, validate
                 if ~isempty(subschema)
                     % forcing type when binType is defined
@@ -1347,6 +1412,8 @@ function flags = getflags_()
         cachedflags.builtinjson = 0;
         cachedflags.isoctave_ = exist('OCTAVE_VERSION', 'builtin') ~= 0;
         cachedflags.isoctave5_ = (cachedflags.isoctave_ && regexp(OCTAVE_VERSION, '^5\.'));
+        cachedflags.dispdepth = 3;  % max recursion depth for display
+        cachedflags.displen = 6;    % max items to show per level
         try
             containers.Map();
             cachedflags.hasmap_ = true;
@@ -1405,6 +1472,9 @@ function schema = getkindschema_(kind)
             if ismember(lower(kind), bintypes)
                 schema = struct('binType', lower(kind));
             end
+    end
+    if (isstruct(schema))
+        schema.additionalProperties = false;
     end
 end
 
@@ -1497,5 +1567,85 @@ function idx = findcoord_(coords, val, dim)
     end
     if isempty(idx)
         error('Coord "%s" not found in "%s"', mat2str(val), dim);
+    end
+end
+
+%% Helper: Display data with abbreviation
+function dispdata_(data, indent, maxdepth, maxlen, hlfun, ulfun)
+    sp = repmat(' ', 1, indent);
+    if isempty(data)
+        fprintf('[empty %s]\n', class(data));
+    elseif isnumeric(data) || islogical(data)
+        sz = size(data);
+        if numel(data) <= maxlen
+            fprintf('%s %s = %s\n', dimstr_(sz), class(data), mat2str(data));
+        else
+            flat = data(:);
+            fprintf('%s %s [%g %g ... %g %g]\n', dimstr_(sz), class(data), ...
+                    flat(1), flat(2), flat(end - 1), flat(end));
+        end
+    elseif ischar(data)
+        if length(data) <= 50
+            fprintf('char ''%s''\n', data);
+        else
+            fprintf('char(1x%d) ''%s...''\n', length(data), data(1:47));
+        end
+    elseif iscell(data)
+        fprintf('%s cell\n', dimstr_(size(data)));
+        if maxdepth > 0 && numel(data) <= maxlen
+            for i = 1:numel(data)
+                fprintf('%s  {%d}: ', sp, i);
+                dispdata_(data{i}, indent + 6, maxdepth - 1, maxlen, hl, ul);
+            end
+        end
+    elseif isstruct(data)
+        fn = fieldnames(data);
+        fprintf('struct (%d fields, %d elements)\n', length(fn), numel(data));
+        if maxdepth > 0 && numel(data) == 1
+            for i = 1:min(length(fn), maxlen)
+                fprintf('%s  .%s: ', sp, ulfun(fn{i}));
+                dispdata_(data.(fn{i}), indent + 4, maxdepth - 1, maxlen, hlfun, ulfun);
+            end
+            if length(fn) > maxlen
+                fprintf('%s  ... (+%d fields)\n', sp, length(fn) - maxlen, hlfun, ulfun);
+            end
+        end
+    elseif isa(data, 'containers.Map')
+        k = keys(data);
+        fprintf('Map (%d keys)\n', length(k));
+        if maxdepth > 0 && length(k) <= maxlen
+            for i = 1:length(k)
+                fprintf('%s  [''%s'']: ', sp, ulfun(k{i}));
+                dispdata_(data(k{i}), indent + 4, maxdepth - 1, maxlen, hlfun, ulfun);
+            end
+        end
+    else
+        fprintf('%s\n', class(data));
+    end
+end
+
+function s = dimstr_(sz)
+    s = strjoin(arrayfun(@num2str, sz, 'uni', 0), 'x');
+end
+
+%% Helper: get subschema and validate path in one pass
+function [subschema, errs] = getsubschema_(dataschema, datapath)
+    errs = {};
+    subschema = dataschema;
+    if strcmp(datapath, '$')
+        return
+    end
+    parts = regexp(datapath, '(?<!\\)\.', 'split');
+    for d = 2:length(parts)
+        ps = jsonschema(dataschema, [], 'getsubschema', strjoin(parts(1:d), '.'));
+        if isempty(ps) && isa(subschema, 'containers.Map') && isKey(subschema, 'additionalProperties') && isequal(subschema('additionalProperties'), false)
+            errs = {sprintf('"%s" does not allow property "%s"', strjoin(parts(1:d - 1), '.'), parts{d})};
+            return
+        end
+        if d < length(parts) && ~isempty(ps) && isa(ps, 'containers.Map') && isKey(ps, 'type') && ismember(ps('type'), {'integer', 'number', 'string', 'boolean'})
+            errs = {sprintf('"%s" expects "%s"', strjoin(parts(1:d), '.'), ps('type'))};
+            return
+        end
+        subschema = ps;
     end
 end
