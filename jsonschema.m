@@ -12,10 +12,10 @@ function [valid, errors] = jsonschema(data, schema, varargin)
 %
 % Input:
 %     data:   MATLAB data (struct, cell, array, string, number, logical)
-%     schema: JSON Schema as containers.Map, JSON string, URL, or file path
+%     schema: JSON Schema as containers.Map, struct, JSON string, URL, or file path
 %
 % Options:
-%     'rootschema': containers.Map - root schema for resolving $ref (default: schema)
+%     'rootschema': containers.Map/struct - root schema for resolving $ref (default: schema)
 %     'stoponfirst': logical - stop on first error (default: false)
 %     'generate': string - 'all', 'required', 'requireddefaults' (default)
 %
@@ -47,10 +47,7 @@ end
 % Generation mode: jsonschema(schema) or jsonschema(schema, [])
 if nargin == 1 || (nargin >= 2 && isempty(schema))
     schemaarg = data;
-    if ischar(schemaarg) || isa(schemaarg, 'string') || isstruct(schemaarg)
-        if (isstruct(schemaarg))
-            schemaarg = savejson('', schemaarg);
-        end
+    if ischar(schemaarg) || isa(schemaarg, 'string')
         schemaarg = loadjson(char(schemaarg), 'usemap', 1);
     end
     opt.rootschema = schemaarg;
@@ -59,10 +56,7 @@ if nargin == 1 || (nargin >= 2 && isempty(schema))
     return
 end
 
-if ischar(schema) || isa(schema, 'string') || isstruct(schema)
-    if (isstruct(schema))
-        schema = savejson('', schema);
-    end
+if ischar(schema) || isa(schema, 'string')
     schema = loadjson(char(schema), 'usemap', 1);
 end
 
@@ -85,13 +79,13 @@ if islogical(schema) && isscalar(schema)
     end
     return
 end
-if ~isa(schema, 'containers.Map') || isempty(keys(schema))
+if ~(isa(schema, 'containers.Map') || isstruct(schema)) || isempty(schemakeys(schema))
     return
 end
 
 % $ref
-if isKey(schema, '$ref')
-    ref = schema('$ref');
+if hasschemakey(schema, '$ref')
+    ref = getschemavalue(schema, '$ref');
     if ref(1) == '#'
         refschema = resolveref(ref, rootschema);
         if ~isempty(refschema)
@@ -105,8 +99,8 @@ if isKey(schema, '$ref')
 end
 
 % type
-if isKey(schema, 'type')
-    schematype = schema('type');
+if hasschemakey(schema, 'type')
+    schematype = getschemavalue(schema, 'type');
     if iscell(schematype)
         match = false;
         for i = 1:length(schematype)
@@ -123,8 +117,8 @@ if isKey(schema, 'type')
 end
 
 % enum
-if isKey(schema, 'enum')
-    enumvalues = schema('enum');
+if hasschemakey(schema, 'enum')
+    enumvalues = getschemavalue(schema, 'enum');
     match = false;
     data_is_empty_str = (ischar(data) && isempty(data)) || (isa(data, 'string') && strlength(data) == 0);
     for i = 1:length(enumvalues)
@@ -150,7 +144,7 @@ if isKey(schema, 'enum')
 end
 
 % const
-if isKey(schema, 'const') && ~isequal(data, schema('const'))
+if hasschemakey(schema, 'const') && ~isequal(data, getschemavalue(schema, 'const'))
     valid = false;
     errors{end + 1} = [path ': const mismatch'];
 end
@@ -208,21 +202,48 @@ if ~isvalid
 end
 
 % if/then/else
-if isKey(schema, 'if')
-    ifok = validatedata(data, schema('if'), path, opt);
+if hasschemakey(schema, 'if')
+    ifok = validatedata(data, getschemavalue(schema, 'if'), path, opt);
     subkey = '';
-    if ifok && isKey(schema, 'then')
+    if ifok && hasschemakey(schema, 'then')
         subkey = 'then';
-    elseif ~ifok && isKey(schema, 'else')
+    elseif ~ifok && hasschemakey(schema, 'else')
         subkey = 'else';
     end
     if ~isempty(subkey)
-        [isvalid, errmsg] = validatedata(data, schema(subkey), path, opt);
+        [isvalid, errmsg] = validatedata(data, getschemavalue(schema, subkey), path, opt);
         if ~isvalid
             valid = false;
             errors = [errors errmsg];
         end
     end
+end
+
+%% -------------------------------------------------------------------------
+function keys = schemakeys(schema)
+% Get all keys from schema (struct or containers.Map)
+if isstruct(schema)
+    keys = fieldnames(schema);
+else
+    keys = schema.keys();
+end
+
+%% -------------------------------------------------------------------------
+function tf = hasschemakey(schema, key)
+% Check if schema has key (handles struct with encoded names)
+if isstruct(schema)
+    tf = isfield(schema, encodevarname(key));
+else
+    tf = isKey(schema, key);
+end
+
+%% -------------------------------------------------------------------------
+function val = getschemavalue(schema, key)
+% Get value from schema (handles struct with encoded names)
+if isstruct(schema)
+    val = schema.(encodevarname(key));
+else
+    val = schema(key);
 end
 
 %% -------------------------------------------------------------------------
@@ -258,8 +279,8 @@ for i = 1:length(parts)
     part = strrep(strrep(parts{i}, '~1', '/'), '~0', '~');
     if isa(current, 'containers.Map') && isKey(current, part)
         current = current(part);
-    elseif isstruct(current) && isfield(current, part)
-        current = current.(part);
+    elseif isstruct(current) && isfield(current, encodevarname(part))
+        current = current.(encodevarname(part));
     elseif iscell(current)
         idx = str2double(part);
         if ~isnan(idx) && idx < length(current)
@@ -332,24 +353,24 @@ function [valid, errors] = validatenumeric(data, schema, path)
 valid = true;
 errors = {};
 
-if isKey(schema, 'minimum') && data < schema('minimum')
+if hasschemakey(schema, 'minimum') && data < getschemavalue(schema, 'minimum')
     valid = false;
     errors{end + 1} = sprintf('%s: value < minimum', path);
 end
-if isKey(schema, 'maximum') && data > schema('maximum')
+if hasschemakey(schema, 'maximum') && data > getschemavalue(schema, 'maximum')
     valid = false;
     errors{end + 1} = sprintf('%s: value > maximum', path);
 end
-if isKey(schema, 'exclusiveMinimum') && data <= schema('exclusiveMinimum')
+if hasschemakey(schema, 'exclusiveMinimum') && data <= getschemavalue(schema, 'exclusiveMinimum')
     valid = false;
     errors{end + 1} = sprintf('%s: value <= exclusiveMinimum', path);
 end
-if isKey(schema, 'exclusiveMaximum') && data >= schema('exclusiveMaximum')
+if hasschemakey(schema, 'exclusiveMaximum') && data >= getschemavalue(schema, 'exclusiveMaximum')
     valid = false;
     errors{end + 1} = sprintf('%s: value >= exclusiveMaximum', path);
 end
-if isKey(schema, 'multipleOf')
-    mult = schema('multipleOf');
+if hasschemakey(schema, 'multipleOf')
+    mult = getschemavalue(schema, 'multipleOf');
     if mult > 0 && abs(mod(data, mult)) > eps * abs(data)
         valid = false;
         errors{end + 1} = sprintf('%s: not multipleOf %g', path, mult);
@@ -363,8 +384,8 @@ valid = true;
 errors = {};
 
 % binType validation
-if isKey(schema, 'binType')
-    bintype = schema('binType');
+if hasschemakey(schema, 'binType')
+    bintype = getschemavalue(schema, 'binType');
     validtypes = {'uint8', 'int8', 'uint16', 'int16', 'uint32', 'int32', 'uint64', 'int64', 'single', 'double', 'logical'};
     if ~ismember(bintype, validtypes)
         valid = false;
@@ -378,8 +399,8 @@ end
 % minDims/maxDims validation
 actualsize = size(data);
 for dimtype = {'minDims', 'maxDims'}
-    if isKey(schema, dimtype{1})
-        dims = schema(dimtype{1});
+    if hasschemakey(schema, dimtype{1})
+        dims = getschemavalue(schema, dimtype{1});
         if iscell(dims)
             dims = [dims{:}];
         end
@@ -416,20 +437,20 @@ valid = true;
 errors = {};
 len = length(str);
 
-if isKey(schema, 'minLength') && len < schema('minLength')
+if hasschemakey(schema, 'minLength') && len < getschemavalue(schema, 'minLength')
     valid = false;
     errors{end + 1} = [path ': string too short'];
 end
-if isKey(schema, 'maxLength') && len > schema('maxLength')
+if hasschemakey(schema, 'maxLength') && len > getschemavalue(schema, 'maxLength')
     valid = false;
     errors{end + 1} = [path ': string too long'];
 end
-if isKey(schema, 'pattern') && isempty(regexp(str, schema('pattern'), 'once'))
+if hasschemakey(schema, 'pattern') && isempty(regexp(str, getschemavalue(schema, 'pattern'), 'once'))
     valid = false;
     errors{end + 1} = [path ': pattern mismatch'];
 end
-if isKey(schema, 'format')
-    fmt = schema('format');
+if hasschemakey(schema, 'format')
+    fmt = getschemavalue(schema, 'format');
     patterns = struct('email', '^[^@\s]+@[^@\s]+\.[^@\s]+$', ...
                       'uri', '^https?://', ...
                       'date', '^\d{4}-\d{2}-\d{2}$', ...
@@ -466,15 +487,15 @@ errors = {};
 
 [len, getelem] = getarrayaccessor(data);
 
-if isKey(schema, 'minItems') && len < schema('minItems')
+if hasschemakey(schema, 'minItems') && len < getschemavalue(schema, 'minItems')
     valid = false;
     errors{end + 1} = [path ': too few items'];
 end
-if isKey(schema, 'maxItems') && len > schema('maxItems')
+if hasschemakey(schema, 'maxItems') && len > getschemavalue(schema, 'maxItems')
     valid = false;
     errors{end + 1} = [path ': too many items'];
 end
-if isKey(schema, 'uniqueItems') && schema('uniqueItems')
+if hasschemakey(schema, 'uniqueItems') && getschemavalue(schema, 'uniqueItems')
     for i = 1:len
         for j = i + 1:len
             if isequal(getelem(i), getelem(j))
@@ -485,8 +506,8 @@ if isKey(schema, 'uniqueItems') && schema('uniqueItems')
         end
     end
 end
-if isKey(schema, 'items')
-    items = schema('items');
+if hasschemakey(schema, 'items')
+    items = getschemavalue(schema, 'items');
     if iscell(items)
         for i = 1:min(len, length(items))
             elem = getelem(i);
@@ -507,11 +528,11 @@ if isKey(schema, 'items')
         end
     end
 end
-if isKey(schema, 'contains')
+if hasschemakey(schema, 'contains')
     found = false;
     for i = 1:len
         elem = getelem(i);
-        isvalid = validatedata(elem, schema('contains'), path, opt);
+        isvalid = validatedata(elem, getschemavalue(schema, 'contains'), path, opt);
         if isvalid
             found = true;
             break
@@ -541,16 +562,16 @@ else
 end
 numkeys = length(datakeys);
 
-if isKey(schema, 'minProperties') && numkeys < schema('minProperties')
+if hasschemakey(schema, 'minProperties') && numkeys < getschemavalue(schema, 'minProperties')
     valid = false;
     errors{end + 1} = [path ': too few properties'];
 end
-if isKey(schema, 'maxProperties') && numkeys > schema('maxProperties')
+if hasschemakey(schema, 'maxProperties') && numkeys > getschemavalue(schema, 'maxProperties')
     valid = false;
     errors{end + 1} = [path ': too many properties'];
 end
-if isKey(schema, 'required')
-    reqfields = schema('required');
+if hasschemakey(schema, 'required')
+    reqfields = getschemavalue(schema, 'required');
     for i = 1:length(reqfields)
         if ~haskey(reqfields{i})
             valid = false;
@@ -561,14 +582,27 @@ end
 
 validatedkeys = {};
 
-if isKey(schema, 'properties')
-    props = schema('properties');
-    propnames = keys(props);
+if hasschemakey(schema, 'properties')
+    props = getschemavalue(schema, 'properties');
+    if isstruct(props)
+        propnames = fieldnames(props);
+        % Decode field names for struct
+        for i = 1:length(propnames)
+            propnames{i} = decodevarname(propnames{i});
+        end
+    else
+        propnames = keys(props);
+    end
     for i = 1:length(propnames)
         pname = propnames{i};
         if haskey(pname)
             validatedkeys{end + 1} = pname;
-            [isvalid, errmsg] = validatedata(getvalue(pname), props(pname), [path '.' pname], opt);
+            if isstruct(props)
+                propschema = props.(encodevarname(pname));
+            else
+                propschema = props(pname);
+            end
+            [isvalid, errmsg] = validatedata(getvalue(pname), propschema, [path '.' pname], opt);
             if ~isvalid
                 valid = false;
                 errors = [errors errmsg];
@@ -577,9 +611,16 @@ if isKey(schema, 'properties')
     end
 end
 
-if isKey(schema, 'patternProperties')
-    patternprops = schema('patternProperties');
-    patterns = keys(patternprops);
+if hasschemakey(schema, 'patternProperties')
+    patternprops = getschemavalue(schema, 'patternProperties');
+    if isstruct(patternprops)
+        patterns = fieldnames(patternprops);
+        for i = 1:length(patterns)
+            patterns{i} = decodevarname(patterns{i});
+        end
+    else
+        patterns = keys(patternprops);
+    end
     for i = 1:length(datakeys)
         keyname = datakeys{i};
         if iscell(keyname)
@@ -588,7 +629,12 @@ if isKey(schema, 'patternProperties')
         for j = 1:length(patterns)
             if ~isempty(regexp(keyname, patterns{j}, 'once'))
                 validatedkeys{end + 1} = keyname;
-                [isvalid, errmsg] = validatedata(getvalue(keyname), patternprops(patterns{j}), [path '.' keyname], opt);
+                if isstruct(patternprops)
+                    propschema = patternprops.(encodevarname(patterns{j}));
+                else
+                    propschema = patternprops(patterns{j});
+                end
+                [isvalid, errmsg] = validatedata(getvalue(keyname), propschema, [path '.' keyname], opt);
                 if ~isvalid
                     valid = false;
                     errors = [errors errmsg];
@@ -598,8 +644,8 @@ if isKey(schema, 'patternProperties')
     end
 end
 
-if isKey(schema, 'additionalProperties')
-    addprops = schema('additionalProperties');
+if hasschemakey(schema, 'additionalProperties')
+    addprops = getschemavalue(schema, 'additionalProperties');
     for i = 1:length(datakeys)
         keyname = datakeys{i};
         if iscell(keyname)
@@ -609,7 +655,7 @@ if isKey(schema, 'additionalProperties')
             if islogical(addprops) && ~addprops
                 valid = false;
                 errors{end + 1} = sprintf('%s: extra property "%s"', path, keyname);
-            elseif isa(addprops, 'containers.Map')
+            elseif isa(addprops, 'containers.Map') || isstruct(addprops)
                 [isvalid, errmsg] = validatedata(getvalue(keyname), addprops, [path '.' keyname], opt);
                 if ~isvalid
                     valid = false;
@@ -627,8 +673,8 @@ opt = varargin{1};
 valid = true;
 errors = {};
 
-if isKey(schema, 'allOf')
-    schemas = schema('allOf');
+if hasschemakey(schema, 'allOf')
+    schemas = getschemavalue(schema, 'allOf');
     for i = 1:length(schemas)
         [isvalid, errmsg] = validatedata(data, schemas{i}, path, opt);
         if ~isvalid
@@ -638,8 +684,8 @@ if isKey(schema, 'allOf')
     end
 end
 
-if isKey(schema, 'anyOf')
-    schemas = schema('anyOf');
+if hasschemakey(schema, 'anyOf')
+    schemas = getschemavalue(schema, 'anyOf');
     match = false;
     for i = 1:length(schemas)
         isvalid = validatedata(data, schemas{i}, path, opt);
@@ -654,8 +700,8 @@ if isKey(schema, 'anyOf')
     end
 end
 
-if isKey(schema, 'oneOf')
-    schemas = schema('oneOf');
+if hasschemakey(schema, 'oneOf')
+    schemas = getschemavalue(schema, 'oneOf');
     matchcount = 0;
     for i = 1:length(schemas)
         isvalid = validatedata(data, schemas{i}, path, opt);
@@ -669,8 +715,8 @@ if isKey(schema, 'oneOf')
     end
 end
 
-if isKey(schema, 'not')
-    isvalid = validatedata(data, schema('not'), path, opt);
+if hasschemakey(schema, 'not')
+    isvalid = validatedata(data, getschemavalue(schema, 'not'), path, opt);
     if isvalid
         valid = false;
         errors{end + 1} = [path ': not violated'];
@@ -686,28 +732,28 @@ rootschema = opt.rootschema;
 
 output = [];
 
-if ~isa(schema, 'containers.Map') || isempty(keys(schema))
+if ~(isa(schema, 'containers.Map') || isstruct(schema)) || isempty(schemakeys(schema))
     return
 end
 
-if isKey(schema, '$ref')
-    refschema = resolveref(schema('$ref'), rootschema);
+if hasschemakey(schema, '$ref')
+    refschema = resolveref(getschemavalue(schema, '$ref'), rootschema);
     if ~isempty(refschema)
         output = generatedata(refschema, opt);
     end
     return
 end
 
-if isKey(schema, 'default')
-    output = schema('default');
+if hasschemakey(schema, 'default')
+    output = getschemavalue(schema, 'default');
     return
 end
-if isKey(schema, 'const')
-    output = schema('const');
+if hasschemakey(schema, 'const')
+    output = getschemavalue(schema, 'const');
     return
 end
-if isKey(schema, 'enum')
-    enumvalues = schema('enum');
+if hasschemakey(schema, 'enum')
+    enumvalues = getschemavalue(schema, 'enum');
     if ~isempty(enumvalues)
         output = enumvalues{1};
     end
@@ -715,22 +761,22 @@ if isKey(schema, 'enum')
 end
 
 schematype = '';
-if isKey(schema, 'type')
-    schematype = schema('type');
+if hasschemakey(schema, 'type')
+    schematype = getschemavalue(schema, 'type');
     if iscell(schematype)
         schematype = schematype{1};
     end
-elseif isKey(schema, 'properties') || isKey(schema, 'required')
+elseif hasschemakey(schema, 'properties') || hasschemakey(schema, 'required')
     schematype = 'object';
-elseif isKey(schema, 'items')
+elseif hasschemakey(schema, 'items')
     schematype = 'array';
 end
 
 % Handle binType with minDims
-if isKey(schema, 'binType')
-    bintype = schema('binType');
-    if isKey(schema, 'minDims')
-        dims = schema('minDims');
+if hasschemakey(schema, 'binType')
+    bintype = getschemavalue(schema, 'binType');
+    if hasschemakey(schema, 'minDims')
+        dims = getschemavalue(schema, 'minDims');
         if iscell(dims)
             dims = [dims{:}];
         end
@@ -763,8 +809,8 @@ switch schematype
         output = generateobject(schema, opt);
 end
 
-if isKey(schema, 'allOf')
-    schemas = schema('allOf');
+if hasschemakey(schema, 'allOf')
+    schemas = getschemavalue(schema, 'allOf');
     for i = 1:length(schemas)
         subdata = generatedata(schemas{i}, opt);
         if isstruct(output) && isstruct(subdata)
@@ -780,18 +826,18 @@ end
 function val = generateinteger(schema)
 
 val = 0;
-if isKey(schema, 'minimum')
-    val = schema('minimum');
+if hasschemakey(schema, 'minimum')
+    val = getschemavalue(schema, 'minimum');
 end
-if isKey(schema, 'exclusiveMinimum')
-    excmin = schema('exclusiveMinimum');
+if hasschemakey(schema, 'exclusiveMinimum')
+    excmin = getschemavalue(schema, 'exclusiveMinimum');
     if val <= excmin
         val = floor(excmin) + 1;
     end
 end
 val = ceil(val);
-if isKey(schema, 'multipleOf')
-    mult = schema('multipleOf');
+if hasschemakey(schema, 'multipleOf')
+    mult = getschemavalue(schema, 'multipleOf');
     if mult > 0
         val = ceil(val / mult) * mult;
     end
@@ -801,17 +847,17 @@ end
 function val = generatenumber(schema)
 
 val = 0;
-if isKey(schema, 'minimum')
-    val = schema('minimum');
+if hasschemakey(schema, 'minimum')
+    val = getschemavalue(schema, 'minimum');
 end
-if isKey(schema, 'exclusiveMinimum')
-    excmin = schema('exclusiveMinimum');
+if hasschemakey(schema, 'exclusiveMinimum')
+    excmin = getschemavalue(schema, 'exclusiveMinimum');
     if val <= excmin
         val = excmin + eps(excmin);
     end
 end
-if isKey(schema, 'multipleOf')
-    mult = schema('multipleOf');
+if hasschemakey(schema, 'multipleOf')
+    mult = getschemavalue(schema, 'multipleOf');
     if mult > 0
         val = ceil(val / mult) * mult;
     end
@@ -821,8 +867,8 @@ end
 function val = generatestring(schema)
 
 val = '';
-if isKey(schema, 'format')
-    fmt = schema('format');
+if hasschemakey(schema, 'format')
+    fmt = getschemavalue(schema, 'format');
     formats = struct('email', 'user@example.com', ...
                      'uri', 'http://example.com', ...
                      'date', '2000-01-01', ...
@@ -832,8 +878,8 @@ if isKey(schema, 'format')
         val = formats.(fmt);
     end
 end
-if isKey(schema, 'minLength')
-    minlen = schema('minLength');
+if hasschemakey(schema, 'minLength')
+    minlen = getschemavalue(schema, 'minLength');
     if length(val) < minlen
         val = [val repmat('a', 1, minlen - length(val))];
     end
@@ -847,12 +893,12 @@ rootschema = opt.rootschema;
 val = {};
 minitems = 0;
 
-if isKey(schema, 'minItems')
-    minitems = schema('minItems');
+if hasschemakey(schema, 'minItems')
+    minitems = getschemavalue(schema, 'minItems');
 end
 
-if isKey(schema, 'items')
-    items = schema('items');
+if hasschemakey(schema, 'items')
+    items = getschemavalue(schema, 'items');
     if iscell(items)
         for i = 1:length(items)
             val{i} = generatedata(items{i}, opt);
@@ -876,20 +922,33 @@ genopt = jsonopt('generate', 'requireddefaults', opt);
 val = struct();
 reqfields = {};
 
-if isKey(schema, 'required')
-    reqfields = schema('required');
+if hasschemakey(schema, 'required')
+    reqfields = getschemavalue(schema, 'required');
 end
 
-if isKey(schema, 'properties')
-    props = schema('properties');
-    propnames = keys(props);
+if hasschemakey(schema, 'properties')
+    props = getschemavalue(schema, 'properties');
+    if isstruct(props)
+        propnames = fieldnames(props);
+        % Decode field names for struct
+        for i = 1:length(propnames)
+            propnames{i} = decodevarname(propnames{i});
+        end
+    else
+        propnames = keys(props);
+    end
 
     for i = 1:length(propnames)
         pname = propnames{i};
-        propschema = props(pname);
+        if isstruct(props)
+            propschema = props.(encodevarname(pname));
+        else
+            propschema = props(pname);
+        end
         fname = encodevarname(pname);
         isreq = ismember(pname, reqfields);
-        hasdefault = isa(propschema, 'containers.Map') && isKey(propschema, 'default');
+        hasdefault = (isa(propschema, 'containers.Map') && isKey(propschema, 'default')) || ...
+                     (isstruct(propschema) && isfield(propschema, 'default'));
 
         shouldgen = false;
         switch genopt
@@ -902,7 +961,7 @@ if isKey(schema, 'properties')
         end
 
         if shouldgen
-            if isa(propschema, 'containers.Map')
+            if isa(propschema, 'containers.Map') || isstruct(propschema)
                 val.(fname) = generatedata(propschema, opt);
             else
                 val.(fname) = [];
@@ -972,8 +1031,8 @@ for i = 1:length(tokens)
         prop = strrep(tok, '\.', '.');
         if isstruct(subschema) && isfield(subschema, 'properties')
             props = subschema.properties;
-            if isstruct(props) && isfield(props, prop)
-                subschema = props.(prop);
+            if isstruct(props) && isfield(props, encodevarname(prop))
+                subschema = props.(encodevarname(prop));
             else
                 subschema = [];
             end

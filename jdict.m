@@ -1152,12 +1152,11 @@ classdef jdict < handle
                 return
             end
 
-            if (isa(schemadata, 'containers.Map'))
+            if (isa(schemadata, 'containers.Map') || isa(schemadata, 'dictionary'))
                 obj.schema = schemadata;
-            elseif (ischar(schemadata) || isa(schemadata, 'string') || isstruct(schemadata))
-                if (isstruct(schemadata))
-                    schemadata = obj.call_('savejson', '', schemadata);
-                end
+            elseif (isstruct(schemadata))
+                obj.schema = struct2map_(schemadata);
+            elseif (ischar(schemadata) || isa(schemadata, 'string'))
                 % load as containers.Map to preserve special keys like $ref
                 obj.schema = obj.call_('loadjson', char(schemadata), 'usemap', 1);
             else
@@ -1325,7 +1324,7 @@ classdef jdict < handle
                 % if subschema found for this path, validate
                 if ~isempty(subschema)
                     % forcing type when binType is defined
-                    if isa(subschema, 'containers.Map') && isKey(subschema, 'binType')
+                    if (isa(subschema, 'containers.Map') || isa(subschema, 'dictionary')) && isKey(subschema, 'binType')
                         bintype = subschema('binType');
                         if ~isa(value, bintype)
                             try
@@ -1610,7 +1609,7 @@ function dispdata_(data, indent, maxdepth, maxlen, hlfun, ulfun)
                 fprintf('%s  ... (+%d fields)\n', sp, length(fn) - maxlen, hlfun, ulfun);
             end
         end
-    elseif isa(data, 'containers.Map')
+    elseif isa(data, 'containers.Map') || isa(data, 'dictionary')
         k = keys(data);
         fprintf('Map (%d keys)\n', length(k));
         if maxdepth > 0 && length(k) <= maxlen
@@ -1638,14 +1637,32 @@ function [subschema, errs] = getsubschema_(dataschema, datapath)
     parts = regexp(datapath, '(?<!\\)\.', 'split');
     for d = 2:length(parts)
         ps = jsonschema(dataschema, [], 'getsubschema', strjoin(parts(1:d), '.'));
-        if isempty(ps) && isa(subschema, 'containers.Map') && isKey(subschema, 'additionalProperties') && isequal(subschema('additionalProperties'), false)
+        if isempty(ps) && (isa(subschema, 'containers.Map') ||  isa(subschema, 'dictionary')) && isKey(subschema, 'additionalProperties') && isequal(subschema('additionalProperties'), false)
             errs = {sprintf('"%s" does not allow property "%s"', strjoin(parts(1:d - 1), '.'), parts{d})};
             return
         end
-        if d < length(parts) && ~isempty(ps) && isa(ps, 'containers.Map') && isKey(ps, 'type') && ismember(ps('type'), {'integer', 'number', 'string', 'boolean'})
+        if d < length(parts) && ~isempty(ps) && (isa(subschema, 'containers.Map') ||  isa(subschema, 'dictionary')) && isKey(ps, 'type') && ismember(ps('type'), {'integer', 'number', 'string', 'boolean'})
             errs = {sprintf('"%s" expects "%s"', strjoin(parts(1:d), '.'), ps('type'))};
             return
         end
         subschema = ps;
+    end
+end
+
+function map = struct2map_(s)
+    if ~isstruct(s)
+        map = s;
+        return
+    end
+    fnames = fieldnames(s);
+    vals = cellfun(@(f) convertval_(s.(f)), fnames, 'UniformOutput', false);
+    map = containers.Map(fnames, vals, 'UniformValues', false);
+end
+
+function v = convertval_(v)
+    if isstruct(v)
+        v = struct2map_(v);
+    elseif iscell(v)
+        v = cellfun(@convertval_, v, 'UniformOutput', false);
     end
 end
