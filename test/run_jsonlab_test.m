@@ -5,7 +5,8 @@ function run_jsonlab_test(tests)
 % run_jsonlab_test(tests)
 % run_jsonlab_test({'js','jso','bj','bjo','bjsoa','bjsoastr','bjsoaadv','bjext',...
 %                   'jmap','bmap','jpath','jdict','bugs','yaml','yamlopt',...
-%                   'xarray','schema','jdictadv','schemaadv','kind','jdictedge'})
+%                   'xarray','schema','jdictadv','schemaadv','kind','jdictedge',...
+%                   'jdata4'})
 %
 % Unit testing for JSONLab JSON, BJData/UBJSON encoders and decoders
 %
@@ -35,6 +36,10 @@ function run_jsonlab_test(tests)
 %         'schemaadv': jdict schema-guarded assignment and validate
 %         'kind': jdict schema-guarded data kinds
 %         'jdictedge': jdict rmfield, requires and additionalProperties
+%         'jdata4': test JData Draft 4 features (ArrayShape range/zero/identity/
+%                   circulant/hankel, ArrayFillValue, ArrayCoords, ArrayUnits,
+%                   TableIndex, TableSortOrder, DataSchema, float16/32/64 aliases,
+%                   EnumKey/EnumValue/EnumOrdered, ArrayChunks)
 %
 % license:
 %     BSD or GPL version 3, see LICENSE_{BSD,GPLv3}.txt files for details
@@ -45,7 +50,8 @@ function run_jsonlab_test(tests)
 if (nargin == 0)
     tests = {'js', 'jso', 'bj', 'bjo', 'bjsoa', 'bjsoastr', 'bjsoaadv', ...
              'jmap', 'bmap', 'jpath', 'jdict', 'bugs', 'yaml', 'yamlopt', ...
-             'xarray', 'schema', 'jdictadv', 'schemaadv', 'kind', 'jdictedge'};
+             'xarray', 'schema', 'jdictadv', 'schemaadv', 'kind', 'jdictedge', ...
+             'jdata4'};
 end
 
 try
@@ -4360,6 +4366,301 @@ if (ismember('jdictedge', tests) && hasContainersMap)
     test_jsonlab('nested blocks subfield of string', @savejson, errored, '[true]', 'compact', 1);
 
     clear jd errored;
+end
+
+%%
+if (ismember('jdata4', tests))
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+    fprintf('Test JData Draft 4 features\n');
+    fprintf(sprintf('%s\n', char(ones(1, 79) * 61)));
+
+    %% --- _ArrayShape_ range ---
+    test_jsonlab('range int8 row vector encode', @savejson, int8(1:5), ...
+        '{"_ArrayType_":"int8","_ArraySize_":[1,5],"_ArrayShape_":"range","_ArrayData_":[1,5]}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 4);
+    test_jsonlab('range double row vector encode', @savejson, 0:0.5:2, ...
+        '{"_ArrayType_":"double","_ArraySize_":[1,5],"_ArrayShape_":"range","_ArrayData_":[0,2]}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 4);
+    test_jsonlab('range int16 col vector encode', @savejson, int16((1:4)'), ...
+        '{"_ArrayType_":"int16","_ArraySize_":[4,1],"_ArrayShape_":"range","_ArrayData_":[1,4]}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 4);
+    test_jsonlab('range no encode for formatversion 2', @savejson, ...
+        jdataencode(int8(1:5), 'usearrayshape', 1, 'formatversion', 2, 'annotatearray', 1), ...
+        '{"_ArrayType_":"int8","_ArraySize_":[1,5],"_ArrayData_":[1,2,3,4,5]}', 'compact', 1);
+    test_jsonlab('range roundtrip int8', @savejson, isequaln( ...
+        jdatadecode(jdataencode(int8(1:10), 'usearrayshape', 1, 'formatversion', 4)), ...
+        int8(1:10)), '[true]', 'compact', 1);
+    test_jsonlab('range roundtrip col vector', @savejson, isequaln( ...
+        jdatadecode(jdataencode(int16((3:7)'), 'usearrayshape', 1, 'formatversion', 4)), ...
+        int16((3:7)')), '[true]', 'compact', 1);
+
+    %% --- _ArrayShape_ zero ---
+    test_jsonlab('zero matrix encode', @savejson, zeros(3, 4), ...
+        '{"_ArrayType_":"double","_ArraySize_":[3,4],"_ArrayShape_":"zero","_ArrayData_":0}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 4);
+    test_jsonlab('zero uint8 matrix encode', @savejson, zeros(2, 2, 'uint8'), ...
+        '{"_ArrayType_":"uint8","_ArraySize_":[2,2],"_ArrayShape_":"zero","_ArrayData_":0}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 4);
+    test_jsonlab('zero no encode for formatversion 2', @savejson, zeros(2, 2), ...
+        '{"_ArrayType_":"double","_ArraySize_":[2,2],"_ArrayShape_":"diag","_ArrayData_":[0,0]}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 2);
+    test_jsonlab('zero roundtrip', @savejson, isequaln( ...
+        jdatadecode(jdataencode(zeros(3, 4), 'usearrayshape', 1, 'formatversion', 4)), ...
+        zeros(3, 4)), '[true]', 'compact', 1);
+
+    %% --- _ArrayShape_ identity / scaled identity ---
+    test_jsonlab('identity matrix encode', @savejson, 3 * eye(4), ...
+        '{"_ArrayType_":"double","_ArraySize_":[4,4],"_ArrayShape_":"identity","_ArrayData_":3}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 4);
+    test_jsonlab('unit identity matrix encode', @savejson, eye(3), ...
+        '{"_ArrayType_":"double","_ArraySize_":[3,3],"_ArrayShape_":"identity","_ArrayData_":1}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 4);
+    test_jsonlab('identity no encode for formatversion 2', @savejson, eye(3), ...
+        '{"_ArrayType_":"double","_ArraySize_":[3,3],"_ArrayShape_":"diag","_ArrayData_":[1,1,1]}', ...
+        'compact', 1, 'usearrayshape', 1, 'formatversion', 2);
+    test_jsonlab('identity roundtrip', @savejson, isequaln( ...
+        jdatadecode(jdataencode(5 * eye(3), 'usearrayshape', 1, 'formatversion', 4)), ...
+        5 * eye(3)), '[true]', 'compact', 1);
+
+    %% --- _ArrayShape_ circulant decode ---
+    circ_enc = struct('x0x5F_ArrayType_', 'double', 'x0x5F_ArraySize_', [4, 4], ...
+                      'x0x5F_ArrayShape_', 'circulant', 'x0x5F_ArrayData_', [1, 2, 3, 4]);
+    circ_ref = toeplitz([1, 4, 3, 2], [1, 2, 3, 4]);
+    test_jsonlab('circulant 4x4 decode', @savejson, isequaln(jdatadecode(circ_enc), circ_ref), '[true]', 'compact', 1);
+
+    circ_enc2 = struct('x0x5F_ArrayType_', 'single', 'x0x5F_ArraySize_', [3, 3], ...
+                       'x0x5F_ArrayShape_', 'circulant', 'x0x5F_ArrayData_', single([5, 1, 2]));
+    circ_ref2 = single(toeplitz([5, 2, 1], [5, 1, 2]));
+    test_jsonlab('circulant 3x3 single decode', @savejson, isequaln(jdatadecode(circ_enc2), circ_ref2), '[true]', 'compact', 1);
+
+    %% --- _ArrayShape_ hankel decode ---
+    % 3x4 Hankel: first row [1,2,3,4], last col [4,5,6]
+    % _ArrayData_ stored as [first_row; last_col padded to n cols]
+    hank_enc = struct('x0x5F_ArrayType_', 'double', 'x0x5F_ArraySize_', [3, 4], ...
+                      'x0x5F_ArrayShape_', 'hankel', 'x0x5F_ArrayData_', [1, 2, 3, 4; 4, 5, 6, 0]);
+    hank_ref = [1, 2, 3, 4; 2, 3, 4, 5; 3, 4, 5, 6];
+    test_jsonlab('hankel 3x4 decode', @savejson, isequaln(jdatadecode(hank_enc), hank_ref), '[true]', 'compact', 1);
+
+    % square 4x4 Hankel
+    hank_enc2 = struct('x0x5F_ArrayType_', 'double', 'x0x5F_ArraySize_', [4, 4], ...
+                       'x0x5F_ArrayShape_', 'hankel', 'x0x5F_ArrayData_', [1, 2, 3, 4; 4, 5, 6, 7]);
+    hank_ref2 = hankel([1, 2, 3, 4], [4, 5, 6, 7]);
+    test_jsonlab('hankel 4x4 decode', @savejson, isequaln(jdatadecode(hank_enc2), hank_ref2), '[true]', 'compact', 1);
+
+    %% --- _ArrayFillValue_ decode ---
+    fv_enc = struct('x0x5F_ArrayType_', 'single', 'x0x5F_ArraySize_', [1, 5], ...
+                    'x0x5F_ArrayData_', single([1, 2, -9999, 4, 5]), ...
+                    'x0x5F_ArrayFillValue_', -9999);
+    fv_dec = jdatadecode(fv_enc);
+    test_jsonlab('fillvalue float becomes NaN', @savejson, isequaln(fv_dec, single([1, 2, NaN, 4, 5])), '[true]', 'compact', 1);
+    test_jsonlab('fillvalue result is float', @savejson, isa(fv_dec, 'single'), '[true]', 'compact', 1);
+
+    % integer arrays: fill value is NOT replaced with NaN
+    fv_int_enc = struct('x0x5F_ArrayType_', 'int32', 'x0x5F_ArraySize_', [1, 4], ...
+                        'x0x5F_ArrayData_', int32([1, -9999, 3, 4]), ...
+                        'x0x5F_ArrayFillValue_', -9999);
+    test_jsonlab('fillvalue integer stays unchanged', @savejson, isequaln(jdatadecode(fv_int_enc), int32([1, -9999, 3, 4])), '[true]', 'compact', 1);
+
+    % double fill value: multiple matching elements
+    fv_multi = struct('x0x5F_ArrayType_', 'double', 'x0x5F_ArraySize_', [1, 5], ...
+                      'x0x5F_ArrayData_', [0, 1, 0, 2, 0], ...
+                      'x0x5F_ArrayFillValue_', 0);
+    test_jsonlab('fillvalue replaces all matches', @savejson, isequaln(jdatadecode(fv_multi), [NaN, 1, NaN, 2, NaN]), '[true]', 'compact', 1);
+
+    %% --- _ArrayCoords_ / _ArrayUnits_ decode ---
+    if (hasContainersMap)
+        au_enc = struct('x0x5F_ArrayType_', 'double', 'x0x5F_ArraySize_', [1, 3], ...
+                        'x0x5F_ArrayData_', [10, 20, 30], ...
+                        'x0x5F_ArrayUnits_', 'km');
+        au_dec = jdatadecode(au_enc);
+        test_jsonlab('arrayunits decode creates jdict', @savejson, isa(au_dec, 'jdict'), '[true]', 'compact', 1);
+        test_jsonlab('arrayunits attr value', @savejson, au_dec.getattr('$', 'units'), '"km"', 'compact', 1);
+        test_jsonlab('arrayunits raw data preserved', @savejson, isequaln(au_dec.v(), [10, 20, 30]), '[true]', 'compact', 1);
+
+        ac_enc = struct('x0x5F_ArrayType_', 'double', 'x0x5F_ArraySize_', [1, 3], ...
+                        'x0x5F_ArrayData_', [10, 20, 30], ...
+                        'x0x5F_ArrayCoords_', struct('x', [1, 2, 3]));
+        ac_dec = jdatadecode(ac_enc);
+        test_jsonlab('arraycoords decode creates jdict', @savejson, isa(ac_dec, 'jdict'), '[true]', 'compact', 1);
+        test_jsonlab('arraycoords attr is struct', @savejson, isstruct(ac_dec.getattr('$', 'coords')), '[true]', 'compact', 1);
+
+        % encode roundtrip via savejson: _ArrayLabel_ already tested in xarray section,
+        % here verify _ArrayCoords_ and _ArrayUnits_ survive savejson/loadjson
+        acu_enc = struct('x0x5F_ArrayType_', 'double', 'x0x5F_ArraySize_', [1, 2], ...
+                         'x0x5F_ArrayData_', [1, 2], ...
+                         'x0x5F_ArrayCoords_', struct('t', [0.1, 0.2]), ...
+                         'x0x5F_ArrayUnits_', 's');
+        acu_rt = jdatadecode(loadjson(savejson('', acu_enc, 'compact', 1)));
+        test_jsonlab('arrayunits roundtrip via json', @savejson, acu_rt.getattr('$', 'units'), '"s"', 'compact', 1);
+        test_jsonlab('arraycoords roundtrip via json', @savejson, isstruct(acu_rt.getattr('$', 'coords')), '[true]', 'compact', 1);
+    end
+
+    %% --- _TableIndex_ / _TableSortOrder_ ---
+    if (exist('table') ~= 0)
+        ti_enc = struct('x0x5F_TableCols_', {{'id', 'name'}}, ...
+                        'x0x5F_TableRows_', {{}}, ...
+                        'x0x5F_TableRecords_', {{1, 'alice'; 2, 'bob'}}, ...
+                        'x0x5F_TableIndex_', 'id', ...
+                        'x0x5F_TableSortOrder_', 'asc');
+        ti_dec = jdatadecode(ti_enc);
+        test_jsonlab('tableindex decode from struct', @savejson, isequaln(ti_dec.Properties.UserData.TableIndex, 'id'), '[true]', 'compact', 1);
+        test_jsonlab('tablesortorder decode from struct', @savejson, isequaln(ti_dec.Properties.UserData.TableSortOrder, 'asc'), '[true]', 'compact', 1);
+
+        % encode roundtrip
+        ti_dec.Properties.UserData = struct('TableIndex', 'id', 'TableSortOrder', 'desc');
+        ti_enc2 = jdataencode(ti_dec, 'formatversion', 4);
+        ti_dec2 = jdatadecode(loadjson(savejson('', ti_enc2, 'compact', 1)));
+        test_jsonlab('tableindex encode-decode roundtrip', @savejson, isequaln(ti_dec2.Properties.UserData.TableIndex, 'id'), '[true]', 'compact', 1);
+        test_jsonlab('tablesortorder encode-decode roundtrip', @savejson, isequaln(ti_dec2.Properties.UserData.TableSortOrder, 'desc'), '[true]', 'compact', 1);
+
+        % formatversion < 4 does NOT emit _TableIndex_/_TableSortOrder_
+        ti_enc_v2 = jdataencode(ti_dec, 'formatversion', 2);
+        test_jsonlab('tableindex not encoded for v2', @savejson, ~isfield(ti_enc_v2, 'x0x5F_TableIndex_'), '[true]', 'compact', 1);
+    end
+
+    %% --- _DataSchema_ ---
+    if (hasContainersMap)
+        ds_enc = struct('x0x5F_DataSchema_', struct('type', 'object'), 'a', 1, 'b', 2);
+        ds_dec = jdatadecode(ds_enc);
+        test_jsonlab('dataschema decode wraps in jdict', @savejson, isa(ds_dec, 'jdict'), '[true]', 'compact', 1);
+        test_jsonlab('dataschema stored in schema property', @savejson, ~isempty(ds_dec.getschema()), '[true]', 'compact', 1);
+
+        % encode roundtrip: jdict with schema emits _DataSchema_
+        jd_s = jdict(struct('x', 1));
+        jd_s.setschema(struct('type', 'object'));
+        jd_s_enc = jdataencode(jd_s, 'formatversion', 4);
+        jd_s_dec = jdatadecode(loadjson(savejson('', jd_s_enc, 'compact', 1)));
+        test_jsonlab('dataschema encode-decode is jdict', @savejson, isa(jd_s_dec, 'jdict'), '[true]', 'compact', 1);
+        test_jsonlab('dataschema encode-decode schema non-empty', @savejson, ~isempty(jd_s_dec.getschema()), '[true]', 'compact', 1);
+
+        % formatversion < 4 does NOT emit _DataSchema_
+        jd_s_enc_v2 = jdataencode(jd_s, 'formatversion', 2);
+        test_jsonlab('dataschema not emitted for v2', @savejson, ~isfield(jd_s_enc_v2, 'x0x5F_DataSchema_'), '[true]', 'compact', 1);
+    end
+
+    %% --- ArrayType float16/32/64 aliases ---
+    f32_dec = jdatadecode(struct('x0x5F_ArrayType_', 'float32', 'x0x5F_ArraySize_', [1, 3], ...
+                                  'x0x5F_ArrayData_', single([1, 2, 3])));
+    test_jsonlab('float32 alias yields single', @savejson, isa(f32_dec, 'single'), '[true]', 'compact', 1);
+    test_jsonlab('float32 alias value correct', @savejson, isequaln(f32_dec, single([1, 2, 3])), '[true]', 'compact', 1);
+
+    f64_dec = jdatadecode(struct('x0x5F_ArrayType_', 'float64', 'x0x5F_ArraySize_', [1, 3], ...
+                                  'x0x5F_ArrayData_', [4, 5, 6]));
+    test_jsonlab('float64 alias yields double', @savejson, isa(f64_dec, 'double'), '[true]', 'compact', 1);
+    test_jsonlab('float64 alias value correct', @savejson, isequaln(f64_dec, [4, 5, 6]), '[true]', 'compact', 1);
+
+    % compressed path also normalizes aliases
+    f32_zip = struct('x0x5F_ArrayType_', 'float32', 'x0x5F_ArraySize_', [1, 3], ...
+                     'x0x5F_ArrayZipType_', 'zlib', 'x0x5F_ArrayZipSize_', [1, 3], ...
+                     'x0x5F_ArrayZipData_', zlibencode(typecast(single([10, 20, 30]), 'uint8')));
+    f32_zip_dec = jdatadecode(f32_zip);
+    test_jsonlab('float32 alias compressed yields single', @savejson, isa(f32_zip_dec, 'single'), '[true]', 'compact', 1);
+    test_jsonlab('float32 alias compressed value', @savejson, isequaln(f32_zip_dec, single([10, 20, 30])), '[true]', 'compact', 1);
+
+    %% --- _EnumKey_ / _EnumValue_ / _EnumOrdered_ ---
+    if (exist('categorical') ~= 0)
+        % unordered categorical encode
+        c_nom = categorical({'M', 'F', 'M', 'F', 'M'}, {'M', 'F'});
+        enc_nom = jdataencode(c_nom, 'formatversion', 4);
+        test_jsonlab('enum unordered encode', @savejson, enc_nom, ...
+            '{"_EnumKey_":["M","F"],"_EnumValue_":[1,2,1,2,1]}', 'compact', 1);
+
+        % formatversion < 4 falls back to plain cellstr
+        enc_v2 = jdataencode(c_nom, 'formatversion', 2);
+        test_jsonlab('enum v2 fallback is cell', @savejson, iscell(enc_v2), '[true]', 'compact', 1);
+
+        % roundtrip unordered
+        dec_nom = jdatadecode(loadjson(savejson('', enc_nom, 'compact', 1)));
+        test_jsonlab('enum unordered roundtrip is categorical', @savejson, isa(dec_nom, 'categorical'), '[true]', 'compact', 1);
+        test_jsonlab('enum unordered roundtrip values match', @savejson, isequaln(dec_nom, c_nom), '[true]', 'compact', 1);
+        test_jsonlab('enum unordered roundtrip not ordinal', @savejson, ~isordinal(dec_nom), '[true]', 'compact', 1);
+        test_jsonlab('enum unordered categories match', @savejson, isequal(categories(dec_nom), {'M'; 'F'}), '[true]', 'compact', 1);
+
+        % decode from raw struct (simulate loaded JSON)
+        raw_enum = struct('x0x5F_EnumKey_', {{'A', 'B', 'C'}}, ...
+                          'x0x5F_EnumValue_', [1, 3, 2, 1, 3]);
+        raw_dec = jdatadecode(raw_enum);
+        test_jsonlab('enum raw decode is categorical', @savejson, isa(raw_dec, 'categorical'), '[true]', 'compact', 1);
+        test_jsonlab('enum raw decode first elem', @savejson, char(raw_dec(1)), '"A"', 'compact', 1);
+        test_jsonlab('enum raw decode third elem', @savejson, char(raw_dec(3)), '"B"', 'compact', 1);
+
+        % undefined (index 0) decodes to <undefined>
+        undef_enum = struct('x0x5F_EnumKey_', {{'X', 'Y'}}, ...
+                            'x0x5F_EnumValue_', [1, 0, 2]);
+        undef_dec = jdatadecode(undef_enum);
+        test_jsonlab('enum index 0 is undefined', @savejson, isundefined(undef_dec(2)), '[true]', 'compact', 1);
+
+        if (exist('isordinal') ~= 0)
+            % ordered categorical encode
+            c_ord = categorical({'low', 'high', 'med'}, {'low', 'med', 'high'}, 'Ordinal', true);
+            enc_ord = jdataencode(c_ord, 'formatversion', 4);
+            test_jsonlab('enum ordered encode', @savejson, enc_ord, ...
+                '{"_EnumKey_":["low","med","high"],"_EnumValue_":[1,3,2],"_EnumOrdered_":true}', ...
+                'compact', 1);
+
+            % roundtrip ordered
+            dec_ord = jdatadecode(loadjson(savejson('', enc_ord, 'compact', 1)));
+            test_jsonlab('enum ordered roundtrip is categorical', @savejson, isa(dec_ord, 'categorical'), '[true]', 'compact', 1);
+            test_jsonlab('enum ordered roundtrip is ordinal', @savejson, isordinal(dec_ord), '[true]', 'compact', 1);
+            test_jsonlab('enum ordered roundtrip values match', @savejson, isequaln(dec_ord, c_ord), '[true]', 'compact', 1);
+        end
+    end
+
+    %% --- _ArrayChunks_ ---
+    % Use 3-D array: bypasses the 2-D real fast-path and forces JData annotation
+    big3d = single(reshape(1:600, 5, 12, 10));  % 600 elements, all real
+
+    % even chunks: 600 / 200 = 3 chunks exactly
+    enc_ch = jdataencode(big3d, 'formatversion', 4, 'compression', 'zlib', ...
+                         'arraychunks', 200, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('chunks x_ArrayChunks_ field exists', @savejson, isfield(enc_ch, 'x_ArrayChunks_'), '[true]', 'compact', 1);
+    test_jsonlab('chunks chunklen stored correctly', @savejson, enc_ch.x_ArrayChunks_, '[200]', 'compact', 1);
+    test_jsonlab('chunks zipdata is cell array', @savejson, iscell(enc_ch.x_ArrayZipData_), '[true]', 'compact', 1);
+    test_jsonlab('chunks count 600/200=3', @savejson, numel(enc_ch.x_ArrayZipData_), '[3]', 'compact', 1);
+    dec_ch = jdatadecode(enc_ch, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('chunks roundtrip 3 even chunks', @savejson, isequaln(dec_ch, big3d), '[true]', 'compact', 1);
+
+    % partial last chunk: 600 / 350 = ceil => 2 chunks (350 + 250)
+    enc_ch2 = jdataencode(big3d, 'formatversion', 4, 'compression', 'zlib', ...
+                          'arraychunks', 350, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('chunks count ceil(600/350)=2', @savejson, numel(enc_ch2.x_ArrayZipData_), '[2]', 'compact', 1);
+    dec_ch2 = jdatadecode(enc_ch2, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('chunks roundtrip partial last chunk', @savejson, isequaln(dec_ch2, big3d), '[true]', 'compact', 1);
+
+    % single chunk: chunk size >= total elements
+    enc_ch3 = jdataencode(big3d, 'formatversion', 4, 'compression', 'zlib', ...
+                          'arraychunks', 1000, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('chunks single chunk count=1', @savejson, numel(enc_ch3.x_ArrayZipData_), '[1]', 'compact', 1);
+    dec_ch3 = jdatadecode(enc_ch3, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('chunks single chunk roundtrip', @savejson, isequaln(dec_ch3, big3d), '[true]', 'compact', 1);
+
+    % formatversion < 4: chunking NOT applied, _ArrayZipData_ is a plain byte array
+    enc_v2_ch = jdataencode(big3d, 'formatversion', 2, 'compression', 'zlib', ...
+                             'arraychunks', 200, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('chunks not applied for formatversion 2', @savejson, ~isfield(enc_v2_ch, 'x_ArrayChunks_'), '[true]', 'compact', 1);
+    test_jsonlab('chunks v2 zipdata is not cell', @savejson, ~iscell(enc_v2_ch.x_ArrayZipData_), '[true]', 'compact', 1);
+
+    % roundtrip via savejson/loadjson (tests JSON serialisation of cell array chunks)
+    enc_ch_json = jdataencode(big3d, 'formatversion', 4, 'compression', 'zlib', ...
+                              'arraychunks', 200, 'base64', 1);
+    dec_ch_json = jdatadecode(loadjson(savejson('', enc_ch_json, 'compact', 1)));
+    test_jsonlab('chunks roundtrip via savejson/loadjson', @savejson, isequaln(dec_ch_json, big3d), '[true]', 'compact', 1);
+
+    clear big3d enc_ch enc_ch2 enc_ch3 enc_v2_ch enc_ch_json dec_ch dec_ch2 dec_ch3 dec_ch_json;
+    clear circ_enc circ_enc2 circ_ref circ_ref2 hank_enc hank_enc2 hank_ref hank_ref2;
+    clear fv_enc fv_dec fv_int_enc fv_multi f32_dec f64_dec f32_zip f32_zip_dec;
+    if (hasContainersMap)
+        clear au_enc au_dec ac_enc ac_dec acu_enc acu_rt jd_s jd_s_enc jd_s_enc_v2 jd_s_dec ds_enc ds_dec;
+    end
+    if (exist('table') ~= 0)
+        clear ti_enc ti_dec ti_enc2 ti_dec2 ti_enc_v2;
+    end
+    if (exist('categorical') ~= 0)
+        clear c_nom enc_nom enc_v2 dec_nom raw_enum raw_dec undef_enum undef_dec;
+        if (exist('isordinal') ~= 0)
+            clear c_ord enc_ord dec_ord;
+        end
+    end
 end
 
 %%

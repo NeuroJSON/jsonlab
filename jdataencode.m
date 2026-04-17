@@ -11,7 +11,11 @@ function jdata = jdataencode(data, varargin)
 % storage, exchange of complex data structures and easy-to-serialize by
 % json encoders such as savejson and jsonencode (MATLAB R2016b or newer)
 %
-% This function implements the JData Specification Draft 3 (Jun. 2020)
+% This function implements the JData Specification Draft 3 (Jun. 2020) and
+% select keywords from Draft 4 (Apr. 2026) when FormatVersion is set to 4 or above.
+% New keywords in Draft 4 (FormatVersion>=4): _ArrayShape_ types range/identity/zero,
+% _ArrayCoords_, _ArrayUnits_, _ArrayFillValue_, _TableIndex_, _TableSortOrder_, _DataSchema_,
+% _EnumKey_/_EnumValue_/_EnumOrdered_ (categorical), _ArrayChunks_ (chunked compression)
 % see http://github.com/NeuroJSON/jdata for details
 %
 % author: Qianqian Fang (q.fang <at> neu.edu)
@@ -54,7 +58,16 @@ function jdata = jdataencode(data, varargin)
 %                  v2.0, JSONLab uses JData specification Draft 1
 %                  for output format, it is incompatible with all
 %                  previous releases; if old output is desired,
-%                  please set FormatVersion to 1.9 or earlier.
+%                  please set FormatVersion to 1.9 or earlier. Set
+%                  to 4 to enable JData Draft 4 keywords: _ArrayShape_
+%                  range/identity/zero, _ArrayCoords_, _ArrayUnits_,
+%                  _ArrayFillValue_, _TableIndex_, _TableSortOrder_,
+%                  _EnumKey_/_EnumValue_ (categorical), _ArrayChunks_.
+%         ArrayChunks: [[]|int] when set to a positive integer and
+%                  Compression is also set, split the pre-processed array
+%                  buffer into 1-D segments of this many elements and
+%                  compress each independently (FormatVersion>=4 only).
+%                  _ArrayZipData_ then becomes a cell array of payloads.
 %
 % example:
 %     jd=jdataencode(struct('a',rand(5)+1i*rand(5),'b',[],'c',sparse(5,5)))
@@ -95,6 +108,7 @@ opt.messagepack = jsonopt('MessagePack', 0, opt);
 opt.usearrayshape = jsonopt('UseArrayShape', 0, opt) && exist('bandwidth');
 opt.annotatearray = jsonopt('AnnotateArray', 0, opt);
 opt.datetime = jsonopt('DateTime', 1, opt);
+opt.arraychunks = jsonopt('ArrayChunks', [], opt);
 
 % Performance optimization: pre-compute prefixed field names to avoid
 % repeated string concatenation in hot loops
@@ -116,6 +130,16 @@ opt.N_GraphEdges = [opt.prefix '_GraphEdges_'];
 opt.N_DataInfo = [opt.prefix '_DataInfo_'];
 opt.N_ByteStream = [opt.prefix '_ByteStream_'];
 opt.N_MapData = [opt.prefix '_MapData_'];
+opt.N_ArrayCoords = [opt.prefix '_ArrayCoords_'];
+opt.N_ArrayUnits = [opt.prefix '_ArrayUnits_'];
+opt.N_ArrayFillValue = [opt.prefix '_ArrayFillValue_'];
+opt.N_ArrayChunks = [opt.prefix '_ArrayChunks_'];
+opt.N_TableIndex = [opt.prefix '_TableIndex_'];
+opt.N_TableSortOrder = [opt.prefix '_TableSortOrder_'];
+opt.N_DataSchema = [opt.prefix '_DataSchema_'];
+opt.N_EnumKey = [opt.prefix '_EnumKey_'];
+opt.N_EnumValue = [opt.prefix '_EnumValue_'];
+opt.N_EnumOrdered = [opt.prefix '_EnumOrdered_'];
 
 jdata = obj2jd(data, opt);
 
@@ -137,7 +161,11 @@ elseif (ischar(item) || isa(item, 'string'))
 elseif (isa(item, 'containers.Map') || isa(item, 'dictionary'))
     newitem = map2jd(item, opt);
 elseif (isa(item, 'categorical'))
-    newitem = cell2jd(cellstr(item), opt);
+    if (opt.formatversion >= 4)
+        newitem = cat2jd(item, opt);
+    else
+        newitem = cell2jd(cellstr(item), opt);
+    end
 elseif (isa(item, 'function_handle'))
     newitem = struct2jd(functions(item), opt);
 elseif (isa(item, 'table'))
@@ -148,35 +176,48 @@ elseif (isobject(item))
     newitem = matlabobject2jd(item, opt);
 end
 
-if (isa(item, 'jdict') && isempty(item{'kind'}))  % apply attribute
+if (isa(item, 'jdict') && isempty(item{'kind'}))  % apply attribute and schema
     attrpath = item.getattr();
-    if (isempty(attrpath))
-        return
-    end
+    if (~isempty(attrpath))
+        newitem = jdict(newitem);
 
-    newitem = jdict(newitem);
-
-    for i = 1:length(attrpath)
-        val = newitem.(attrpath{i}).v();
-        if (isempty(val))
-            continue
-        end
-        if (isnumeric(val))
-            opt.annotatearray = 1;
-            val = mat2jd(val, opt);
-        end
-        if (~(isstruct(val) && isfield(val, opt.N_ArrayType)))
-            continue
-        end
-        attr = item.getattr(attrpath{i});
-        attrname = keys(attr);
-        for j = 1:length(attrname)
-            if (strcmp(attrname{j}, 'dims'))
-                val.(opt.N_ArrayLabel) = attr(attrname{j});
-            else
-                val.(attrname{j}) = attr(attrname{j});
+        for i = 1:length(attrpath)
+            val = newitem.(attrpath{i}).v();
+            if (isempty(val))
+                continue
             end
-            newitem.(attrpath{i}) = val;
+            if (isnumeric(val))
+                opt.annotatearray = 1;
+                val = mat2jd(val, opt);
+            end
+            if (~(isstruct(val) && isfield(val, opt.N_ArrayType)))
+                continue
+            end
+            attr = item.getattr(attrpath{i});
+            attrname = keys(attr);
+            for j = 1:length(attrname)
+                if (strcmp(attrname{j}, 'dims'))
+                    val.(opt.N_ArrayLabel) = attr(attrname{j});
+                elseif (opt.formatversion >= 4 && strcmp(attrname{j}, 'coords'))
+                    val.(opt.N_ArrayCoords) = attr(attrname{j});
+                elseif (opt.formatversion >= 4 && strcmp(attrname{j}, 'units'))
+                    val.(opt.N_ArrayUnits) = attr(attrname{j});
+                elseif (opt.formatversion >= 4 && strcmp(attrname{j}, 'fillvalue'))
+                    val.(opt.N_ArrayFillValue) = attr(attrname{j});
+                else
+                    val.(attrname{j}) = attr(attrname{j});
+                end
+                newitem.(attrpath{i}) = val;
+            end
+        end
+    end
+    % emit _DataSchema_ when schema is set and format >= 4
+    itemschema = item.getschema();
+    if (opt.formatversion >= 4 && ~isempty(itemschema))
+        if (isa(newitem, 'jdict') && isstruct(newitem.data))
+            newitem.data.(opt.N_DataSchema) = itemschema;
+        elseif (isstruct(newitem))
+            newitem.(opt.N_DataSchema) = itemschema;
         end
     end
 end
@@ -264,6 +305,19 @@ if (isa(item, 'timeseries'))
     end
 end
 
+% Range encoding for uniformly-spaced vectors (FormatVersion >= 4)
+if (opt.formatversion >= 4 && opt.usearrayshape && isvector(item) && isreal(item) && ...
+    ~issparse(item) && numel(item) >= 3 && ~opt.nestarray && (isempty(zipmethod) || numel(item) <= minsize) && ~opt.annotatearray)
+    dv = diff(double(item(:)));
+    tol = 4 * eps(max(abs(double(item(:)))) + 1) * numel(item);
+    if (all(abs(dv - dv(1)) <= tol))
+        newitem = struct(opt.N_ArrayType, class(item), opt.N_ArraySize, size(item));
+        newitem.(opt.N_ArrayShape) = 'range';
+        newitem.(opt.N_ArrayData) = [double(item(1)), double(item(end))];
+        return
+    end
+end
+
 % FAST PATH: Early exit for simple cases that don't need encoding
 % Check usearrayshape condition: only skip if shape encoding won't apply
 skipshape = ~opt.usearrayshape || ndims(item) ~= 2 || isvector(item);
@@ -271,7 +325,7 @@ skipshape = ~opt.usearrayshape || ndims(item) ~= 2 || isvector(item);
 if (skipshape && ...
     (isempty(item) || isa(item, 'string') || ischar(item) || opt.nestarray || ...
      ((isvector(item) || ndims(item) == 2) && isreal(item) && ~issparse(item) && ...
-      ~opt.annotatearray && isempty(zipmethod))))
+      ~opt.annotatearray && (isempty(zipmethod) || numel(item) <= minsize))))
     newitem = item;
     return
 end
@@ -282,6 +336,24 @@ newitem = struct(opt.N_ArrayType, class(item), opt.N_ArraySize, size(item));
 % 2d numerical (real/complex/sparse) arrays with _ArrayShape_ encoding enabled
 if (opt.usearrayshape && ndims(item) == 2 && ~isvector(item))
     encoded = 1;
+
+    % Zero and identity shapes (FormatVersion >= 4 only)
+    if (opt.formatversion >= 4 && isreal(item) && ~issparse(item))
+        if (~any(item(:)))  % all-zero matrix
+            newitem.(opt.N_ArrayShape) = 'zero';
+            newitem.(opt.N_ArrayData) = 0;
+            return
+        end
+        if (size(item, 1) == size(item, 2) && size(item, 1) > 0)
+            d = diag(item);
+            if (all(d == d(1)) && ~any(any(item - diag(d))))  % scaled identity
+                newitem.(opt.N_ArrayShape) = 'identity';
+                newitem.(opt.N_ArrayData) = double(d(1));
+                return
+            end
+        end
+    end
+
     if (~isreal(item))
         newitem.(opt.N_ArrayIsComplex) = true;
     end
@@ -418,18 +490,50 @@ if (~isempty(zipmethod) && numel(item) > minsize)
         compfun = str2func([zipmethod 'encode']);
     end
     newitem.(opt.N_ArrayZipType) = lower(zipmethod);
-    if (~isfield(newitem, opt.N_ArrayZipSize))
-        newitem.(opt.N_ArrayZipSize) = size(newitem.(opt.N_ArrayData));
-    end
-    newitem.(opt.N_ArrayZipData) = compfun(typecast(newitem.(opt.N_ArrayData)(:).', 'uint8'), encodeparam{:});
-    newitem = rmfield(newitem, opt.N_ArrayData);
-    if (opt.base64)
-        newitem.(opt.N_ArrayZipData) = char(base64encode(newitem.(opt.N_ArrayZipData)));
+    if (opt.formatversion >= 4 && ~isempty(opt.arraychunks) && isfield(newitem, opt.N_ArrayData))
+        % Chunked compression: split flat pre-processed buffer into 1-D segments
+        arrdata = newitem.(opt.N_ArrayData)(:)';
+        chunklen = double(opt.arraychunks(end));
+        nelem = numel(arrdata);
+        nchunks = ceil(nelem / chunklen);
+        zipchunks = cell(1, nchunks);
+        for ci = 1:nchunks
+            startidx = (ci - 1) * chunklen + 1;
+            endidx = min(ci * chunklen, nelem);
+            chunk = arrdata(startidx:endidx);
+            zipchunks{ci} = compfun(typecast(chunk, 'uint8'), encodeparam{:});
+            if (opt.base64)
+                zipchunks{ci} = char(base64encode(zipchunks{ci}));
+            end
+        end
+        newitem.(opt.N_ArrayChunks) = chunklen;
+        newitem.(opt.N_ArrayZipSize) = chunklen;
+        newitem.(opt.N_ArrayZipData) = zipchunks;
+        newitem = rmfield(newitem, opt.N_ArrayData);
+    else
+        if (~isfield(newitem, opt.N_ArrayZipSize))
+            newitem.(opt.N_ArrayZipSize) = size(newitem.(opt.N_ArrayData));
+        end
+        newitem.(opt.N_ArrayZipData) = compfun(typecast(newitem.(opt.N_ArrayData)(:).', 'uint8'), encodeparam{:});
+        newitem = rmfield(newitem, opt.N_ArrayData);
+        if (opt.base64)
+            newitem.(opt.N_ArrayZipData) = char(base64encode(newitem.(opt.N_ArrayZipData)));
+        end
     end
 end
 
 if (isfield(newitem, opt.N_ArrayData) && isempty(newitem.(opt.N_ArrayData)))
     newitem.(opt.N_ArrayData) = [];
+end
+
+%% -------------------------------------------------------------------------
+function newitem = cat2jd(item, opt)
+% Encode a MATLAB categorical array as a JData enumeration (Draft 4)
+keys = reshape(categories(item), 1, []);  % ensure 1xN row for flat JSON array
+vals = uint32(item);  % 1-based codes; 0 for <undefined>
+newitem = struct(opt.N_EnumKey, {keys}, opt.N_EnumValue, vals);
+if (isordinal(item))
+    newitem.(opt.N_EnumOrdered) = true;
 end
 
 %% -------------------------------------------------------------------------
@@ -439,6 +543,14 @@ newitem = struct;
 newitem.(opt.N_TableCols) = item.Properties.VariableNames;
 newitem.(opt.N_TableRows) = item.Properties.RowNames';
 newitem.(opt.N_TableRecords) = table2cell(item);
+if (opt.formatversion >= 4 && ~isempty(item.Properties.UserData) && isstruct(item.Properties.UserData))
+    if (isfield(item.Properties.UserData, 'TableIndex'))
+        newitem.(opt.N_TableIndex) = item.Properties.UserData.TableIndex;
+    end
+    if (isfield(item.Properties.UserData, 'TableSortOrder'))
+        newitem.(opt.N_TableSortOrder) = item.Properties.UserData.TableSortOrder;
+    end
+end
 
 %% -------------------------------------------------------------------------
 function newitem = graph2jd(item, opt)
