@@ -530,7 +530,12 @@ if (~isempty(zipmethod) && numel(item) > minsize)
                     ranges{d} = r1:r2;
                 end
                 chunk = item(ranges{:});
-                zipchunks{ci} = compfun(typecast(chunk(:)', 'uint8'), encodeparam{:});
+                if (~isreal(item))
+                    chunk_flat = [real(chunk(:))', imag(chunk(:))'];
+                    zipchunks{ci} = compfun(typecast(chunk_flat, 'uint8'), encodeparam{:});
+                else
+                    zipchunks{ci} = compfun(typecast(chunk(:)', 'uint8'), encodeparam{:});
+                end
                 if (opt.base64)
                     zipchunks{ci} = char(base64encode(zipchunks{ci}));
                 end

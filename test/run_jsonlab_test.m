@@ -4659,6 +4659,39 @@ if (ismember('jdata4', tests))
     dec_nd_json = jdatadecode(loadjson(savejson('', enc_nd_json, 'compact', 1)));
     test_jsonlab('nd chunks roundtrip via savejson/loadjson', @savejson, isequaln(dec_nd_json, big3d), '[true]', 'compact', 1);
 
+    %% --- _ArrayChunks_ with complex arrays ---
+    % 1-D chunking of a complex matrix (compressarraysize=1 forces compression on small arrays)
+    cpx2d = complex(reshape(1:12, 3, 4), reshape(101:112, 3, 4));
+    enc_cpx1d = jdataencode(cpx2d, 'formatversion', 4, 'compression', 'zlib', ...
+                            'arraychunks', 8, 'base64', 1, 'prefix', 'x', 'compressarraysize', 1);
+    test_jsonlab('complex 1d chunks field exists', @savejson, isfield(enc_cpx1d, 'x_ArrayIsComplex_'), '[true]', 'compact', 1);
+    test_jsonlab('complex 1d chunks chunklen', @savejson, enc_cpx1d.x_ArrayChunks_, '[8]', 'compact', 1);
+    dec_cpx1d = jdatadecode(enc_cpx1d, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('complex 1d chunks roundtrip', @savejson, isequaln(dec_cpx1d, cpx2d), '[true]', 'compact', 1);
+
+    % roundtrip via savejson/loadjson
+    enc_cpx1d_json = jdataencode(cpx2d, 'formatversion', 4, 'compression', 'zlib', ...
+                                 'arraychunks', 8, 'base64', 1, 'compressarraysize', 1);
+    dec_cpx1d_json = jdatadecode(loadjson(savejson('', enc_cpx1d_json, 'compact', 1)));
+    test_jsonlab('complex 1d chunks roundtrip via savejson/loadjson', @savejson, isequaln(dec_cpx1d_json, cpx2d), '[true]', 'compact', 1);
+
+    % N-D chunking of a complex 3-D array
+    cpx3d = complex(single(reshape(1:60, 3, 4, 5)), single(reshape(101:160, 3, 4, 5)));
+    enc_cpxnd = jdataencode(cpx3d, 'formatversion', 4, 'compression', 'zlib', ...
+                            'arraychunks', [3, 3, 3], 'base64', 1, 'prefix', 'x', 'compressarraysize', 1);
+    test_jsonlab('complex nd chunks field exists', @savejson, isfield(enc_cpxnd, 'x_ArrayIsComplex_'), '[true]', 'compact', 1);
+    test_jsonlab('complex nd chunks chunkshape', @savejson, isequal(enc_cpxnd.x_ArrayChunks_, [3, 3, 3]), '[true]', 'compact', 1);
+    dec_cpxnd = jdatadecode(enc_cpxnd, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('complex nd chunks roundtrip', @savejson, isequaln(dec_cpxnd, cpx3d), '[true]', 'compact', 1);
+
+    enc_cpxnd_json = jdataencode(cpx3d, 'formatversion', 4, 'compression', 'zlib', ...
+                                 'arraychunks', [3, 3, 3], 'base64', 1, 'compressarraysize', 1);
+    dec_cpxnd_json = jdatadecode(loadjson(savejson('', enc_cpxnd_json, 'compact', 1)));
+    test_jsonlab('complex nd chunks roundtrip via savejson/loadjson', @savejson, isequaln(dec_cpxnd_json, cpx3d), '[true]', 'compact', 1);
+
+    clear cpx2d enc_cpx1d dec_cpx1d enc_cpx1d_json dec_cpx1d_json;
+    clear cpx3d enc_cpxnd dec_cpxnd enc_cpxnd_json dec_cpxnd_json;
+
     clear big3d enc_ch enc_ch2 enc_ch3 enc_v2_ch enc_ch_json dec_ch dec_ch2 dec_ch3 dec_ch_json;
     clear enc_nd dec_nd enc_nd_json dec_nd_json;
     clear circ_enc circ_enc2 circ_ref circ_ref2 hank_enc hank_enc2 hank_ref hank_ref2;

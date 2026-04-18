@@ -284,7 +284,12 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
                         ndim = numel(arrsize);
                         nchunks_nd = ceil(arrsize ./ chunkshape);
                         ntiles = prod(nchunks_nd);
-                        ndata = cast(zeros(arrsize), arraytype);
+                        iscpx_arr = isfield(data, N_ArrayIsComplex) && data(j).(N_ArrayIsComplex);
+                        if (iscpx_arr)
+                            ndata = complex(cast(zeros(arrsize), arraytype));
+                        else
+                            ndata = cast(zeros(arrsize), arraytype);
+                        end
                         tidx = cell(1, ndim);
                         for ci = 1:ntiles
                             [tidx{:}] = ind2sub(nchunks_nd, ci);
@@ -301,12 +306,26 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
                                 ranges{d} = r1:r2;
                                 tilesize(d) = r2 - r1 + 1;
                             end
-                            ndata(ranges{:}) = reshape(rawchunk, tilesize);
+                            if (iscpx_arr)
+                                half = numel(rawchunk) / 2;
+                                ndata(ranges{:}) = complex(reshape(rawchunk(1:half), tilesize), ...
+                                                           reshape(rawchunk(half + 1:end), tilesize));
+                            else
+                                ndata(ranges{:}) = reshape(rawchunk, tilesize);
+                            end
                         end
-                        ndata = ndata(:).';  % flatten to row, same layout as 1-D path
+                        if (iscpx_arr)
+                            ndata = [real(ndata(:))', imag(ndata(:))'];
+                        else
+                            ndata = ndata(:).';
+                        end
                     end
-                    % Set ZipSize to flat row so downstream _ArraySize_ reshape works
-                    data(j).(N_ArrayZipSize) = [1, numel(ndata)];
+                    % Restore ZipSize for downstream complex reconstruction
+                    if (isfield(data, N_ArrayIsComplex) && data(j).(N_ArrayIsComplex))
+                        data(j).(N_ArrayZipSize) = [2, numel(ndata) / 2];
+                    else
+                        data(j).(N_ArrayZipSize) = [1, numel(ndata)];
+                    end
                     dims = data(j).(N_ArrayZipSize);
                 elseif (needbase64 && strcmp(zipmethod, 'base64') == 0)
                     ndata = reshape(typecast(decompfun(base64decode(data(j).(N_ArrayZipData)), decodeparam{:}), arraytype), dims);
