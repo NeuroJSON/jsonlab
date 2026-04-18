@@ -508,7 +508,7 @@ if (~isempty(zipmethod) && numel(item) > minsize)
                     zipchunks{ci} = char(base64encode(zipchunks{ci}));
                 end
             end
-            newitem.(opt.N_ArrayChunks) = chunklen;
+            newitem.(opt.N_ArrayChunks) = [chunklen];
             newitem.(opt.N_ArrayZipSize) = nelem;
             newitem.(opt.N_ArrayZipData) = zipchunks;
         else
