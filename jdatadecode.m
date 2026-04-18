@@ -250,9 +250,12 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
                 end
                 arraytype = char(data(j).(N_ArrayType));
                 switch arraytype  % normalize float16/32/64 aliases (JData spec)
-                    case 'float16', arraytype = 'half';
-                    case 'float32', arraytype = 'single';
-                    case 'float64', arraytype = 'double';
+                    case 'float16'
+                        arraytype = 'half';
+                    case 'float32'
+                        arraytype = 'single';
+                    case 'float64'
+                        arraytype = 'double';
                 end
                 chartype = 0;
                 if (strcmp(arraytype, 'char') || strcmp(arraytype, 'logical'))
@@ -260,20 +263,49 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
                     arraytype = 'uint8';
                 end
                 if (isfield(data, N_ArrayChunks) && iscell(data(j).(N_ArrayZipData)))
-                    % Chunked decode: reassemble all chunk payloads into flat buffer
                     chunks_cell = data(j).(N_ArrayZipData);
-                    nchunks = numel(chunks_cell);
-                    allbytes = uint8([]);
-                    for ci = 1:nchunks
-                        chunkblob = uint8(chunks_cell{ci}(:)');
-                        if (needbase64 && ~strcmp(zipmethod, 'base64'))
-                            chunkblob = base64decode(chunkblob);
+                    chunkshape = double(data(j).(N_ArrayChunks));
+                    if (numel(chunkshape) == 1)
+                        % 1-D chunked decode: concatenate flat byte buffers
+                        nchunks = numel(chunks_cell);
+                        allbytes = uint8([]);
+                        for ci = 1:nchunks
+                            chunkblob = uint8(chunks_cell{ci}(:)');
+                            if (needbase64 && ~strcmp(zipmethod, 'base64'))
+                                chunkblob = base64decode(chunkblob);
+                            end
+                            tmpchunk = decompfun(chunkblob, decodeparam{:});
+                            allbytes = [allbytes, tmpchunk(:)'];
                         end
-                        tmpchunk = decompfun(chunkblob, decodeparam{:});
-                        allbytes = [allbytes, tmpchunk(:)'];
+                        ndata = typecast(allbytes, arraytype);
+                    else
+                        % N-D chunked decode: iterate 1D row-major cell, fill tiles directly
+                        arrsize = double(data(j).(N_ArrayZipSize));
+                        ndim = numel(arrsize);
+                        nchunks_nd = ceil(arrsize ./ chunkshape);
+                        ntiles = prod(nchunks_nd);
+                        ndata = cast(zeros(arrsize), arraytype);
+                        tidx = cell(1, ndim);
+                        for ci = 1:ntiles
+                            [tidx{:}] = ind2sub(nchunks_nd, ci);
+                            chunkblob = uint8(chunks_cell{ci}(:)');
+                            if (needbase64 && ~strcmp(zipmethod, 'base64'))
+                                chunkblob = base64decode(chunkblob);
+                            end
+                            rawchunk = typecast(decompfun(chunkblob, decodeparam{:}), arraytype);
+                            ranges = cell(1, ndim);
+                            tilesize = zeros(1, ndim);
+                            for d = 1:ndim
+                                r1 = (tidx{d} - 1) * chunkshape(d) + 1;
+                                r2 = min(tidx{d} * chunkshape(d), arrsize(d));
+                                ranges{d} = r1:r2;
+                                tilesize(d) = r2 - r1 + 1;
+                            end
+                            ndata(ranges{:}) = reshape(rawchunk, tilesize);
+                        end
+                        ndata = ndata(:).';  % flatten to row, same layout as 1-D path
                     end
-                    ndata = typecast(allbytes, arraytype);
-                    % Update ZipSize so the downstream reshape block is a no-op
+                    % Set ZipSize to flat row so downstream _ArraySize_ reshape works
                     data(j).(N_ArrayZipSize) = [1, numel(ndata)];
                     dims = data(j).(N_ArrayZipSize);
                 elseif (needbase64 && strcmp(zipmethod, 'base64') == 0)
@@ -299,9 +331,12 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
             end
             arrtype = char(data(j).(N_ArrayType));
             switch arrtype  % normalize float16/32/64 aliases (JData spec)
-                case 'float16', arrtype = 'half';
-                case 'float32', arrtype = 'single';
-                case 'float64', arrtype = 'double';
+                case 'float16'
+                    arrtype = 'half';
+                case 'float32'
+                    arrtype = 'single';
+                case 'float64'
+                    arrtype = 'double';
             end
             ndata = cast(data(j).(N_ArrayData), arrtype);
         end
@@ -414,9 +449,12 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
             arraydata = double(arraydata).';
             arraytypestr = char(data(j).(N_ArrayType));
             switch arraytypestr  % normalize float16/32/64 aliases (JData spec)
-                case 'float16', arraytypestr = 'half';
-                case 'float32', arraytypestr = 'single';
-                case 'float64', arraytypestr = 'double';
+                case 'float16'
+                    arraytypestr = 'half';
+                case 'float32'
+                    arraytypestr = 'single';
+                case 'float64'
+                    arraytypestr = 'double';
             end
             if (strcmpi(shapeid{1}, 'diag'))
                 ndata = spdiags(arraydata(:), 0, arraysize(1), arraysize(2));

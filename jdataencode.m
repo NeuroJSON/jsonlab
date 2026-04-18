@@ -491,24 +491,54 @@ if (~isempty(zipmethod) && numel(item) > minsize)
     end
     newitem.(opt.N_ArrayZipType) = lower(zipmethod);
     if (opt.formatversion >= 4 && ~isempty(opt.arraychunks) && isfield(newitem, opt.N_ArrayData))
-        % Chunked compression: split flat pre-processed buffer into 1-D segments
-        arrdata = newitem.(opt.N_ArrayData)(:)';
-        chunklen = double(opt.arraychunks(end));
-        nelem = numel(arrdata);
-        nchunks = ceil(nelem / chunklen);
-        zipchunks = cell(1, nchunks);
-        for ci = 1:nchunks
-            startidx = (ci - 1) * chunklen + 1;
-            endidx = min(ci * chunklen, nelem);
-            chunk = arrdata(startidx:endidx);
-            zipchunks{ci} = compfun(typecast(chunk, 'uint8'), encodeparam{:});
-            if (opt.base64)
-                zipchunks{ci} = char(base64encode(zipchunks{ci}));
+        chunkshape = double(opt.arraychunks(:)');
+        if (numel(chunkshape) == 1)
+            % 1-D chunking: split flat pre-processed buffer into equal segments
+            arrdata = newitem.(opt.N_ArrayData)(:)';
+            chunklen = chunkshape;
+            nelem = numel(arrdata);
+            nchunks = ceil(nelem / chunklen);
+            zipchunks = cell(1, nchunks);
+            for ci = 1:nchunks
+                startidx = (ci - 1) * chunklen + 1;
+                endidx = min(ci * chunklen, nelem);
+                chunk = arrdata(startidx:endidx);
+                zipchunks{ci} = compfun(typecast(chunk, 'uint8'), encodeparam{:});
+                if (opt.base64)
+                    zipchunks{ci} = char(base64encode(zipchunks{ci}));
+                end
             end
+            newitem.(opt.N_ArrayChunks) = chunklen;
+            newitem.(opt.N_ArrayZipSize) = nelem;
+            newitem.(opt.N_ArrayZipData) = zipchunks;
+        else
+            % N-D chunking: tile the permuted intermediate array by chunkshape.
+            % 'item' here is the permuted ND intermediate (before flattening).
+            arrsize = size(item);
+            ndim = ndims(item);
+            chunkshape(end + 1:ndim) = arrsize(numel(chunkshape) + 1:end);  % pad to ndim
+            chunkshape = min(chunkshape, arrsize);
+            nchunks_nd = ceil(arrsize ./ chunkshape);
+            zipchunks = cell(1, prod(nchunks_nd));
+            tidx = cell(1, ndim);
+            for ci = 1:prod(nchunks_nd)
+                [tidx{:}] = ind2sub(nchunks_nd, ci);
+                ranges = cell(1, ndim);
+                for d = 1:ndim
+                    r1 = (tidx{d} - 1) * chunkshape(d) + 1;
+                    r2 = min(tidx{d} * chunkshape(d), arrsize(d));
+                    ranges{d} = r1:r2;
+                end
+                chunk = item(ranges{:});
+                zipchunks{ci} = compfun(typecast(chunk(:)', 'uint8'), encodeparam{:});
+                if (opt.base64)
+                    zipchunks{ci} = char(base64encode(zipchunks{ci}));
+                end
+            end
+            newitem.(opt.N_ArrayChunks) = chunkshape;
+            newitem.(opt.N_ArrayZipSize) = arrsize;  % full intermediate shape
+            newitem.(opt.N_ArrayZipData) = zipchunks;
         end
-        newitem.(opt.N_ArrayChunks) = chunklen;
-        newitem.(opt.N_ArrayZipSize) = chunklen;
-        newitem.(opt.N_ArrayZipData) = zipchunks;
         newitem = rmfield(newitem, opt.N_ArrayData);
     else
         if (~isfield(newitem, opt.N_ArrayZipSize))
