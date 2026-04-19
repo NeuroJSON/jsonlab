@@ -279,54 +279,94 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
                         end
                         ndata = typecast(allbytes, arraytype);
                     else
-                        % N-D chunked decode: iterate 1D row-major cell, fill tiles directly
-                        arrsize = double(data(j).(N_ArrayZipSize));
-                        ndim = numel(arrsize);
-                        nchunks_nd = ceil(arrsize ./ chunkshape);
-                        ntiles = prod(nchunks_nd);
-                        iscpx_arr = isfield(data, N_ArrayIsComplex) && data(j).(N_ArrayIsComplex);
-                        if (iscpx_arr)
-                            ndata = complex(cast(zeros(arrsize), arraytype));
-                        else
-                            ndata = cast(zeros(arrsize), arraytype);
-                        end
-                        tidx = cell(1, ndim);
-                        for ci = 1:ntiles
-                            [tidx{:}] = ind2sub(nchunks_nd, ci);
-                            chunkblob = uint8(chunks_cell{ci}(:)');
-                            if (needbase64 && ~strcmp(zipmethod, 'base64'))
-                                chunkblob = base64decode(chunkblob);
-                            end
-                            rawchunk = typecast(decompfun(chunkblob, decodeparam{:}), arraytype);
-                            ranges = cell(1, ndim);
-                            tilesize = zeros(1, ndim);
-                            for d = 1:ndim
-                                r1 = (tidx{d} - 1) * chunkshape(d) + 1;
-                                r2 = min(tidx{d} * chunkshape(d), arrsize(d));
-                                ranges{d} = r1:r2;
-                                tilesize(d) = r2 - r1 + 1;
-                            end
+                        % N-D chunked decode: two modes depending on array type.
+                        % Dense: _ArrayChunks_ is in _ArraySize_ (original) order;
+                        %   tiles the row-major permuted intermediate.
+                        % Non-dense (sparse/shaped): _ArrayChunks_ is in _ArrayZipSize_ order;
+                        %   tiles the logical processed array.
+                        isdense_chunk = ~(isfield(data, N_ArrayIsSparse) && data(j).(N_ArrayIsSparse)) && ~isfield(data, N_ArrayShape);
+                        if (isdense_chunk)
+                            origsize = double(data(j).(N_ArraySize)(:)');  % e.g. [3,4,5]
+                            ndim = numel(origsize);
+                            chunkshape_perm = fliplr(chunkshape);          % permuted-space chunk
+                            arrsize_perm = fliplr(origsize);               % e.g. [5,4,3]
+                            chunkshape_perm(end + 1:ndim) = arrsize_perm(numel(chunkshape_perm) + 1:end);
+                            chunkshape_perm = min(chunkshape_perm, arrsize_perm);
+                            nchunks_nd = ceil(arrsize_perm ./ chunkshape_perm);
+                            ntiles = prod(nchunks_nd);
+                            iscpx_arr = isfield(data, N_ArrayIsComplex) && data(j).(N_ArrayIsComplex);
                             if (iscpx_arr)
-                                half = numel(rawchunk) / 2;
-                                ndata(ranges{:}) = complex(reshape(rawchunk(1:half), tilesize), ...
-                                                           reshape(rawchunk(half + 1:end), tilesize));
+                                ndata = complex(cast(zeros(arrsize_perm), arraytype));
                             else
+                                ndata = cast(zeros(arrsize_perm), arraytype);
+                            end
+                            tidx = cell(1, ndim);
+                            for ci = 1:ntiles
+                                [tidx{:}] = ind2sub(nchunks_nd, ci);
+                                chunkblob = uint8(chunks_cell{ci}(:)');
+                                if (needbase64 && ~strcmp(zipmethod, 'base64'))
+                                    chunkblob = base64decode(chunkblob);
+                                end
+                                rawchunk = typecast(decompfun(chunkblob, decodeparam{:}), arraytype);
+                                ranges = cell(1, ndim);
+                                tilesize = zeros(1, ndim);
+                                for d = 1:ndim
+                                    r1 = (tidx{d} - 1) * chunkshape_perm(d) + 1;
+                                    r2 = min(tidx{d} * chunkshape_perm(d), arrsize_perm(d));
+                                    ranges{d} = r1:r2;
+                                    tilesize(d) = r2 - r1 + 1;
+                                end
+                                if (iscpx_arr)
+                                    half = numel(rawchunk) / 2;
+                                    ndata(ranges{:}) = complex(reshape(rawchunk(1:half), tilesize), ...
+                                                               reshape(rawchunk(half + 1:end), tilesize));
+                                else
+                                    ndata(ranges{:}) = reshape(rawchunk, tilesize);
+                                end
+                            end
+                            % Flatten assembled permuted array to row for downstream processing
+                            if (iscpx_arr)
+                                ndata = [real(ndata(:))', imag(ndata(:))'];
+                                data(j).(N_ArrayZipSize) = [2, numel(ndata) / 2];
+                            else
+                                ndata = ndata(:).';
+                                data(j).(N_ArrayZipSize) = [1, numel(ndata)];
+                            end
+                            dims = data(j).(N_ArrayZipSize);
+                        else
+                            % Non-dense: tile logical _ArrayZipSize_ shape; keep ZipSize unchanged.
+                            zipsize = double(data(j).(N_ArrayZipSize)(:)');  % e.g. [3,K] sparse
+                            ndim = numel(zipsize);
+                            chunkshape_nd = chunkshape;
+                            chunkshape_nd(end + 1:ndim) = zipsize(numel(chunkshape_nd) + 1:end);
+                            chunkshape_nd = min(chunkshape_nd, zipsize);
+                            nchunks_nd = ceil(zipsize ./ chunkshape_nd);
+                            ntiles = prod(nchunks_nd);
+                            ndata = cast(zeros(zipsize), arraytype);
+                            tidx = cell(1, ndim);
+                            for ci = 1:ntiles
+                                [tidx{:}] = ind2sub(nchunks_nd, ci);
+                                chunkblob = uint8(chunks_cell{ci}(:)');
+                                if (needbase64 && ~strcmp(zipmethod, 'base64'))
+                                    chunkblob = base64decode(chunkblob);
+                                end
+                                rawchunk = typecast(decompfun(chunkblob, decodeparam{:}), arraytype);
+                                ranges = cell(1, ndim);
+                                tilesize = zeros(1, ndim);
+                                for d = 1:ndim
+                                    r1 = (tidx{d} - 1) * chunkshape_nd(d) + 1;
+                                    r2 = min(tidx{d} * chunkshape_nd(d), zipsize(d));
+                                    ranges{d} = r1:r2;
+                                    tilesize(d) = r2 - r1 + 1;
+                                end
                                 ndata(ranges{:}) = reshape(rawchunk, tilesize);
                             end
-                        end
-                        if (iscpx_arr)
-                            ndata = [real(ndata(:))', imag(ndata(:))'];
-                        else
-                            ndata = ndata(:).';
+                            % Re-flatten to "rows-concatenated" format for downstream ZipSize block
+                            ndata = permute(ndata, ndim:-1:1);
+                            ndata = ndata(:)';
+                            % _ArrayZipSize_ stays unchanged; dims already set from line 236
                         end
                     end
-                    % Restore ZipSize for downstream complex reconstruction
-                    if (isfield(data, N_ArrayIsComplex) && data(j).(N_ArrayIsComplex))
-                        data(j).(N_ArrayZipSize) = [2, numel(ndata) / 2];
-                    else
-                        data(j).(N_ArrayZipSize) = [1, numel(ndata)];
-                    end
-                    dims = data(j).(N_ArrayZipSize);
                 elseif (needbase64 && strcmp(zipmethod, 'base64') == 0)
                     ndata = reshape(typecast(decompfun(base64decode(data(j).(N_ArrayZipData)), decodeparam{:}), arraytype), dims);
                 else

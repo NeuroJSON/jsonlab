@@ -509,39 +509,85 @@ if (~isempty(zipmethod) && numel(item) > minsize)
                 end
             end
             newitem.(opt.N_ArrayChunks) = [chunklen];
-            newitem.(opt.N_ArrayZipSize) = nelem;
+            if (~isfield(newitem, opt.N_ArrayZipSize))
+                newitem.(opt.N_ArrayZipSize) = nelem;
+            end
             newitem.(opt.N_ArrayZipData) = zipchunks;
         else
-            % N-D chunking: tile the permuted intermediate array by chunkshape.
-            % 'item' here is the permuted ND intermediate (before flattening).
-            arrsize = size(item);
-            ndim = ndims(item);
-            chunkshape(end + 1:ndim) = arrsize(numel(chunkshape) + 1:end);  % pad to ndim
-            chunkshape = min(chunkshape, arrsize);
-            nchunks_nd = ceil(arrsize ./ chunkshape);
-            zipchunks = cell(1, prod(nchunks_nd));
-            tidx = cell(1, ndim);
-            for ci = 1:prod(nchunks_nd)
-                [tidx{:}] = ind2sub(nchunks_nd, ci);
-                ranges = cell(1, ndim);
-                for d = 1:ndim
-                    r1 = (tidx{d} - 1) * chunkshape(d) + 1;
-                    r2 = min(tidx{d} * chunkshape(d), arrsize(d));
-                    ranges{d} = r1:r2;
+            % N-D chunking: two modes depending on array type.
+            % Dense (real/complex): _ArrayChunks_ is in _ArraySize_ (original) order;
+            %   tiles the row-major permuted intermediate; _ArrayZipSize_ = [1/2, N_total].
+            % Non-dense (sparse/shaped): _ArrayChunks_ is in _ArrayZipSize_ (processed) order;
+            %   tiles the processed _ArrayData_ matrix directly.
+            isdense_chunk = ~(isfield(newitem, opt.N_ArrayIsSparse) && newitem.(opt.N_ArrayIsSparse)) && ~isfield(newitem, opt.N_ArrayShape);
+            if (isdense_chunk)
+                % Dense: item is already permuted to row-major.
+                % chunkshape is in original _ArraySize_ order; flip to get permuted-space chunks.
+                origsize = fliplr(size(item));     % original _ArraySize_ dimension order
+                ndim = numel(origsize);
+                chunkshape(end + 1:ndim) = origsize(numel(chunkshape) + 1:end);
+                chunkshape = min(chunkshape, origsize);   % clamp against original dims
+                chunkshape_perm = fliplr(chunkshape);     % chunk shape in permuted space
+                arrsize_perm = size(item);
+                nchunks_nd = ceil(arrsize_perm ./ chunkshape_perm);
+                zipchunks = cell(1, prod(nchunks_nd));
+                tidx = cell(1, ndim);
+                for ci = 1:prod(nchunks_nd)
+                    [tidx{:}] = ind2sub(nchunks_nd, ci);
+                    ranges = cell(1, ndim);
+                    for d = 1:ndim
+                        r1 = (tidx{d} - 1) * chunkshape_perm(d) + 1;
+                        r2 = min(tidx{d} * chunkshape_perm(d), arrsize_perm(d));
+                        ranges{d} = r1:r2;
+                    end
+                    chunk = item(ranges{:});
+                    if (~isreal(item))
+                        chunk_flat = [real(chunk(:))', imag(chunk(:))'];
+                        zipchunks{ci} = compfun(typecast(chunk_flat, 'uint8'), encodeparam{:});
+                    else
+                        zipchunks{ci} = compfun(typecast(chunk(:)', 'uint8'), encodeparam{:});
+                    end
+                    if (opt.base64)
+                        zipchunks{ci} = char(base64encode(zipchunks{ci}));
+                    end
                 end
-                chunk = item(ranges{:});
+                newitem.(opt.N_ArrayChunks) = chunkshape;   % stored in original _ArraySize_ order
                 if (~isreal(item))
-                    chunk_flat = [real(chunk(:))', imag(chunk(:))'];
-                    zipchunks{ci} = compfun(typecast(chunk_flat, 'uint8'), encodeparam{:});
+                    newitem.(opt.N_ArrayZipSize) = [2, numel(item)];
                 else
+                    newitem.(opt.N_ArrayZipSize) = [1, numel(item)];
+                end
+            else
+                % Non-dense (sparse/shaped): tile the logical _ArrayZipSize_ shape.
+                % _ArrayData_ is stored as a flat row; reshape to _ArrayZipSize_ for tiling.
+                % _ArrayChunks_ is in _ArrayZipSize_ coordinate space.
+                procsize = double(newitem.(opt.N_ArrayZipSize));  % e.g. [3,K] for sparse
+                ndim = numel(procsize);
+                chunkshape(end + 1:ndim) = procsize(numel(chunkshape) + 1:end);
+                chunkshape = min(chunkshape, procsize);
+                nchunks_nd = ceil(procsize ./ chunkshape);
+                % Reshape flat _ArrayData_ row to logical procsize (inverse of rows-concatenated)
+                flatdata = newitem.(opt.N_ArrayData)(:)';
+                procdata = permute(reshape(flatdata, fliplr(procsize)), ndim:-1:1);
+                zipchunks = cell(1, prod(nchunks_nd));
+                tidx = cell(1, ndim);
+                for ci = 1:prod(nchunks_nd)
+                    [tidx{:}] = ind2sub(nchunks_nd, ci);
+                    ranges = cell(1, ndim);
+                    for d = 1:ndim
+                        r1 = (tidx{d} - 1) * chunkshape(d) + 1;
+                        r2 = min(tidx{d} * chunkshape(d), procsize(d));
+                        ranges{d} = r1:r2;
+                    end
+                    chunk = procdata(ranges{:});
                     zipchunks{ci} = compfun(typecast(chunk(:)', 'uint8'), encodeparam{:});
+                    if (opt.base64)
+                        zipchunks{ci} = char(base64encode(zipchunks{ci}));
+                    end
                 end
-                if (opt.base64)
-                    zipchunks{ci} = char(base64encode(zipchunks{ci}));
-                end
+                newitem.(opt.N_ArrayChunks) = chunkshape;
+                % _ArrayZipSize_ was already set by the sparse/shaped encoding path; keep it.
             end
-            newitem.(opt.N_ArrayChunks) = chunkshape;
-            newitem.(opt.N_ArrayZipSize) = arrsize;  % full intermediate shape
             newitem.(opt.N_ArrayZipData) = zipchunks;
         end
         newitem = rmfield(newitem, opt.N_ArrayData);

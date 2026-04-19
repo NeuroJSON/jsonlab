@@ -4647,11 +4647,13 @@ if (ismember('jdata4', tests))
     dec_ch_json = jdatadecode(loadjson(savejson('', enc_ch_json, 'compact', 1)));
     test_jsonlab('chunks roundtrip via savejson/loadjson', @savejson, isequaln(dec_ch_json, big3d), '[true]', 'compact', 1);
 
-    % N-D chunking: chunk shape [5,6,5] tiles a [10,12,5] intermediate (permuted big3d)
+    % N-D chunking: chunk shape [5,6,5] is in _ArraySize_=[5,12,10] order;
+    % flipped to [5,6,5] in permuted [10,12,5] space → ceil([10,12,5]./[5,6,5])=[2,2,1]=4 tiles
     enc_nd = jdataencode(big3d, 'formatversion', 4, 'compression', 'zlib', ...
                          'arraychunks', [5, 6, 5], 'base64', 1, 'prefix', 'x');
     test_jsonlab('nd chunks _ArrayChunks_ is vector', @savejson, isequal(enc_nd.x_ArrayChunks_, [5, 6, 5]), '[true]', 'compact', 1);
     test_jsonlab('nd chunks zipdata is 1D cell', @savejson, isequal(size(enc_nd.x_ArrayZipData_), [1, 4]), '[true]', 'compact', 1);
+    test_jsonlab('nd chunks _ArrayZipSize_ is [1,600]', @savejson, isequal(enc_nd.x_ArrayZipSize_, [1, 600]), '[true]', 'compact', 1);
     dec_nd = jdatadecode(enc_nd, 'base64', 1, 'prefix', 'x');
     test_jsonlab('nd chunks roundtrip', @savejson, isequaln(dec_nd, big3d), '[true]', 'compact', 1);
     enc_nd_json = jdataencode(big3d, 'formatversion', 4, 'compression', 'zlib', ...
@@ -4681,6 +4683,7 @@ if (ismember('jdata4', tests))
                             'arraychunks', [3, 3, 3], 'base64', 1, 'prefix', 'x', 'compressarraysize', 1);
     test_jsonlab('complex nd chunks field exists', @savejson, isfield(enc_cpxnd, 'x_ArrayIsComplex_'), '[true]', 'compact', 1);
     test_jsonlab('complex nd chunks chunkshape', @savejson, isequal(enc_cpxnd.x_ArrayChunks_, [3, 3, 3]), '[true]', 'compact', 1);
+    test_jsonlab('complex nd chunks _ArrayZipSize_ is [2,60]', @savejson, isequal(enc_cpxnd.x_ArrayZipSize_, [2, 60]), '[true]', 'compact', 1);
     dec_cpxnd = jdatadecode(enc_cpxnd, 'base64', 1, 'prefix', 'x');
     test_jsonlab('complex nd chunks roundtrip', @savejson, isequaln(dec_cpxnd, cpx3d), '[true]', 'compact', 1);
 
@@ -4691,6 +4694,72 @@ if (ismember('jdata4', tests))
 
     clear cpx2d enc_cpx1d dec_cpx1d enc_cpx1d_json dec_cpx1d_json;
     clear cpx3d enc_cpxnd dec_cpxnd enc_cpxnd_json dec_cpxnd_json;
+
+    %% --- _ArrayChunks_ with asymmetric chunk shapes ---
+    % chunk shape [3,4] on a [5,12,10] array: flipped to [4,3] in permuted [10,12,5] space
+    enc_asym = jdataencode(big3d, 'formatversion', 4, 'compression', 'zlib', ...
+                           'arraychunks', [3, 4, 5], 'base64', 1, 'prefix', 'x');
+    test_jsonlab('asymmetric nd chunks _ArrayChunks_ stored in ArraySize order', @savejson, ...
+                 isequal(enc_asym.x_ArrayChunks_, [3, 4, 5]), '[true]', 'compact', 1);
+    % nchunks = ceil([5,12,10]./[3,4,5]) = [2,3,2] = 12 tiles
+    test_jsonlab('asymmetric nd chunks tile count correct', @savejson, ...
+                 isequal(size(enc_asym.x_ArrayZipData_), [1, 12]), '[true]', 'compact', 1);
+    dec_asym = jdatadecode(enc_asym, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('asymmetric nd chunks roundtrip', @savejson, isequaln(dec_asym, big3d), '[true]', 'compact', 1);
+    clear enc_asym dec_asym;
+
+    %% --- _ArrayChunks_ with sparse real arrays (1-D) ---
+    sp2d = sparse([1 3 5], [2 4 6], [10 20 30], 6, 8);  % 6x8 sparse, 3 nonzeros
+    enc_sp1d = jdataencode(sp2d, 'formatversion', 4, 'compression', 'zlib', ...
+                           'arraychunks', 2, 'base64', 1, 'prefix', 'x', 'compressarraysize', 1);
+    test_jsonlab('sparse 1d chunks IsSparse set', @savejson, enc_sp1d.x_ArrayIsSparse_, '[true]', 'compact', 1);
+    test_jsonlab('sparse 1d chunks _ArrayChunks_ set', @savejson, enc_sp1d.x_ArrayChunks_, '[2]', 'compact', 1);
+    % _ArrayZipSize_ preserved as [3,3] (ix,iy,val rows; 3 nonzeros)
+    test_jsonlab('sparse 1d chunks _ArrayZipSize_ preserved', @savejson, ...
+                 isequal(enc_sp1d.x_ArrayZipSize_, [3, 3]), '[true]', 'compact', 1);
+    dec_sp1d = jdatadecode(enc_sp1d, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('sparse 1d chunks roundtrip', @savejson, isequaln(dec_sp1d, sp2d), '[true]', 'compact', 1);
+    enc_sp1d_json = jdataencode(sp2d, 'formatversion', 4, 'compression', 'zlib', ...
+                                'arraychunks', 2, 'base64', 1, 'compressarraysize', 1);
+    dec_sp1d_json = jdatadecode(loadjson(savejson('', enc_sp1d_json, 'compact', 1)));
+    test_jsonlab('sparse 1d chunks roundtrip via savejson/loadjson', @savejson, ...
+                 isequaln(dec_sp1d_json, sp2d), '[true]', 'compact', 1);
+    clear sp2d enc_sp1d dec_sp1d enc_sp1d_json dec_sp1d_json;
+
+    %% --- _ArrayChunks_ with sparse real arrays (ND) ---
+    sp2d_nd = sparse([1 3 5 2 4], [2 4 6 1 3], [10 20 30 40 50], 6, 8);  % 5 nonzeros
+    enc_spnd = jdataencode(sp2d_nd, 'formatversion', 4, 'compression', 'zlib', ...
+                           'arraychunks', [3, 3], 'base64', 1, 'prefix', 'x', 'compressarraysize', 1);
+    test_jsonlab('sparse nd chunks IsSparse set', @savejson, enc_spnd.x_ArrayIsSparse_, '[true]', 'compact', 1);
+    test_jsonlab('sparse nd chunks _ArrayChunks_ in ZipSize order', @savejson, ...
+                 isequal(enc_spnd.x_ArrayChunks_, [3, 3]), '[true]', 'compact', 1);
+    % _ArrayZipSize_ = [3,5]: ix,iy,val rows; 5 nonzeros
+    test_jsonlab('sparse nd chunks _ArrayZipSize_ = [3,5]', @savejson, ...
+                 isequal(enc_spnd.x_ArrayZipSize_, [3, 5]), '[true]', 'compact', 1);
+    % nchunks = ceil([3,5]./[3,3]) = [1,2] = 2 tiles
+    test_jsonlab('sparse nd chunks tile count', @savejson, ...
+                 isequal(size(enc_spnd.x_ArrayZipData_), [1, 2]), '[true]', 'compact', 1);
+    dec_spnd = jdatadecode(enc_spnd, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('sparse nd chunks roundtrip', @savejson, isequaln(dec_spnd, sp2d_nd), '[true]', 'compact', 1);
+    enc_spnd_json = jdataencode(sp2d_nd, 'formatversion', 4, 'compression', 'zlib', ...
+                                'arraychunks', [3, 3], 'base64', 1, 'compressarraysize', 1);
+    dec_spnd_json = jdatadecode(loadjson(savejson('', enc_spnd_json, 'compact', 1)));
+    test_jsonlab('sparse nd chunks roundtrip via savejson/loadjson', @savejson, ...
+                 isequaln(dec_spnd_json, sp2d_nd), '[true]', 'compact', 1);
+    clear sp2d_nd enc_spnd dec_spnd enc_spnd_json dec_spnd_json;
+
+    %% --- _ArrayChunks_ with sparse complex arrays (1-D) ---
+    spcpx = sparse([1 3], [2 4], [1+2i 3+4i], 4, 5);  % 2 complex nonzeros
+    enc_spcpx1d = jdataencode(spcpx, 'formatversion', 4, 'compression', 'zlib', ...
+                              'arraychunks', 2, 'base64', 1, 'prefix', 'x', 'compressarraysize', 1);
+    test_jsonlab('complex sparse 1d chunks IsSparse+IsComplex', @savejson, ...
+                 enc_spcpx1d.x_ArrayIsSparse_ && enc_spcpx1d.x_ArrayIsComplex_, '[true]', 'compact', 1);
+    % _ArrayZipSize_ = [4,2]: ix,iy,re,im rows; 2 nonzeros
+    test_jsonlab('complex sparse 1d chunks _ArrayZipSize_ preserved', @savejson, ...
+                 isequal(enc_spcpx1d.x_ArrayZipSize_, [4, 2]), '[true]', 'compact', 1);
+    dec_spcpx1d = jdatadecode(enc_spcpx1d, 'base64', 1, 'prefix', 'x');
+    test_jsonlab('complex sparse 1d chunks roundtrip', @savejson, isequaln(dec_spcpx1d, spcpx), '[true]', 'compact', 1);
+    clear spcpx enc_spcpx1d dec_spcpx1d;
 
     clear big3d enc_ch enc_ch2 enc_ch3 enc_v2_ch enc_ch_json dec_ch dec_ch2 dec_ch3 dec_ch_json;
     clear enc_nd dec_nd enc_nd_json dec_nd_json;
