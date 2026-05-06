@@ -441,7 +441,12 @@ if opt.simplifycell
                 if (iscell(object) && length(object) > 1 && ndims(object{1}) >= 2)
                     catdim = size(object{1});
                     catdim = ndims(object{1}) - (catdim(end) == 1) + 1;
-                    object = cat(catdim, object{:});
+                    if (~all(cellfun(@(e) isa(e, class(object{1})), object(2:end))))
+                        tmp = cellfun(@double, object, 'UniformOutput', false);
+                        object = cat(catdim, tmp{:});
+                    else
+                        object = cat(catdim, object{:});
+                    end
                     object = permute(object, ndims(object):-1:1);
                 else
                     object = cell2mat(object')';

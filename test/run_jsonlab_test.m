@@ -4749,7 +4749,7 @@ if (ismember('jdata4', tests))
     clear sp2d_nd enc_spnd dec_spnd enc_spnd_json dec_spnd_json;
 
     %% --- _ArrayChunks_ with sparse complex arrays (1-D) ---
-    spcpx = sparse([1 3], [2 4], [1+2i 3+4i], 4, 5);  % 2 complex nonzeros
+    spcpx = sparse([1 3], [2 4], [1 + 2i 3 + 4i], 4, 5);  % 2 complex nonzeros
     enc_spcpx1d = jdataencode(spcpx, 'formatversion', 4, 'compression', 'zlib', ...
                               'arraychunks', 2, 'base64', 1, 'prefix', 'x', 'compressarraysize', 1);
     test_jsonlab('complex sparse 1d chunks IsSparse+IsComplex', @savejson, ...
