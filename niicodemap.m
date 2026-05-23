@@ -36,8 +36,14 @@ function newval = niicodemap(name, value)
 %
 
 % code to name look-up-table
+%
+% Note: in Octave, `exist('containers.Map')` returns 0 even when
+% containers.Map is fully functional (Octave 7+), so probe usability
+% with a tiny construction instead of relying on exist().
 
-if (~exist('containers.Map'))
+try
+    containers.Map({'k'}, {'v'});
+catch
     newval = value;
     return
 end
