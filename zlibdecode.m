@@ -37,62 +37,74 @@ if (nargin == 0)
     error('you must provide at least 1 input');
 end
 
+% Try built-in JVM-based zlib first when Java is available
+if (usejava('jvm'))
+    try
+        rawinput = varargin{1};
+        if (ischar(rawinput))
+            rawinput = uint8(rawinput);
+        end
+        input = typecast(rawinput(:)', 'uint8');
+
+        if (isoctavemesh)
+            % Octave with Java: write/read bytes one at a time
+            n = numel(input);
+            inputBaos = javaObject('java.io.ByteArrayOutputStream', n);
+            for i = 1:n
+                inputBaos.write(int32(input(i)));
+            end
+            bais = javaObject('java.io.ByteArrayInputStream', inputBaos.toByteArray());
+            iis = javaObject('java.util.zip.InflaterInputStream', bais);
+            outputBaos = javaObject('java.io.ByteArrayOutputStream');
+            while true
+                b = iis.read();
+                if (b < 0)
+                    break
+                end
+                outputBaos.write(b);
+            end
+            iis.close();
+            varargout{1} = typecast(outputBaos.toByteArray(), 'uint8')';
+        else
+            % MATLAB with Java: direct array write
+            buffer = java.io.ByteArrayOutputStream();
+            zlib = java.util.zip.InflaterOutputStream(buffer);
+            zlib.write(input, 0, numel(input));
+            zlib.close();
+            varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
+        end
+
+        if (nargin > 1 && isstruct(varargin{2}) && isfield(varargin{2}, 'type'))
+            inputinfo = varargin{2};
+            varargout{1} = typecast(varargout{1}, inputinfo.type);
+            varargout{1} = reshape(varargout{1}, inputinfo.size);
+        end
+        return
+    catch
+        % JVM-based zlib failed; fall through to zmat/octavezmat
+    end
+end
+
+% Fall back to ZMat toolbox when available
 nozmat = getvarfrom({'caller', 'base'}, 'NO_ZMAT');
 
 if ((exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3) && (isempty(nozmat) || nozmat == 0))
-    if (nargin > 1)
-        [varargout{1:nargout}] = zmat(varargin{1}, varargin{2:end});
-    else
-        [varargout{1:nargout}] = zmat(varargin{1}, 0, 'zlib', varargin{2:end});
-    end
-    return
-end
-
-if (ischar(varargin{1}))
-    varargin{1} = uint8(varargin{1});
-end
-
-input = typecast(varargin{1}(:)', 'uint8');
-
-if (~usejava('jvm'))
-    if (nargin > 1)
-        [varargout{1:nargout}] = octavezmat(varargin{1}, varargin{2}, 'zlib');
-    else
-        [varargout{1:nargout}] = octavezmat(varargin{1}, 0, 'zlib');
-    end
-    return
-end
-
-if (isoctavemesh)
-    % Octave with Java: write/read bytes one at a time
-    n = numel(input);
-    inputBaos = javaObject('java.io.ByteArrayOutputStream', n);
-    for i = 1:n
-        inputBaos.write(int32(input(i)));
-    end
-    bais = javaObject('java.io.ByteArrayInputStream', inputBaos.toByteArray());
-    iis = javaObject('java.util.zip.InflaterInputStream', bais);
-    outputBaos = javaObject('java.io.ByteArrayOutputStream');
-    while true
-        b = iis.read();
-        if (b < 0)
-            break
+    try
+        if (nargin > 1)
+            [varargout{1:nargout}] = zmat(varargin{1}, varargin{2:end});
+        else
+            [varargout{1:nargout}] = zmat(varargin{1}, 0, 'zlib', varargin{2:end});
         end
-        outputBaos.write(b);
+        return
+    catch
+        % zmat is on path but its zipmat MEX is missing or failed;
+        % fall through to the pure-MATLAB/Octave fallback
     end
-    iis.close();
-    varargout{1} = typecast(outputBaos.toByteArray(), 'uint8')';
-else
-    % MATLAB with Java: direct array write
-    buffer = java.io.ByteArrayOutputStream();
-    zlib = java.util.zip.InflaterOutputStream(buffer);
-    zlib.write(input, 0, numel(input));
-    zlib.close();
-    varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
 end
 
-if (nargin > 1 && isstruct(varargin{2}) && isfield(varargin{2}, 'type'))
-    inputinfo = varargin{2};
-    varargout{1} = typecast(varargout{1}, inputinfo.type);
-    varargout{1} = reshape(varargout{1}, inputinfo.size);
+% Final fallback: pure-MATLAB/Octave implementation
+if (nargin > 1)
+    [varargout{1:nargout}] = octavezmat(varargin{1}, varargin{2}, 'zlib');
+else
+    [varargout{1:nargout}] = octavezmat(varargin{1}, 0, 'zlib');
 end

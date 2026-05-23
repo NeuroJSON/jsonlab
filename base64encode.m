@@ -32,26 +32,44 @@ if (nargin == 0)
     error('you must provide at least 1 input');
 end
 
-if (exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3)
-    [varargout{1:nargout}] = zmat(varargin{1}, 1, 'base64', varargin{2:end});
-    return
-end
-
-if (ischar(varargin{1}))
-    varargin{1} = uint8(varargin{1});
-end
-
-input = typecast(varargin{1}(:)', 'uint8');
-
+% Try built-in base64 encoder first
 if (isoctavemesh)
-    varargout{1} = base64_encode(uint8(input));
-    return
+    try
+        rawinput = varargin{1};
+        if (ischar(rawinput))
+            rawinput = uint8(rawinput);
+        end
+        input = typecast(rawinput(:)', 'uint8');
+        varargout{1} = base64_encode(uint8(input));
+        return
+    catch
+        % fall through to zmat/JVM
+    end
+elseif (usejava('jvm'))
+    try
+        rawinput = varargin{1};
+        if (ischar(rawinput))
+            rawinput = uint8(rawinput);
+        end
+        input = typecast(rawinput(:)', 'uint8');
+        varargout{1} = char(org.apache.commons.codec.binary.Base64.encodeBase64Chunked(input))';
+        varargout{1} = regexprep(varargout{1}, '[\r\n]', '');
+        return
+    catch
+        % fall through to zmat
+    end
 end
 
-error(javachk('jvm'));
-if ischar(input)
-    input = uint8(input);
+% Fall back to ZMat toolbox when available
+nozmat = getvarfrom({'caller', 'base'}, 'NO_ZMAT');
+
+if ((exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3) && (isempty(nozmat) || nozmat == 0))
+    try
+        [varargout{1:nargout}] = zmat(varargin{1}, 1, 'base64', varargin{2:end});
+        return
+    catch
+        % zmat is on path but its zipmat MEX is missing or failed
+    end
 end
 
-varargout{1}  = char(org.apache.commons.codec.binary.Base64.encodeBase64Chunked(input))';
-varargout{1}  = regexprep(varargout{1}, '[\r\n]', '');
+error('no available base64 encoder: requires Octave, JVM, or the ZMat toolbox');
