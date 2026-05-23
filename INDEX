@@ -57,9 +57,16 @@ JNIfTI file parser
  loadjnifti
  loadnifti
  nii2jnii
+ jnii2nii
  niicodemap
  niiformat
  niiheader2jnii
+ nifticreate
+ jnifticreate
+ savenifti
+ savejnifti
+ savejnii
+ savebnii
 Helper Functions
  decodevarname
  encodevarname

@@ -158,9 +158,16 @@ Please note that data files produced by `saveubjson` may utilize a special "opti
       <file>${PROJECT_ROOT}/loadnifti.m</file>
       <file>${PROJECT_ROOT}/memmapstream.m</file>
       <file>${PROJECT_ROOT}/nii2jnii.m</file>
+      <file>${PROJECT_ROOT}/jnii2nii.m</file>
       <file>${PROJECT_ROOT}/niicodemap.m</file>
       <file>${PROJECT_ROOT}/niiformat.m</file>
       <file>${PROJECT_ROOT}/niiheader2jnii.m</file>
+      <file>${PROJECT_ROOT}/nifticreate.m</file>
+      <file>${PROJECT_ROOT}/jnifticreate.m</file>
+      <file>${PROJECT_ROOT}/savenifti.m</file>
+      <file>${PROJECT_ROOT}/savejnifti.m</file>
+      <file>${PROJECT_ROOT}/savejnii.m</file>
+      <file>${PROJECT_ROOT}/savebnii.m</file>
       <file>${PROJECT_ROOT}/regrouph5.m</file>
       <file>${PROJECT_ROOT}/transposemat.m</file>
     </fileset.rootfiles>
