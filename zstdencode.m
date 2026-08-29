@@ -1,23 +1,21 @@
-function varargout = zstddecode(varargin)
+function varargout = zstdencode(varargin)
 %
-% output = zstddecode(input)
+% output = zstdencode(input)
 %    or
-% output = zstddecode(input,info)
+% [output, info] = zstdencode(input)
 %
-% Decompressing an Zstd-compressed byte-stream to recover the original data
+% Compress a string or a numerical array using Zstd-compression
+%
 % This function depends on the ZMat toolbox (http://github.com/NeuroJSON/zmat)
 %
 % authors:Qianqian Fang (q.fang <at> neu.edu)
 %
 % input:
-%      input: a string, int8/uint8 vector or numerical array to store Zstd-compressed data
-%      info (optional): a struct produced by the zmat/zstdencode function during
-%            compression; if not given, the inputs/outputs will be treated as a
-%            1-D vector
+%      input: the original data, can be a string, a numerical vector or array
 %
 % output:
-%      output: the decompressed byte stream stored in a uint8 vector; if info is
-%            given, output will restore the original data's type and dimensions
+%      output: the compressed byte stream stored in a uint8 vector
+%      info: (optional) a struct storing the metadata of the input, see "help zmat" for details
 %
 % examples:
 %      [bytes, info]=zstdencode(eye(10));
@@ -32,12 +30,10 @@ function varargout = zstddecode(varargin)
 if (nargin == 0)
     error('you must provide at least 1 input');
 end
+
 if (exist('zmat', 'file') == 2 || exist('zmat', 'file') == 3)
-    if (nargin > 1)
-        [varargout{1:nargout}] = zmat(varargin{1}, varargin{2:end});
-    else
-        [varargout{1:nargout}] = zmat(varargin{1}, 0, 'zstd', varargin{2:end});
-    end
+    [varargout{1:nargout}] = zmat(varargin{1}, 1, 'zstd', varargin{2:end});
+    return
 else
     error('you must install ZMat toolbox to use this feature: http://github.com/NeuroJSON/zmat');
 end

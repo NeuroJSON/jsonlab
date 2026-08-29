@@ -99,7 +99,7 @@ if (iscell(cachepath) && ~isempty(cachepath))
     else
         rawdata = urlread(uripath);
         fid = fopen(fname, 'wb');
-        if (fid == 0)
+        if (fid == -1)
             error('can not save URL to cache at path %s', fname);
         end
         fwrite(fid, uint8(rawdata));

@@ -66,7 +66,7 @@ if (regexp(filename, '\.[Gg][Zz]$'))
 end
 
 fid = fopen(filename, 'wb');
-if (fid == 0)
+if (fid == -1)
     error('can not write to the specified file');
 end
 fwrite(fid, buf);
