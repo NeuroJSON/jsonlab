@@ -69,17 +69,17 @@ opt.rootpath = path;
 if (exist('OCTAVE_VERSION', 'builtin') ~= 0 && exist('h5info') == 0)
     try
         try
+            pkg load oct-hdf5;
+        catch
             [varargout{1:nargout}] = load(filename, '-hdf5');
             if (opt.dotranspose)
                 varargout{1} = transposemat(varargout{1});
             end
             return
-        catch
-            pkg load oct-hdf5;
         end
     catch
         error(['To use EasyH5 in Octave, one must install oct-hdf5 first using\n\t' ...
-               'pkg install https://github.com/fangq/oct-hdf5/archive/refs/heads/main.zip\n%s'], '');
+               'pkg install https://github.com/NeuroJSON/oct-hdf5/archive/refs/tags/git20250413.zip\n%s'], '');
     end
 end
 
