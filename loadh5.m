@@ -79,7 +79,7 @@ if (exist('OCTAVE_VERSION', 'builtin') ~= 0 && exist('h5info') == 0)
         end
     catch
         error(['To use EasyH5 in Octave, one must install oct-hdf5 first using\n\t' ...
-               'pkg install https://github.com/NeuroJSON/oct-hdf5/archive/refs/tags/git20250413.zip\n%s'], '');
+               'pkg install https://github.com/NeuroJSON/oct-hdf5/archive/refs/tags/git20260830.zip\n%s'], '');
     end
 end
 
