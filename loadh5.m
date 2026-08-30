@@ -234,7 +234,15 @@ try
         if ((isnumeric(sub_data) && inputdata.opt.dotranspose) || (iscell(sub_data) && length(sub_data) > 1))
             sub_data = permute(sub_data, ndims(sub_data):-1:1);
         end
+        wascompound = isstruct(sub_data);
         sub_data = fix_data(sub_data, attr, inputdata.opt);
+        if (wascompound && isnumeric(sub_data) && inputdata.opt.dotranspose)
+            % complex and sparse arrays are transposed by saveh5 before their
+            % Real/Imag parts and SparseIndex are computed, so they reach this
+            % point as a compound type and miss the transpose applied above;
+            % undo it now that fix_data has rebuilt the numeric array
+            sub_data = permute(sub_data, ndims(sub_data):-1:1);
+        end
         if (encodename)
             name = encodevarname(name);
         else
