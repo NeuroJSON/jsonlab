@@ -38,7 +38,7 @@ if (nargin == 0)
 end
 
 % Try built-in JVM-based zlib first when Java is available
-if (usejava('jvm'))
+if (jdhasjava)
     try
         rawinput = varargin{1};
         if (ischar(rawinput))
@@ -46,33 +46,14 @@ if (usejava('jvm'))
         end
         input = typecast(rawinput(:)', 'uint8');
 
-        if (isoctavemesh)
-            % Octave with Java: write/read bytes one at a time
-            n = numel(input);
-            inputBaos = javaObject('java.io.ByteArrayOutputStream', n);
-            for i = 1:n
-                inputBaos.write(int32(input(i)));
-            end
-            bais = javaObject('java.io.ByteArrayInputStream', inputBaos.toByteArray());
-            iis = javaObject('java.util.zip.InflaterInputStream', bais);
-            outputBaos = javaObject('java.io.ByteArrayOutputStream');
-            while true
-                b = iis.read();
-                if (b < 0)
-                    break
-                end
-                outputBaos.write(b);
-            end
-            iis.close();
-            varargout{1} = typecast(outputBaos.toByteArray(), 'uint8')';
-        else
-            % MATLAB with Java: direct array write
-            buffer = java.io.ByteArrayOutputStream();
-            zlib = java.util.zip.InflaterOutputStream(buffer);
-            zlib.write(input, 0, numel(input));
-            zlib.close();
-            varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
-        end
+        % InflaterOutputStream lets the compressed bytes be pushed in rather
+        % than pulled out, so a single bulk write replaces what used to be two
+        % byte-at-a-time loops on Octave
+        buffer = javaObject('java.io.ByteArrayOutputStream');
+        zlib = javaObject('java.util.zip.InflaterOutputStream', buffer);
+        jdjavawrite(zlib, input);
+        zlib.close();
+        varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
 
         if (nargin > 1 && isstruct(varargin{2}) && isfield(varargin{2}, 'type'))
             inputinfo = varargin{2};

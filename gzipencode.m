@@ -38,7 +38,7 @@ end
 inputinfo = struct('type', class(varargin{1}), 'size', size(varargin{1}), 'method', 'gzip', 'status', 0);
 
 % Try built-in JVM-based gzip first when Java is available
-if (usejava('jvm'))
+if (jdhasjava)
     try
         input = varargin{1}(:)';
         if (ischar(input))
@@ -49,24 +49,12 @@ if (usejava('jvm'))
             input = typecast(input, 'uint8');
         end
 
-        if (isoctavemesh)
-            % Octave with Java: write bytes one at a time
-            baos = javaObject('java.io.ByteArrayOutputStream');
-            gzos = javaObject('java.util.zip.GZIPOutputStream', baos);
-            for i = 1:numel(input)
-                gzos.write(int32(input(i)));
-            end
-            gzos.finish();
-            gzos.close();
-            varargout{1} = typecast(baos.toByteArray(), 'uint8')';
-        else
-            % MATLAB with Java: direct array write
-            buffer = java.io.ByteArrayOutputStream();
-            gzip = java.util.zip.GZIPOutputStream(buffer);
-            gzip.write(input, 0, numel(input));
-            gzip.close();
-            varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
-        end
+        buffer = javaObject('java.io.ByteArrayOutputStream');
+        gzip = javaObject('java.util.zip.GZIPOutputStream', buffer);
+        jdjavawrite(gzip, input);
+        gzip.finish();
+        gzip.close();
+        varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
         varargout{1} = normalize_gzip_os(varargout{1});
         if (nargout > 1)
             varargout{2} = inputinfo;

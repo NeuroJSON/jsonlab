@@ -196,6 +196,44 @@ if (ismember('js', tests))
                      'compact', 1, 'Compression', 'lzma', 'CompressArraySize', 0);  % nestarray for 4-D or above is not working
     catch
     end
+
+    %% --- codec round-trips across input shapes and sizes ---
+    % A one-element buffer marshals to a Java scalar rather than a byte[], so
+    % it exercises a different path from every other size; an empty buffer and
+    % a buffer larger than the deflate window exercise two more.
+    try
+        zipcases = {uint8([]), uint8(7), uint8([0 255]), uint8(mod(0:65535, 251)), ...
+                    'a char row', logical(mod(1:99, 2)), single(1:1000), int16(-300:300)};
+        for zc = 1:numel(zipcases)
+            raw = zipcases{zc};
+            if (ischar(raw))
+                expect = uint8(raw);
+            else
+                expect = typecast(raw(:)', 'uint8');
+            end
+            for zm = {'zlib', 'gzip'}
+                encfun = str2func([zm{1} 'encode']);
+                decfun = str2func([zm{1} 'decode']);
+                back = decfun(encfun(raw));
+                test_jsonlab(sprintf('%s round-trip case %d', zm{1}, zc), @savejson, ...
+                             isequal(uint8(back(:)'), expect), '[true]', 'compact', 1);
+            end
+        end
+    catch
+    end
+
+    %% --- zstd must be decodable when it is encodable ---
+    % zstdencode/zstddecode both exist, but zstd was missing from the codec
+    % name lists, so an encodable array was rejected on the way back in.
+    try
+        zstdval = zstdencode('test');
+        a3 = single(reshape(1:1000, 10, 10, 10));
+        enc_zstd = jdataencode(a3, 'compression', 'zstd', 'compressarraysize', 0);
+        dec_zstd = jdatadecode(enc_zstd);
+        test_jsonlab('zstd round-trips through jdataencode/jdatadecode', @savejson, ...
+                     isequaln(dec_zstd, a3), '[true]', 'compact', 1);
+    catch
+    end
 end
 %%
 if (ismember('jso', tests))

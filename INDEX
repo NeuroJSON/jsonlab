@@ -51,6 +51,9 @@ Compression and Decompression
  zstddecode
  zstdencode
  octavezmat
+ jdhasjava
+ jdjavaread
+ jdjavawrite
 HDF5 file parser
  loadh5
 JNIfTI file parser

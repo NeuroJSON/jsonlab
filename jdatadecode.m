@@ -240,7 +240,7 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
             if (isfield(data, N_ArrayZipType))
                 zipmethod = data(j).(N_ArrayZipType);
             end
-            if (ismember(zipmethod, {'zlib', 'gzip', 'lzma', 'lzip', 'lz4', 'lz4hc', 'base64'}) || ~isempty(regexp(zipmethod, '^blosc2', 'once')))
+            if (ismember(zipmethod, {'zlib', 'gzip', 'lzma', 'lzip', 'lz4', 'lz4hc', 'zstd', 'base64'}) || ~isempty(regexp(zipmethod, '^blosc2', 'once')))
                 decodeparam = {};
                 if (~isempty(regexp(zipmethod, '^blosc2', 'once')))
                     decompfun = @blosc2decode;
@@ -268,16 +268,22 @@ if (isfield(data, N_ArrayType) && (isfield(data, N_ArrayData) || (isfield(data, 
                     if (numel(chunkshape) == 1)
                         % 1-D chunked decode: concatenate flat byte buffers
                         nchunks = numel(chunks_cell);
-                        allbytes = uint8([]);
+                        % Collect the chunks, then concatenate once. Growing a
+                        % buffer inside the loop recopies every byte decoded so
+                        % far on each iteration, making the assembly quadratic
+                        % in the chunk count. The leading empty element keeps
+                        % the concatenation uint8 when nchunks is 0.
+                        chunkparts = cell(1, nchunks + 1);
+                        chunkparts{1} = uint8([]);
                         for ci = 1:nchunks
                             chunkblob = uint8(chunks_cell{ci}(:)');
                             if (needbase64 && ~strcmp(zipmethod, 'base64'))
                                 chunkblob = base64decode(chunkblob);
                             end
                             tmpchunk = decompfun(chunkblob, decodeparam{:});
-                            allbytes = [allbytes, tmpchunk(:)'];
+                            chunkparts{ci + 1} = tmpchunk(:)';
                         end
-                        ndata = typecast(allbytes, arraytype);
+                        ndata = typecast([chunkparts{:}], arraytype);
                     else
                         % N-D chunked decode: two modes depending on array type.
                         % Dense: _ArrayChunks_ is in _ArraySize_ (original) order;

@@ -38,7 +38,7 @@ end
 % Try built-in JVM-based base64 decoder first (MATLAB with JVM only;
 % Octave's base64_decode is doubles-oriented, so we skip it here and use
 % the manual byte-oriented decoder as Octave's native path below).
-if (~isoctavemesh && usejava('jvm'))
+if (~isoctavemesh && jdhasjava)
     try
         rawinput = varargin{1};
         if (ischar(rawinput))

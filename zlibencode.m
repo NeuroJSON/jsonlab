@@ -38,7 +38,7 @@ end
 inputinfo = struct('type', class(varargin{1}), 'size', size(varargin{1}), 'method', 'zlib', 'status', 0);
 
 % Try built-in JVM-based zlib first when Java is available
-if (usejava('jvm'))
+if (jdhasjava)
     try
         input = varargin{1}(:)';
         if (ischar(input))
@@ -49,24 +49,12 @@ if (usejava('jvm'))
             input = typecast(input, 'uint8');
         end
 
-        if (isoctavemesh)
-            % Octave with Java: write bytes one at a time
-            baos = javaObject('java.io.ByteArrayOutputStream');
-            dos = javaObject('java.util.zip.DeflaterOutputStream', baos);
-            for i = 1:numel(input)
-                dos.write(int32(input(i)));
-            end
-            dos.finish();
-            dos.close();
-            varargout{1} = typecast(baos.toByteArray(), 'uint8')';
-        else
-            % MATLAB with Java: direct array write
-            buffer = java.io.ByteArrayOutputStream();
-            zlib = java.util.zip.DeflaterOutputStream(buffer);
-            zlib.write(input, 0, numel(input));
-            zlib.close();
-            varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
-        end
+        buffer = javaObject('java.io.ByteArrayOutputStream');
+        zlib = javaObject('java.util.zip.DeflaterOutputStream', buffer);
+        jdjavawrite(zlib, input);
+        zlib.finish();
+        zlib.close();
+        varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
         if (nargout > 1)
             varargout{2} = inputinfo;
         end

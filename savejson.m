@@ -205,7 +205,7 @@ end
 
 dozip = opt.compression;
 if (~isempty(dozip))
-    if (~ismember(dozip, {'zlib', 'gzip', 'lzma', 'lzip', 'lz4', 'lz4hc'}) && isempty(regexp(dozip, '^blosc2', 'once')))
+    if (~ismember(dozip, {'zlib', 'gzip', 'lzma', 'lzip', 'lz4', 'lz4hc', 'zstd'}) && isempty(regexp(dozip, '^blosc2', 'once')))
         error('compression method "%s" is not supported', dozip);
     end
 end

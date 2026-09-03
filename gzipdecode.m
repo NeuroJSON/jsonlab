@@ -38,7 +38,7 @@ if (nargin == 0)
 end
 
 % Try built-in JVM-based gzip first when Java is available
-if (usejava('jvm'))
+if (jdhasjava)
     try
         rawinput = varargin{1};
         if (ischar(rawinput))
@@ -46,33 +46,16 @@ if (usejava('jvm'))
         end
         input = typecast(rawinput(:)', 'uint8');
 
-        if (isoctavemesh)
-            % Octave with Java: write/read bytes one at a time
-            n = numel(input);
-            inputBaos = javaObject('java.io.ByteArrayOutputStream', n);
-            for i = 1:n
-                inputBaos.write(int32(input(i)));
-            end
-            bais = javaObject('java.io.ByteArrayInputStream', inputBaos.toByteArray());
-            gzis = javaObject('java.util.zip.GZIPInputStream', bais);
-            baos = javaObject('java.io.ByteArrayOutputStream');
-            while true
-                b = gzis.read();
-                if (b < 0)
-                    break
-                end
-                baos.write(b);
-            end
-            gzis.close();
-            varargout{1} = typecast(baos.toByteArray(), 'uint8')';
-        else
-            % MATLAB with Java: use IOUtils for efficient copy
-            gzip = java.util.zip.GZIPInputStream(java.io.ByteArrayInputStream(input));
-            buffer = java.io.ByteArrayOutputStream();
-            org.apache.commons.io.IOUtils.copy(gzip, buffer);
-            gzip.close();
-            varargout{1} = typecast(buffer.toByteArray(), 'uint8')';
-        end
+        % gzip has no OutputStream-shaped decompressor in the JDK, so the
+        % payload has to be pulled out of a GZIPInputStream; jdjavawrite
+        % marshals the compressed bytes in and jdjavaread pulls the
+        % decompressed bytes out, each in bulk where the runtime allows it
+        inputBaos = javaObject('java.io.ByteArrayOutputStream', numel(input));
+        jdjavawrite(inputBaos, input);
+        bais = javaObject('java.io.ByteArrayInputStream', inputBaos.toByteArray());
+        gzip = javaObject('java.util.zip.GZIPInputStream', bais);
+        varargout{1} = jdjavaread(gzip)';
+        gzip.close();
 
         if (nargin > 1 && isstruct(varargin{2}) && isfield(varargin{2}, 'type'))
             inputinfo = varargin{2};

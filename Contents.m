@@ -17,6 +17,9 @@
 %   jdatahash.m        - key = jdatahash(data, algorithm)
 %   jdict              - jd = jdict(data)
 %   jdlink             - data = jdlink(uripath)
+%   jdhasjava          - tf = jdhasjava
+%   jdjavaread         - bytes = jdjavaread(stream)
+%   jdjavawrite        - jdjavawrite(stream, bytes)
 %   jload              - jload
 %   jsave              - jsave
 %   json2couch         - response = json2couch(jsonfile, couchdburl, dbname, docname, logininfo)

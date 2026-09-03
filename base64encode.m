@@ -45,7 +45,7 @@ if (isoctavemesh)
     catch
         % fall through to zmat/JVM
     end
-elseif (usejava('jvm'))
+elseif (jdhasjava)
     try
         rawinput = varargin{1};
         if (ischar(rawinput))
