@@ -41,7 +41,7 @@ end
 if (jdhasjava)
     try
         rawinput = varargin{1};
-        if (ischar(rawinput))
+        if (ischar(rawinput) || islogical(rawinput))
             rawinput = uint8(rawinput);
         end
         input = typecast(rawinput(:)', 'uint8');

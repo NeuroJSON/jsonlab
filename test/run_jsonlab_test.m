@@ -206,7 +206,7 @@ if (ismember('js', tests))
                     'a char row', logical(mod(1:99, 2)), single(1:1000), int16(-300:300)};
         for zc = 1:numel(zipcases)
             raw = zipcases{zc};
-            if (ischar(raw))
+            if (ischar(raw) || islogical(raw))
                 expect = uint8(raw);
             else
                 expect = typecast(raw(:)', 'uint8');

@@ -45,6 +45,12 @@ if (jdhasjava)
             input = uint8(input);
         elseif (isa(input, 'string'))
             input = uint8(char(input));
+        elseif (islogical(input))
+            % MATLAB's typecast rejects logical, so this used to throw and get
+            % swallowed by the fallback chain -- the same input then produced
+            % different bytes on MATLAB and Octave. uint8() gives one byte per
+            % element on both, which is what Octave's typecast already did.
+            input = uint8(input);
         else
             input = typecast(input, 'uint8');
         end
