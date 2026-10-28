@@ -2874,7 +2874,103 @@ if (ismember('schema', tests) && hasContainersMap)
                                                                                                                        'level2', struct('type', 'object', 'properties', struct( ...
                                                                                                                                                                                'arr', struct('binType', 'int16', 'minDims', [2, 2], 'maxDims', [10, 10]))))))));
     test_jsonlab('validate deep nested dims fail', @savejson, ~isempty(jd.validate()), '[true]', 'compact', 1);
-    clear jd s s2 schema result valid types strtests objtests;
+
+    % virtual arrays: a JData header without _ArrayData_/_ArrayZipData_, as
+    % returned by loadh5 with MaxBytes, is validated by its type and size
+    hdr = struct('x_ArrayType_', 'double', 'x_ArraySize_', [190 1988]);
+    schema = '{"binType":"double","minDims":[2,2],"maxDims":[1000,5000]}';
+    [valid, err, skipped] = jsonschema(hdr, schema);
+    test_jsonlab('virtual array binType/dims pass', @savejson, valid && isempty(err) && isempty(skipped), '[true]', 'compact', 1);
+    test_jsonlab('virtual array same result as real array', @savejson, jsonschema(rand(190, 1988), schema), '[true]', 'compact', 1);
+    [valid, err] = jsonschema(hdr, '{"binType":"int32"}');
+    test_jsonlab('virtual array binType fail', @savejson, err, '["$: expected int32, got double"]', 'compact', 1);
+    test_jsonlab('virtual array maxDims fail', @savejson, jsonschema(hdr, '{"maxDims":[100,100]}'), '[false]', 'compact', 1);
+    test_jsonlab('virtual array is an array', @savejson, jsonschema(hdr, '{"type":"array"}'), '[true]', 'compact', 1);
+    [valid, err] = jsonschema(hdr, '{"type":"object","required":["a"]}');
+    test_jsonlab('virtual array is not an object', @savejson, err, '["$: expected object, got array"]', 'compact', 1);
+    test_jsonlab('virtual array minItems pass', @savejson, jsonschema(struct('x_ArrayType_', 'single', 'x_ArraySize_', [1 50]), '{"minItems":10}'), '[true]', 'compact', 1);
+    test_jsonlab('virtual array maxItems fail', @savejson, jsonschema(struct('x_ArrayType_', 'single', 'x_ArraySize_', [1 50]), '{"maxItems":10}'), '[false]', 'compact', 1);
+    [valid, err, skipped] = jsonschema(hdr, '{"items":{"type":"number"},"enum":[1,2]}');
+    test_jsonlab('virtual array value checks skipped', @savejson, valid && numel(skipped) == 2, '[true]', 'compact', 1);
+    [valid, err] = jsonschema(hdr, '{"items":{"type":"number"}}', 'virtual', 'error');
+    test_jsonlab('virtual array skipped check as error', @savejson, err, '["$: items not checked, array data not loaded"]', 'compact', 1);
+
+    ihdr = struct('x_ArrayType_', 'int32', 'x_ArraySize_', [1 1]);
+    [valid, err, skipped] = jsonschema(ihdr, '{"type":"integer","minimum":1}');
+    test_jsonlab('virtual int32 scalar is integer', @savejson, valid && numel(skipped) == 1, '[true]', 'compact', 1);
+    test_jsonlab('virtual int32 scalar is not a string', @savejson, jsonschema(ihdr, '{"type":"string"}'), '[false]', 'compact', 1);
+    [valid, err, skipped] = jsonschema(struct('x_ArrayType_', 'double', 'x_ArraySize_', [1 1]), '{"type":"integer"}');
+    test_jsonlab('virtual double scalar integer undecided', @savejson, valid && numel(skipped) == 1, '[true]', 'compact', 1);
+    test_jsonlab('virtual complex scalar is not integer', @savejson, ...
+                 jsonschema(struct('x_ArrayType_', 'double', 'x_ArraySize_', [1 1], 'x_ArrayIsComplex_', true), '{"type":"integer"}'), '[false]', 'compact', 1);
+
+    test_jsonlab('virtual array from loadjson', @savejson, ...
+                 jsonschema(loadjson('{"_ArrayType_":"uint8","_ArraySize_":[3,4]}'), '{"binType":"uint8","minDims":[3,4]}'), '[true]', 'compact', 1);
+    test_jsonlab('virtual array from loadjson usemap', @savejson, ...
+                 jsonschema(loadjson('{"_ArrayType_":"uint8","_ArraySize_":[3,4]}', 'usemap', 1), '{"binType":"uint8","maxDims":[3,3]}'), '[false]', 'compact', 1);
+    test_jsonlab('header with data is an object', @savejson, ...
+                 jsonschema(struct('x_ArrayType_', 'double', 'x_ArraySize_', [1 2], 'x_ArrayData_', [1 2]), '{"type":"object"}'), '[true]', 'compact', 1);
+
+    jd = jdict(struct('a', hdr, 'b', int32(3)));
+    jd.setschema(struct('type', 'object', 'properties', struct('a', struct('binType', 'double', 'minDims', [2, 2]), 'b', struct('type', 'integer'))));
+    test_jsonlab('jdict validate virtual array', @savejson, isempty(jd.validate()), '[true]', 'compact', 1);
+
+    % errorformat struct returns path/keyword/message/property records
+    schema = ['{"type":"object","required":["a","b"],"additionalProperties":false,' ...
+              '"properties":{"a":{"binType":"double","minDims":[2,2]},"b":{},"n":{"minimum":0}}}'];
+    data = struct('a', ones(1, 2), 'n', -1, 'zz', 2);
+    [valid, err] = jsonschema(data, schema, 'errorformat', 'struct');
+    test_jsonlab('errorformat struct keywords', @savejson, {err.keyword}, '["required","minDims","minimum","additionalProperties"]', 'compact', 1);
+    test_jsonlab('errorformat struct paths', @savejson, {err.path}, '["$","$.a","$.n","$"]', 'compact', 1);
+    test_jsonlab('errorformat struct property', @savejson, {err([1 end]).property}, '["b","zz"]', 'compact', 1);
+    [valid, errstr] = jsonschema(data, schema);
+    test_jsonlab('errorformat struct same messages', @savejson, isequal({err.message}, errstr), '[true]', 'compact', 1);
+    [valid, err] = jsonschema(struct('a', ones(2)), schema, 'errorformat', 'struct');
+    test_jsonlab('errorformat struct one error', @savejson, {err.keyword}, '["required"]', 'compact', 1);
+    [valid, err] = jsonschema(struct('a', ones(2), 'b', 1), schema, 'errorformat', 'struct');
+    test_jsonlab('errorformat struct no error', @savejson, isstruct(err) && isempty(err) && isfield(err, 'keyword'), '[true]', 'compact', 1);
+    [valid, err, skipped] = jsonschema(struct('a', hdr, 'b', 1, 'n', ihdr), schema, 'errorformat', 'struct');
+    test_jsonlab('errorformat struct skipped', @savejson, {skipped.path, skipped.keyword}, '["$.n","minimum"]', 'compact', 1);
+
+    % binType may list several accepted types
+    test_jsonlab('binType list pass', @savejson, jsonschema(single(1:3), '{"binType":["double","single"]}'), '[true]', 'compact', 1);
+    [valid, err] = jsonschema(int8(1:3), '{"binType":["double","single"]}');
+    test_jsonlab('binType list fail', @savejson, err, '["$: expected double|single, got int8"]', 'compact', 1);
+    test_jsonlab('binType list invalid name', @savejson, jsonschema(1, '{"binType":["double","float"]}'), '[false]', 'compact', 1);
+    jd = jdict(struct('arr', []));
+    jd.setschema(struct('type', 'object', 'properties', struct('arr', struct('binType', {{'int32', 'int64'}}))));
+    jd.arr <= [1 2 3];
+    test_jsonlab('jdict binType list casts to first', @savejson, class(jd.arr()), '"int32"', 'compact', 1);
+    jd.arr <= int64([1 2]);
+    test_jsonlab('jdict binType list keeps listed type', @savejson, class(jd.arr()), '"int64"', 'compact', 1);
+
+    % a numeric enum read from JSON text is a numeric array, not a cell
+    test_jsonlab('numeric enum from JSON pass', @savejson, jsonschema(int32(51), '{"enum":[1,51,99999]}'), '[true]', 'compact', 1);
+    test_jsonlab('numeric enum from JSON fail', @savejson, jsonschema(2, '{"enum":[1,51,99999]}'), '[false]', 'compact', 1);
+
+    % if and not are undecided when their subschema needs unloaded values
+    schema = '{"if":{"properties":{"t":{"const":99999}}},"then":{"required":["label"]}}';
+    [valid, err, skipped] = jsonschema(struct('t', ihdr), schema);
+    test_jsonlab('if undecided on virtual array', @savejson, valid && numel(skipped) == 1 && ~isempty(strfind(skipped{1}, 'if not checked')), '[true]', 'compact', 1);
+    test_jsonlab('if decided on loaded value', @savejson, jsonschema(struct('t', 99999), schema), '[false]', 'compact', 1);
+    [valid, err] = jsonschema(struct('t', ihdr), schema, 'virtual', 'error');
+    test_jsonlab('if undecided as error', @savejson, err, '["$: if not checked, array data not loaded"]', 'compact', 1);
+    [valid, err, skipped] = jsonschema(ihdr, '{"not":{"minimum":5}}');
+    test_jsonlab('not undecided on virtual array', @savejson, valid && numel(skipped) == 1, '[true]', 'compact', 1);
+
+    % items with simple keywords are checked on the whole vector at once; the
+    % errors must match those of checking the elements one by one
+    [valid, err] = jsonschema(int32([0 1 2 7 3]), '{"items":{"type":"integer","minimum":1,"maximum":5}}');
+    test_jsonlab('items vector minimum/maximum', @savejson, err, '["$[0]: value < minimum","$[3]: value > maximum"]', 'compact', 1);
+    [valid, err] = jsonschema([1 51 2 NaN], '{"items":{"enum":[1,51,99999]}}');
+    test_jsonlab('items vector enum', @savejson, err, '["$[2]: not in enum","$[3]: not in enum"]', 'compact', 1);
+    [valid, err] = jsonschema([1.5 2], '{"items":{"type":"integer"}}');
+    test_jsonlab('items vector integer', @savejson, err, '["$[0]: expected integer, got number"]', 'compact', 1);
+    [valid, err] = jsonschema({'dOD', 'HbX'}, '{"items":{"$ref":"#/definitions/l"},"definitions":{"l":{"enum":["dOD","HbO"]}}}');
+    test_jsonlab('items cell string enum via ref', @savejson, err, '["$[1]: not in enum"]', 'compact', 1);
+    [valid, err] = jsonschema({'a', 'bb'}, '{"items":{"type":"string","minLength":2}}');
+    test_jsonlab('items element by element fallback', @savejson, err, '["$[0]: string too short"]', 'compact', 1);
+    clear jd s s2 schema result valid types strtests objtests hdr ihdr err errstr skipped data;
 end
 
 %%

@@ -1326,6 +1326,15 @@ classdef jdict < handle
                     % forcing type when binType is defined
                     if (isa(subschema, 'containers.Map') || isa(subschema, 'dictionary')) && isKey(subschema, 'binType')
                         bintype = subschema('binType');
+                        if iscell(bintype)
+                            % a list of accepted types: keep the value if it
+                            % is one of them, otherwise cast to the first
+                            if any(cellfun(@(t) isa(value, t), bintype))
+                                bintype = class(value);
+                            else
+                                bintype = bintype{1};
+                            end
+                        end
                         if ~isa(value, bintype)
                             try
                                 value = cast(value, bintype);
